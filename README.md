@@ -2,28 +2,47 @@
 
 Polygenic score calculation from single-sample gVCFs.
 
-**Status: early development.** `compile`, `extract` and `inspect` work and match the reference
-implementation term for term on 11.7 million Catalog terms against GIAB HG002. `score` is not implemented
-yet.
+**Status: v0.1, early development.** The full pipeline works. On GIAB HG002 it matches a reference
+implementation of the same rules term for term, and sum for sum, on 11.7 million Catalog terms.
 
 ## What's different
 
 Most PGS tools score a VCF and treat a site with no variant record as missing, then fill it with a mean
 dosage. A gVCF says more than that: a passing reference block is a confident homozygous-reference call.
-pgsum reads the gVCF directly and uses those blocks, and it never imputes. A score is reported only when
-every term in the model has a usable call; otherwise it is withheld with a count of why.
+pgsum reads the gVCF directly and uses those blocks, and it never imputes.
 
-## Planned usage
+Every score gets two answers:
+
+- **strict**: a raw score only when every term in the model has a usable call (otherwise withheld, with
+  the reasons);
+- **partial**: the exact sum over usable terms, labelled as partial, with the share of terms and of total
+  effect it covers.
+
+Weights are summed exactly (no floating point), and every output records the digests of its inputs.
+
+## Usage
 
 ```sh
-# Once per PGS Catalog release: compile harmonized scoring files into packs.
+# Once per PGS Catalog release: compile harmonized GRCh38 scoring files (each next to its
+# <PGS_ID>.metadata.json from the Catalog REST API) into packs.
 pgsum compile PGS000001_hmPOS_GRCh38.txt.gz --reference GRCh38.fa --out packs/
 
-# Per sample: read genotypes at the pack sites, then score.
+# Per sample: read genotypes at every pack site and score, in one step ...
+pgsum run --gvcf sample.g.vcf.gz --reference GRCh38.fa --pack packs/PGS000001.pgsp --out results/
+
+# ... or in two, reusing the genotype table for more packs later.
 pgsum extract --gvcf sample.g.vcf.gz --reference GRCh38.fa --pack packs/PGS000001.pgsp --out sample.pgsg
-pgsum inspect packs/PGS000001.pgsp --genotypes sample.pgsg   # per-term status and effect dosage
-pgsum score --genotypes sample.pgsg --pack packs/PGS000001.pgsp --out results/   # planned
+pgsum score --genotypes sample.pgsg --pack packs/PGS000001.pgsp --out results/ --terms
+
+# Look inside packs and genotype tables.
+pgsum inspect packs/PGS000001.pgsp [--header] [--genotypes sample.pgsg]
 ```
+
+`results/` gets `<PGS_ID>.score.json` per score, `scores.tsv` across scores, and with `--terms` a per-term
+TSV.
+
+On a 12-core Mac, for 8 scores with 11.7 million terms against a 36-million-record HG002 gVCF: compile 7.6 s,
+extract 10.2 s, score 3.2 s.
 
 ## Scoring files and licences
 

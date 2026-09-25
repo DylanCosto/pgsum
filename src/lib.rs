@@ -13,6 +13,7 @@ pub mod gvcf;
 pub mod orient;
 pub mod pack;
 pub mod reference;
+pub mod score;
 pub mod scoring_file;
 pub mod term;
 

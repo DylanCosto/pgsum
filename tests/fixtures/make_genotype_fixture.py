@@ -89,3 +89,35 @@ with open("synthetic.g.vcf", "w") as f:
     f.write("\n".join(vcf_header + body) + "\n")
 subprocess.run(["bgzip", "-f", "synthetic.g.vcf"], check=True)
 subprocess.run(["tabix", "-f", "-p", "vcf", "synthetic.g.vcf.gz"], check=True)
+
+# PGS999997: every term sits on a passing call above, with each weight model and a spread of exponents, so the
+# complete-score path and exact sums are exercised.
+complete = [
+    # pos, effect, other, model, weights
+    (1, "G", "A", "additive", ["0.1"]),
+    (2, "C", "T", "dominant", ["-2.5E-3"]),
+    (3, "G", "A", "recessive", ["1234"]),
+    (4, "C", "T", "dosage", ["0", "0.15", "0.3"]),
+    (5, "G", "T", "additive", ["0.000001"]),
+    (6, "A", "G", "additive", ["-0.75"]),
+    (17, "C", "T", "additive", ["1E+2"]),
+    (22, "T", "C", "additive", ["0.12345678901234567890123"]),
+    (24, "G", "T", "recessive", ["5"]),
+    (28, "A", "G", "dominant", ["-1.5"]),
+]
+cols = ["rsID", "chr_name", "effect_allele", "other_allele", "effect_weight", "dosage_0_weight", "dosage_1_weight",
+        "dosage_2_weight", "is_dominant", "is_recessive", "hm_source", "hm_chr", "hm_pos"]
+rows = []
+for p, e, o, model, w in complete:
+    assert seq(p) in (e, o) and {e, o} not in ({"A", "T"}, {"C", "G"}), (p, e, o, seq(p))
+    dosage = w if model == "dosage" else ["", "", ""]
+    rows.append("\t".join([f"rs{p}", "1", e, o, "" if model == "dosage" else w[0], *dosage,
+                           "TRUE" if model == "dominant" else "", "TRUE" if model == "recessive" else "",
+                           "ENSEMBL", "1", str(p)]))
+header = ["###PGS CATALOG SCORING FILE - synthetic test fixture", "#format_version=2.0", "#pgs_id=PGS999997",
+          f"#variants_number={len(rows)}", "#weight_type=beta", "#HmPOS_build=GRCh38"]
+with gzip.GzipFile("PGS999997_hmPOS_GRCh38.txt.gz", "wb", compresslevel=9, mtime=0) as f:
+    f.write(("\n".join(header + ["\t".join(cols)] + rows) + "\n").encode())
+with open("PGS999997.metadata.json", "w") as f:
+    json.dump(dict(id="PGS999997", name="synthetic complete score", variants_number=len(rows), weight_type="beta",
+                   matches_publication=True, license="CC0 1.0 (synthetic test fixture)"), f, indent=1)

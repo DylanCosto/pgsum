@@ -1,0 +1,11 @@
+ordinal	status	call_state	effect_dosage	contribution
+1	scorable_observation	observed_reference	0	0.0
+2	scorable_observation	observed_reference	2	-0.0025
+3	scorable_observation	observed_reference	2	1234
+4	scorable_observation	observed_variant	1	0.15
+5	scorable_observation	observed_variant	2	0.000002
+6	scorable_observation	observed_reference	0	-0.00
+7	scorable_observation	observed_variant	1	1E+2
+8	scorable_observation	observed_reference	0	0E-23
+9	scorable_observation	observed_variant	1	0
+10	scorable_observation	observed_variant	1	-1.5

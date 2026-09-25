@@ -11,8 +11,8 @@ genotype.
 ## Non-goals (v0)
 
 - No imputation. A term without a usable call is never filled in with a mean or reference dosage.
-- No partial scores by default. A score is emitted only when every term in the model is scorable (see
-  [Completeness](#completeness)).
+- No silent partial scores. The strict raw score exists only when every term is scorable; a partial sum is
+  reported separately, labelled, with its coverage (see [Completeness](#completeness)).
 - No percentiles, ancestry projection or absolute risk. Output is a raw, uncalibrated score.
 - No clinical interpretation.
 - GRCh38 only.
@@ -65,7 +65,11 @@ comparison, full record parsing with htslib took 18.2 s.
 
 ### 3. `score`: packs × genotype table → results
 
-Exact decimal sum of each scorable term's contribution, per score.
+Each term's outcome is `model_term_requires_review` (any review reason), `unresolved_orientation`, the call
+state, or `scorable_observation` with its effect-allele dosage (the ALT dosage when the effect allele is the
+ALT, otherwise 2 − ALT dosage) and exact contribution. Output per score: a JSON result
+(`<pgs_id>.score.json`), optionally a per-term TSV (`--terms`), and a `scores.tsv` summary across scores.
+Packs are scored in parallel; all 8 development packs score against HG002 in 3.2 s.
 
 ## Term description (compile time)
 
@@ -138,31 +142,50 @@ Phase (`|` with a numeric `PS`) is preserved in the output but does not affect a
 
 ## Completeness
 
-Per score, the result records the count of terms in each state. The raw score is emitted only when:
+Two sums are reported for every score.
 
-- every term in the source file was processed,
-- every term is `scorable_observation`, and
-- the pack's inventory matches the source file.
+**Strict.** `status` is `complete_uncalibrated_score` and `raw_score` is set only when:
 
-Otherwise the status is `score_withheld` with the state counts, so the caller can see exactly why. A
-partial-score mode may be added later as an explicit opt-in that labels its output as partial.
+- every term is `scorable_observation`,
+- the inventory is consistent (scoring-file header, Catalog record and actual term count agree), and
+- the Catalog records that the scoring file matches its publication.
+
+Otherwise `status` is `score_withheld`, `raw_score` is null, and `withheld_because` lists each unmet
+condition.
+
+**Partial.** `partial.raw_score` is always the exact sum over scorable terms. Unscorable terms contribute
+nothing; no genotype is imputed. It carries its coverage: the share of terms, and the share of summed
+absolute per-term effect (`|w|`, or `max(|w1 − w0|, |w2 − w0|)` for dosage weights) held by scorable terms.
+A partial sum is only comparable with another score or a reference distribution computed over the same
+terms. When the strict score exists, the two are equal.
+
+Why both: on HG002, none of the 8 development scores meets the strict rule, although the four genome-wide
+ones have 99.5–99.8% of terms scorable. The remaining terms are low-quality calls, overlapping records,
+deletions spanning the site, no-calls and unresolved palindromic SNVs, which any real genome will have.
 
 ## Arithmetic
 
-Weights are exact decimals and the sum is exact (arbitrary precision, no floating point). The raw score is
-written as a decimal string. Parity checks compare numeric value, not string formatting.
+Weights are exact decimals and the sum is exact (no floating point). Contributions are grouped by exponent
+in 128-bit accumulators and combined with arbitrary-precision integers at the end. The sum starts from
+decimal zero, so its exponent is the smallest exponent among the scorable contributions (and at most 0),
+and it is written in Python `decimal.Decimal` text form. Raw scores are therefore identical as strings to
+the reference implementation's, trailing zeros included (e.g. `1332.64750200000000000000000`).
+
+Coverage fractions are floating point; they describe the sum and never enter it.
 
 ## Output (`pgsum-score-v1`)
 
-One JSON object per score:
+One JSON object per score (`src/score.rs`, `ScoreResult`):
 
-- `pgs_id`, `status`, `raw_score` (string or null), `weight_type`
-- `processed_terms`, `required_terms`, `scorable_terms`, `states` (state → count)
-- `policy`, `imputation_performed: false`, `partial_score_emitted: false`
-- `inputs`: SHA-256 of the gVCF, its index, the FASTA, the `.fai` and the pack; the pgsum version
+- `pgs_id`, `sample_id`, `policy`, `status`, `raw_score` (string or null), `withheld_because`
+- `partial`: `raw_score`, `coverage` (`scorable_terms`, `total_terms`, `term_fraction`, `weight_fraction`,
+  `terms_without_weight`) and a note on comparability
+- `required_terms`, `scorable_terms`, `states` (term status → count)
+- `weight_type` (Catalog), `license`, `matches_publication`, `inventory_consistent`
+- `imputation_performed: false`, `calibration: "uncalibrated: …"`
+- `inputs`: SHA-256 of the pack records, the scoring file, the gVCF, the genotype table body and the FASTA
 
-Optional per-term TSV (`--terms`): ordinal, contig, pos, effect/other allele, state, effect dosage,
-contribution.
+Per-term TSV (`--terms`): the `inspect` columns, then status, call state, effect dosage and contribution.
 
 ## Provenance
 
@@ -201,6 +224,25 @@ call state and effect-allele dosage is identical to the reference implementation
 the 8 development scores, and for the synthetic `tests/fixtures/PGS999998` + `synthetic.g.vcf.gz` pair (one
 scenario per genotype rule), checked in CI by `tests/extract_fixture.rs`. `extract` over all 8 packs
 (6,825,089 distinct targets) takes 10.2 s on 12 cores with a 3.9 GB peak.
+
+**M3 (score), 2026-09-25:** on HG002, every term's status, effect dosage and contribution text, and every
+score's exact partial sum, are identical to the reference implementation for all 8 development scores
+(checked by `tests/parity_hg002.rs` with `PGSUM_PARITY_DIR`). For the small scores and the synthetic fixtures
+the strict status and raw score also match the reference implementation's own complete-score reduction,
+including `PGS999997`, which is complete: `1332.64750200000000000000000`.
+
+| Score | Terms | Scorable | Weight covered | Partial raw score |
+|---|---|---|---|---|
+| PGS000001 | 77 | 90.91% | 91.17% | 1.150607011830277419 |
+| PGS000004 | 313 | 72.84% | 73.26% | 1.2048 |
+| PGS000013 | 6,630,150 | 99.47% | 99.54% | 17.98628904251893594 |
+| PGS000018 | 1,745,179 | 99.62% | 99.19% | -1.914331603599 |
+| PGS000027 | 2,100,302 | 99.79% | 99.78% | 38.733425392830412602414284095 |
+| PGS000662 | 269 | 81.04% | 82.06% | 20.236805567 |
+| PGS000667 | 43 | 0% | 0% | 0 |
+| PGS002724 | 1,213,574 | 99.77% | 99.80% | -2461760.133929721328533131 |
+
+All are `score_withheld` under the strict rule.
 
 PGS000018's scoring file declares 1,745,180 variants and contains 1,745,179; its pack records the inventory
 as inconsistent, so its score will be withheld.

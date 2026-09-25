@@ -116,8 +116,24 @@ fn main() -> ExitCode {
             out,
             threads: t,
         } => extract(&gvcf, &reference, &packs, &out, t),
-        Command::Score { .. } => Err(Error::NotImplemented("score")),
-        Command::Run { .. } => Err(Error::NotImplemented("run")),
+        Command::Score {
+            genotypes,
+            packs,
+            out,
+            terms,
+        } => GenotypeTable::open(&genotypes).and_then(|table| score(&table, &packs, &out, terms, None)),
+        Command::Run {
+            gvcf,
+            reference,
+            packs,
+            out,
+            threads: t,
+            terms,
+        } => std::fs::create_dir_all(&out).map_err(Error::io(&out)).and_then(|_| {
+            let table_path = out.join("genotypes.pgsg");
+            extract(&gvcf, &reference, &packs, &table_path, t)?;
+            score(&GenotypeTable::open(&table_path)?, &packs, &out, terms, t)
+        }),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -206,6 +222,78 @@ fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, request
     Ok(())
 }
 
+fn score(table: &GenotypeTable, packs: &[PathBuf], out: &Path, terms: bool, requested: Option<usize>) -> Result<()> {
+    std::fs::create_dir_all(out).map_err(Error::io(out))?;
+    let next = AtomicUsize::new(0);
+    let results = Mutex::new(Vec::new());
+    let failures = Mutex::new(Vec::new());
+    std::thread::scope(|scope| {
+        for _ in 0..threads(requested).min(packs.len()) {
+            scope.spawn(|| {
+                while let Some(path) = packs.get(next.fetch_add(1, Ordering::Relaxed)) {
+                    let result = (|| -> Result<pgsum::score::ScoreResult> {
+                        let pack = Pack::open(path)?;
+                        let id = &pack.header.pgs_id;
+                        let result = if terms {
+                            let tsv = out.join(format!("{id}.terms.tsv"));
+                            let mut w = BufWriter::new(std::fs::File::create(&tsv).map_err(Error::io(&tsv))?);
+                            let r = pgsum::score::score(&pack, table, Some(&mut w))?;
+                            w.flush().map_err(Error::io(&tsv))?;
+                            r
+                        } else {
+                            pgsum::score::score(&pack, table, None)?
+                        };
+                        let json_path = out.join(format!("{id}.score.json"));
+                        let mut json = serde_json::to_vec_pretty(&result).map_err(|e| Error::Invalid(e.to_string()))?;
+                        json.push(b'\n');
+                        std::fs::write(&json_path, json).map_err(Error::io(&json_path))?;
+                        Ok(result)
+                    })();
+                    match result {
+                        Ok(r) => results.lock().unwrap().push(r),
+                        Err(e) => failures.lock().unwrap().push(format!("{}: {e}", path.display())),
+                    }
+                }
+            });
+        }
+    });
+    let mut results = results.into_inner().unwrap();
+    results.sort_by(|a, b| a.pgs_id.cmp(&b.pgs_id));
+    let mut summary = String::from(
+        "pgs_id\tstatus\traw_score\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\n",
+    );
+    for r in &results {
+        let c = &r.partial.coverage;
+        summary.push_str(&format!(
+            "{}\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\n",
+            r.pgs_id,
+            r.status,
+            r.raw_score.as_deref().unwrap_or(""),
+            r.partial.raw_score,
+            c.scorable_terms,
+            c.total_terms,
+            c.term_fraction,
+            c.weight_fraction
+        ));
+        eprintln!(
+            "{}: {} (partial {} over {:.2}% of terms, {:.2}% of weight)",
+            r.pgs_id,
+            r.status,
+            r.partial.raw_score,
+            100.0 * c.term_fraction,
+            100.0 * c.weight_fraction
+        );
+    }
+    let summary_path = out.join("scores.tsv");
+    std::fs::write(&summary_path, summary).map_err(Error::io(&summary_path))?;
+    let failures = failures.into_inner().unwrap();
+    if failures.is_empty() {
+        Ok(())
+    } else {
+        Err(Error::Invalid(failures.join("\n")))
+    }
+}
+
 fn inspect(path: &Path, header: bool, genotypes: Option<&Path>) -> Result<()> {
     let mut out = BufWriter::new(std::io::stdout().lock());
     let json = |out: &mut BufWriter<_>, value: &dyn erased::Json| value.write(out);
@@ -223,8 +311,12 @@ fn inspect(path: &Path, header: bool, genotypes: Option<&Path>) -> Result<()> {
         if header {
             json(&mut out, &pack.header)?;
         } else {
-            let table = genotypes.map(GenotypeTable::open).transpose()?;
-            pack.write_terms_tsv(&mut out, table.as_ref())?;
+            match genotypes {
+                Some(g) => {
+                    pgsum::score::score(&pack, &GenotypeTable::open(g)?, Some(&mut out))?;
+                }
+                None => pack.write_terms_tsv(&mut out)?,
+            }
         }
     }
     out.flush().map_err(Error::io("<stdout>"))

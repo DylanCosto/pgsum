@@ -32,7 +32,7 @@ fn synthetic_scoring_file_matches_reference_implementation() {
     let pack = Pack::open(&out.join("PGS999999.pgsp")).unwrap();
     assert_eq!(pack.header, header);
     let mut tsv = Vec::new();
-    pack.write_terms_tsv(&mut tsv, None).unwrap();
+    pack.write_terms_tsv(&mut tsv).unwrap();
     let expected = std::fs::read_to_string(fixtures.join("PGS999999.expected.tsv")).unwrap();
     let actual = String::from_utf8(tsv).unwrap();
     for (i, (a, e)) in actual.lines().zip(expected.lines()).enumerate() {
