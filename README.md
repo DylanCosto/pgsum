@@ -2,9 +2,9 @@
 
 Polygenic score calculation from single-sample gVCFs.
 
-**Status: early development.** `compile` and `inspect` work and match the reference implementation on
-11.7 million Catalog terms. `extract` and `score` are not implemented yet; the genotype rules they will use
-are implemented and tested.
+**Status: early development.** `compile`, `extract` and `inspect` work and match the reference
+implementation term for term on 11.7 million Catalog terms against GIAB HG002. `score` is not implemented
+yet.
 
 ## What's different
 
@@ -20,7 +20,9 @@ every term in the model has a usable call; otherwise it is withheld with a count
 pgsum compile PGS000001_hmPOS_GRCh38.txt.gz --reference GRCh38.fa --out packs/
 
 # Per sample: read genotypes at the pack sites, then score.
-pgsum run --gvcf sample.g.vcf.gz --reference GRCh38.fa --pack packs/PGS000001.pgsp --out results/
+pgsum extract --gvcf sample.g.vcf.gz --reference GRCh38.fa --pack packs/PGS000001.pgsp --out sample.pgsg
+pgsum inspect packs/PGS000001.pgsp --genotypes sample.pgsg   # per-term status and effect dosage
+pgsum score --genotypes sample.pgsg --pack packs/PGS000001.pgsp --out results/   # planned
 ```
 
 ## Scoring files and licences

@@ -6,6 +6,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use clap::{Parser, Subcommand};
 use pgsum::compile::{compile_file, metadata_path, reference_identity};
+use pgsum::genotypes::GenotypeTable;
 use pgsum::pack::Pack;
 use pgsum::reference::Reference;
 use pgsum::{Error, Result};
@@ -37,10 +38,14 @@ enum Command {
     },
     /// Print a pack's terms as TSV, or its header as JSON.
     Inspect {
-        pack: PathBuf,
+        /// A pack, or a genotype table with `--header`.
+        path: PathBuf,
         /// Print the header instead of the terms.
         #[arg(long)]
         header: bool,
+        /// Add each term's status, call state and effect dosage from this genotype table.
+        #[arg(long)]
+        genotypes: Option<PathBuf>,
     },
     /// Read genotypes from a gVCF at every site the packs need.
     Extract {
@@ -53,7 +58,7 @@ enum Command {
         /// Packs whose sites to extract.
         #[arg(long = "pack", required = true)]
         packs: Vec<PathBuf>,
-        /// Output genotype table.
+        /// Output genotype table (`.pgsg`).
         #[arg(long)]
         out: PathBuf,
         /// Worker threads (default: all cores).
@@ -99,8 +104,18 @@ fn main() -> ExitCode {
             out,
             threads,
         } => compile(&scoring_files, &reference, &out, threads),
-        Command::Inspect { pack, header } => inspect(&pack, header),
-        Command::Extract { .. } => Err(Error::NotImplemented("extract")),
+        Command::Inspect {
+            path,
+            header,
+            genotypes,
+        } => inspect(&path, header, genotypes.as_deref()),
+        Command::Extract {
+            gvcf,
+            reference,
+            packs,
+            out,
+            threads: t,
+        } => extract(&gvcf, &reference, &packs, &out, t),
         Command::Score { .. } => Err(Error::NotImplemented("score")),
         Command::Run { .. } => Err(Error::NotImplemented("run")),
     };
@@ -160,14 +175,72 @@ fn compile(scoring_files: &[PathBuf], reference: &Path, out: &Path, requested: O
     }
 }
 
-fn inspect(path: &Path, header: bool) -> Result<()> {
-    let pack = Pack::open(path)?;
+fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, requested: Option<usize>) -> Result<()> {
+    let started = std::time::Instant::now();
+    let reference = Reference::open(reference)?;
+    let identity = reference_identity(&reference)?;
+    let loaded = started.elapsed().as_secs_f64();
+    let (table, timings) = pgsum::extract::extract(gvcf, &reference, &identity, packs, threads(requested))?;
+    let t = std::time::Instant::now();
+    table.write(out)?;
+    eprintln!(
+        "  timings: reference {loaded:.1}s, packs+targets {:.1}s, scan {:.1}s, assess {:.1}s, table {:.1}s, write {:.1}s",
+        timings.targets_s,
+        timings.scan_s,
+        timings.assess_s,
+        timings.table_s,
+        t.elapsed().as_secs_f64()
+    );
+    let h = &table.header;
+    eprintln!(
+        "{}: {} records scanned, {} kept, {} targets in {:.1}s",
+        h.sample.sample_id,
+        h.records_scanned,
+        h.records_kept,
+        h.targets,
+        started.elapsed().as_secs_f64()
+    );
+    for (state, n) in &h.states {
+        eprintln!("  {state}: {n}");
+    }
+    Ok(())
+}
+
+fn inspect(path: &Path, header: bool, genotypes: Option<&Path>) -> Result<()> {
     let mut out = BufWriter::new(std::io::stdout().lock());
-    if header {
-        serde_json::to_writer_pretty(&mut out, &pack.header).map_err(|e| Error::Invalid(e.to_string()))?;
-        writeln!(out).map_err(Error::io("<stdout>"))?;
+    let json = |out: &mut BufWriter<_>, value: &dyn erased::Json| value.write(out);
+    let is_table = std::fs::File::open(path)
+        .and_then(|mut f| {
+            let mut magic = [0u8; 8];
+            std::io::Read::read_exact(&mut f, &mut magic).map(|_| &magic == pgsum::genotypes::MAGIC)
+        })
+        .map_err(Error::io(path))?;
+    if is_table {
+        let table = GenotypeTable::open(path)?;
+        json(&mut out, &table.header)?;
     } else {
-        pack.write_terms_tsv(&mut out)?;
+        let pack = Pack::open(path)?;
+        if header {
+            json(&mut out, &pack.header)?;
+        } else {
+            let table = genotypes.map(GenotypeTable::open).transpose()?;
+            pack.write_terms_tsv(&mut out, table.as_ref())?;
+        }
     }
     out.flush().map_err(Error::io("<stdout>"))
+}
+
+mod erased {
+    use pgsum::{Error, Result};
+
+    pub trait Json {
+        fn write(&self, out: &mut dyn std::io::Write) -> Result<()>;
+    }
+
+    impl<T: serde::Serialize> Json for T {
+        fn write(&self, out: &mut dyn std::io::Write) -> Result<()> {
+            serde_json::to_writer_pretty(&mut *out, self).map_err(|e| Error::Invalid(e.to_string()))?;
+            writeln!(out).map_err(Error::io("<stdout>"))
+        }
+    }
 }

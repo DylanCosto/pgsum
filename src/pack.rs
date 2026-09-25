@@ -25,6 +25,7 @@ use sha2::{Digest, Sha256};
 
 use crate::decimal::Decimal;
 use crate::digest::hex;
+use crate::genotypes::{GenotypeTable, target_key};
 use crate::orient::{Method, Orientation, Status};
 use crate::term::{AlleleKind, CONTIGS, Model, Reasons};
 use crate::{Error, Result, invalid};
@@ -260,13 +261,18 @@ impl Pack {
         }
     }
 
-    /// One line per term, in source order: description, review reasons, orientation and weights.
-    pub fn write_terms_tsv(&self, out: &mut impl Write) -> Result<()> {
+    /// One line per term, in source order: description, review reasons, orientation and weights; with a
+    /// genotype table, also the term status, call state and effect-allele dosage.
+    pub fn write_terms_tsv(&self, out: &mut impl Write, genotypes: Option<&GenotypeTable>) -> Result<()> {
         let io = |e| Error::Io {
             path: "<output>".into(),
             source: e,
         };
-        out.write_all(TSV_HEADER.as_bytes()).map_err(io)?;
+        let mut header = TSV_HEADER.trim_end().to_owned();
+        if genotypes.is_some() {
+            header.push_str("\tstatus\tcall_state\teffect_dosage");
+        }
+        writeln!(out, "{header}").map_err(io)?;
         let base = |b: u8| if b == 0 { String::new() } else { (b as char).to_string() };
         for (i, term) in self.terms().enumerate() {
             let t = term?;
@@ -276,7 +282,7 @@ impl Pack {
                 .iter()
                 .map(|w| w.to_decimal().map(|d| d.to_python_string()).unwrap_or_default())
                 .collect();
-            writeln!(
+            write!(
                 out,
                 "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}",
                 i + 1,
@@ -298,8 +304,49 @@ impl Pack {
                 weights.join(","),
             )
             .map_err(io)?;
+            if let Some(g) = genotypes {
+                let (status, call, dosage) = term_status(&t, g)?;
+                write!(
+                    out,
+                    "\t{status}\t{call}\t{}",
+                    dosage.map(|d| d.to_string()).unwrap_or_default()
+                )
+                .map_err(io)?;
+            }
+            writeln!(out).map_err(io)?;
         }
         Ok(())
+    }
+}
+
+/// A term's status against a genotype table: `(status, call state, effect-allele dosage)`.
+///
+/// The status is `model_term_requires_review` for a term with review reasons, `unresolved_orientation` for an
+/// unresolved one, `scorable_observation` for a passing call, and otherwise the call state.
+pub fn term_status(t: &TermRecord, genotypes: &GenotypeTable) -> Result<(&'static str, &'static str, Option<u8>)> {
+    if !t.reasons.is_empty() {
+        return Ok(("model_term_requires_review", "", None));
+    }
+    let o = t.orientation;
+    if o.status != Status::Resolved {
+        return Ok(("unresolved_orientation", "", None));
+    }
+    let key = target_key(t.contig, t.pos, o.ref_base, o.alt_base);
+    let Some(entry) = genotypes.get(key) else {
+        return invalid!(
+            "the genotype table has no call for {}:{}; extract with this pack",
+            CONTIGS[t.contig as usize - 1],
+            t.pos
+        );
+    };
+    let state = entry.state.as_str();
+    match entry.alt_dosage {
+        Some(alt) if entry.state.is_passing() => Ok((
+            "scorable_observation",
+            state,
+            Some(if o.effect_is_alt { alt } else { 2 - alt }),
+        )),
+        _ => Ok((state, state, None)),
     }
 }
 

@@ -1,0 +1,27 @@
+ordinal	status	call_state	effect_dosage
+1	scorable_observation	observed_reference	0
+2	scorable_observation	observed_reference	2
+3	scorable_observation	observed_reference	2
+4	scorable_observation	observed_variant	1
+5	scorable_observation	observed_variant	2
+6	scorable_observation	observed_reference	0
+7	genotype_filtered	genotype_filtered	
+8	low_quality	low_quality	
+9	no_call	no_call	
+10	partial_no_call	partial_no_call	
+11	unsupported_ploidy	unsupported_ploidy	
+12	filtered	filtered	
+13	quality_missing	quality_missing	
+14	other_called_allele	other_called_allele	
+15	scorable_observation	observed_variant	1
+16	unsupported_allele_representation	unsupported_allele_representation	
+17	unsupported_allele_representation	unsupported_allele_representation	
+18	ambiguous_overlapping_records	ambiguous_overlapping_records	
+19	scorable_observation	observed_reference	0
+20	reference_anchor_mismatch	reference_anchor_mismatch	
+21	scorable_observation	observed_variant	1
+22	unknown_no_record	unknown_no_record	
+23	unsupported_symbolic_genotype	unsupported_symbolic_genotype	
+24	quality_missing	quality_missing	
+25	scorable_observation	observed_variant	1
+26	unsupported_ploidy	unsupported_ploidy	

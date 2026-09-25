@@ -1,0 +1,218 @@
+//! Single-sample gVCF text: header facts and record parsing.
+//!
+//! Every record is scanned for its interval (`CHROM`, `POS`, `REF`, `INFO/END`); only records overlapping a
+//! target are fully parsed and validated.
+
+use crate::genotype::Record;
+use crate::{Error, Result, invalid};
+
+/// The DeepVariant header line that defines the `RefCall` filter.
+pub const REFCALL_DEFINITION: &str =
+    "##FILTER=<ID=RefCall,Description=\"Genotyping model thinks this site is reference.\">";
+
+#[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct HeaderFacts {
+    pub sample_id: String,
+    /// `##DeepVariant_version=`, when it is a plain `X.Y.Z` version.
+    pub deepvariant_version: Option<String>,
+    /// The header defines DeepVariant's `RefCall` filter.
+    pub refcall_defined: bool,
+}
+
+impl HeaderFacts {
+    /// Update from one header line; returns true once the `#CHROM` line has been read.
+    pub fn read_line(&mut self, line: &str) -> Result<bool> {
+        if let Some(version) = line.strip_prefix("##DeepVariant_version=") {
+            let parts: Vec<&str> = version.split('.').collect();
+            let plain = parts.len() == 3
+                && parts
+                    .iter()
+                    .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()));
+            self.deepvariant_version = plain.then(|| version.to_owned());
+        }
+        if line == REFCALL_DEFINITION {
+            self.refcall_defined = true;
+        }
+        if line.starts_with("#CHROM\t") {
+            let fields: Vec<&str> = line.split('\t').collect();
+            if fields.len() != 10 || fields[9].is_empty() {
+                return invalid!("the gVCF must have exactly one sample");
+            }
+            self.sample_id = fields[9].to_owned();
+            return Ok(true);
+        }
+        Ok(false)
+    }
+}
+
+/// The interval of a record: `CHROM`, `POS` and the inclusive end (`INFO/END`, else `POS + len(REF) - 1`).
+pub struct Interval<'a> {
+    pub chrom: &'a str,
+    pub pos: u64,
+    pub end: u64,
+}
+
+fn parse_u64(text: &str) -> Option<u64> {
+    (!text.is_empty() && text.bytes().all(|b| b.is_ascii_digit()))
+        .then(|| text.parse().ok())
+        .flatten()
+}
+
+/// `INFO/END` when present (the last one, if repeated).
+fn info_end(info: &str) -> Result<Option<u64>> {
+    let mut end = None;
+    if info == "." {
+        return Ok(None);
+    }
+    for item in info.split(';') {
+        if item == "END" {
+            return invalid!("INFO/END has no value");
+        }
+        if let Some(value) = item.strip_prefix("END=") {
+            end = Some(parse_u64(value).ok_or_else(|| Error::Invalid(format!("invalid INFO/END {value:?}")))?);
+        }
+    }
+    Ok(end)
+}
+
+pub fn interval(line: &str) -> Result<Interval<'_>> {
+    let mut fields = line.splitn(9, '\t');
+    let mut next = || {
+        fields
+            .next()
+            .ok_or_else(|| Error::Invalid("record has too few fields".into()))
+    };
+    let chrom = next()?;
+    let pos_text = next()?;
+    let _id = next()?;
+    let ref_allele = next()?;
+    let _alt = next()?;
+    let _qual = next()?;
+    let _filter = next()?;
+    let info = next()?;
+    let pos = parse_u64(pos_text)
+        .filter(|&p| p >= 1)
+        .ok_or_else(|| Error::Invalid(format!("invalid POS {pos_text:?}")))?;
+    let end = match info_end(info)? {
+        Some(end) => end,
+        None => pos + ref_allele.len() as u64 - 1,
+    };
+    if end < pos {
+        return invalid!("record end {end} is before POS {pos}");
+    }
+    Ok(Interval { chrom, pos, end })
+}
+
+fn valid_gt(gt: &str) -> bool {
+    !gt.is_empty()
+        && gt
+            .split(['/', '|'])
+            .all(|a| a == "." || !a.is_empty() && a.bytes().all(|b| b.is_ascii_digit()))
+}
+
+/// Fully parse and validate a record for the genotype rules.
+pub fn parse_record(line: &str) -> Result<Record> {
+    let fields: Vec<&str> = line.split('\t').collect();
+    if fields.len() != 10 {
+        return invalid!("record has {} fields, expected 10", fields.len());
+    }
+    let span = interval(line)?;
+    let keys: Vec<&str> = fields[8].split(':').collect();
+    let values: Vec<&str> = fields[9].split(':').collect();
+    let unique: std::collections::HashSet<_> = keys.iter().collect();
+    if unique.len() != keys.len() || values.len() > keys.len() {
+        return invalid!("invalid FORMAT or sample fields");
+    }
+    let sample = |key: &str| {
+        keys.iter()
+            .position(|k| *k == key)
+            .and_then(|i| values.get(i))
+            .map(|v| (*v).to_owned())
+    };
+    let raw_gt = sample("GT").unwrap_or_else(|| ".".to_owned());
+    if !valid_gt(&raw_gt) {
+        return invalid!("invalid GT {raw_gt:?}");
+    }
+    let alts: Vec<String> = fields[4].split(',').map(str::to_owned).collect();
+    let mut gt = Vec::new();
+    for allele in raw_gt.split(['/', '|']) {
+        if allele == "." {
+            gt.push(None);
+        } else {
+            let index: u32 = allele
+                .parse()
+                .map_err(|_| Error::Invalid(format!("invalid GT {raw_gt:?}")))?;
+            if index as usize > alts.len() {
+                return invalid!("GT {raw_gt:?} exceeds the allele list");
+            }
+            gt.push(Some(index));
+        }
+    }
+    Ok(Record {
+        pos: span.pos,
+        end: span.end,
+        ref_allele: fields[3].to_owned(),
+        alts,
+        filters: fields[6].split(';').map(str::to_owned).collect(),
+        gt_phased: raw_gt.contains('|'),
+        gt,
+        phase_set: sample("PS"),
+        ft: sample("FT"),
+        dp: sample("DP"),
+        min_dp: sample("MIN_DP"),
+        gq: sample("GQ"),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn block_and_variant_records() {
+        let block = "chr1\t10002\t.\tA\t<*>\t0\t.\tEND=10010\tGT:GQ:MIN_DP:PL\t0/0:24:28:0,24,719";
+        let r = parse_record(block).unwrap();
+        assert!(r.is_reference_block());
+        assert_eq!((r.pos, r.end, r.gt.clone()), (10002, 10010, vec![Some(0), Some(0)]));
+        assert_eq!(
+            (r.min_dp.as_deref(), r.dp.as_deref(), r.gq.as_deref()),
+            (Some("28"), None, Some("24"))
+        );
+
+        let variant = "chr1\t10011\t.\tC\tCCT,<*>\t0.3\tNoCall\t.\tGT:GQ:DP:PS\t1|0:11:33:9876";
+        let r = parse_record(variant).unwrap();
+        assert!(!r.is_reference_block());
+        assert_eq!(
+            (r.end, r.gt_phased, r.phase_set.as_deref()),
+            (10011, true, Some("9876"))
+        );
+        assert_eq!(r.filters, ["NoCall"]);
+    }
+
+    #[test]
+    fn deletion_end_and_missing_gt() {
+        let r = parse_record("chr1\t100\t.\tACGT\tA\t10\tPASS\t.\tDP\t20").unwrap();
+        assert_eq!((r.end, r.gt.clone()), (103, vec![None]));
+    }
+
+    #[test]
+    fn short_sample_field_is_allowed() {
+        let r = parse_record("chr1\t100\t.\tA\tG\t10\tPASS\t.\tGT:GQ:DP\t0/1:30").unwrap();
+        assert_eq!(r.dp, None);
+    }
+
+    #[test]
+    fn rejects_invalid_records() {
+        for bad in [
+            "chr1\t100\t.\tA\tG\t10\tPASS\t.\tGT\t0/2",
+            "chr1\t100\t.\tA\tG\t10\tPASS\t.\tGT\t0-1",
+            "chr1\t100\t.\tA\tG\t10\tPASS\t.\tGT:GT\t0/1:0/1",
+            "chr1\t100\t.\tA\tG\t10\tPASS\t.\tGT\t0/1:30",
+            "chr1\t100\t.\tA\t<*>\t0\t.\tEND=99\tGT\t0/0",
+            "chr1\t0\t.\tA\tG\t10\tPASS\t.\tGT\t0/1",
+            "chr1\t100\t.\tA\tG\t10\tPASS\t.\tGT",
+        ] {
+            assert!(parse_record(bad).is_err(), "{bad}");
+        }
+    }
+}

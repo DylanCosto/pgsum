@@ -57,6 +57,7 @@ impl Default for Policy {
 
 /// The outcome for one target site.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[repr(u8)]
 pub enum State {
     GenotypeFiltered,
     ReferenceAnchorMismatch,
@@ -78,6 +79,30 @@ pub enum State {
 }
 
 impl State {
+    pub const ALL: [State; 17] = [
+        State::GenotypeFiltered,
+        State::ReferenceAnchorMismatch,
+        State::ReferenceMismatch,
+        State::UnknownNoRecord,
+        State::AmbiguousOverlappingRecords,
+        State::UnsupportedPloidy,
+        State::NoCall,
+        State::PartialNoCall,
+        State::Filtered,
+        State::QualityMissing,
+        State::LowQuality,
+        State::UnsupportedSymbolicGenotype,
+        State::IncompleteReferenceSpan,
+        State::UnsupportedAlleleRepresentation,
+        State::OtherCalledAllele,
+        State::ObservedReference,
+        State::ObservedVariant,
+    ];
+
+    pub fn from_code(code: u8) -> Option<State> {
+        State::ALL.get(code as usize).copied()
+    }
+
     pub fn as_str(self) -> &'static str {
         use State::*;
         match self {

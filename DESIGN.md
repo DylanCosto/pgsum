@@ -20,9 +20,9 @@ genotype.
 ## Pipeline
 
 ```
-PGS Catalog harmonized scoring files ──compile──▶ packs (sorted, binary, one per score)
+PGS Catalog harmonized scoring files ──compile──▶ packs (binary, one per score)
                                                       │
-single-sample gVCF + index + GRCh38 FASTA ──extract──▶ genotype table at the union of pack sites
+single-sample gVCF + GRCh38 FASTA ──────────extract──▶ genotype table at the union of pack sites
                                                       │
                                          packs + genotype table ──score──▶ one result per score
 ```
@@ -39,20 +39,29 @@ Done once per PGS Catalog release, independent of any sample.
   never dropped, so completeness can be judged later.
 - SNV orientation against the reference FASTA is resolved at compile time (it does not depend on the
   sample), so `score` only needs genotypes.
-- Output: terms sorted by `(contig, pos)`, the source file's SHA-256, the score's metadata (weight type,
-  licence, publication), and per-term review reasons. The weights stay as the exact decimal strings from the
-  source file.
+- Output: terms in source order, the source file's SHA-256, the score's metadata (weight type, licence,
+  publication), and per-term review reasons. Weights are stored exactly (see [Pack format](#pack-format-pgsum-pack-v1)).
 - **Packs and scoring files are never committed to this repo.** Users download scoring files themselves;
   individual scores carry their own licence terms, and the pack keeps each score's licence field.
 
 ### 2. `extract`: gVCF → genotype table
 
-- Input: bgzipped single-sample gVCF with a tabix or CSI index, the reference FASTA and `.fai`, and the
-  union of target sites across the packs being scored.
-- Parallel by region: each thread seeks its own contig (or contig slice) through the index. No single
-  process reads the whole file.
-- For each target site, keep every record whose interval `[POS, INFO/END or POS+len(REF)-1]` overlaps it.
-- Output: one row per target site with the assessed call (below), plus the overlapping records' digests.
+- Input: a bgzipped single-sample gVCF (no index needed), the reference FASTA and `.fai`, and packs compiled
+  against that same reference (checked by digest).
+- Targets: every distinct oriented SNV `(contig, pos, REF, ALT)` from a pack term with no review reasons and a
+  resolved orientation. Packs are read one at a time, so memory holds one pack's terms at most.
+- One pass over the file: BGZF blocks are decompressed on all cores (`noodles-bgzf` with libdeflate) and one
+  thread scans the text, reading only `CHROM`, `POS`, `REF` and `INFO/END` from each record. Records on
+  contigs other than chr1–22, X, Y and M are skipped. Records must be sorted and each contig contiguous.
+- Every record whose interval `[POS, INFO/END or POS+len(REF)-1]` overlaps a target is kept verbatim. After
+  the scan, targets are assessed in parallel from their records with the genotype rules below.
+- Output: a genotype table (`pgsum-genotypes-v1`, `.pgsg`) with each target's state, ALT dosage and flags, the
+  kept gVCF lines each call was made from, and a header with the gVCF, reference and pack digests, the
+  sample ID, the DeepVariant version, whether the header defines `RefCall`, and counts per state.
+
+Why one stream rather than per-contig index queries: on HG002 (437 MB, 36.0M records) decompression takes
+0.3 s on 12 cores and scanning every line 0.9 s, so reading the whole file is not the bottleneck. For
+comparison, full record parsing with htslib took 18.2 s.
 
 ### 3. `score`: packs × genotype table → results
 
@@ -187,6 +196,12 @@ direction) and exact weight text are identical to the reference implementation f
 - the synthetic `tests/fixtures/PGS999999` file (47 terms, at least one per rule), checked in CI by
   `tests/compile_fixture.rs`.
 
+**M2 (extract), 2026-09-25:** on GIAB HG002 (DeepVariant 1.10.0 gVCF, 36.0M records), every term's status,
+call state and effect-allele dosage is identical to the reference implementation for all 11,689,907 terms of
+the 8 development scores, and for the synthetic `tests/fixtures/PGS999998` + `synthetic.g.vcf.gz` pair (one
+scenario per genotype rule), checked in CI by `tests/extract_fixture.rs`. `extract` over all 8 packs
+(6,825,089 distinct targets) takes 10.2 s on 12 cores with a 3.9 GB peak.
+
 PGS000018's scoring file declares 1,745,180 variants and contains 1,745,179; its pack records the inventory
 as inconsistent, so its score will be withheld.
 
@@ -202,8 +217,6 @@ Known differences from the reference implementation, none of which occur in curr
 
 - Compile memory: about 4 GB peak for the development set with four files in parallel. Records could be
   written as they are read instead of held in memory.
-- gVCF reading: `noodles` (pure Rust) or `rust-htslib`? noodles avoids a C dependency; htslib is faster
-  on BGZF.
 - chrX/chrY ploidy for male samples: v0 requires diploid calls, which withholds scores with X terms for
   those samples.
 - Whether to add frequency-supported orientation for palindromic SNVs, and from which reference panel.
