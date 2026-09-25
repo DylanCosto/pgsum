@@ -54,7 +54,7 @@ impl PackSelection {
             if root.is_dir() {
                 for entry in std::fs::read_dir(&root).map_err(Error::io(&root))? {
                     let path = entry.map_err(Error::io(&root))?.path();
-                    if path.extension().is_some_and(|e| e == pgsum::pack::EXTENSION) {
+                    if path.extension().is_some_and(|e| e == pgsum::pack::EXTENSION) && !is_hidden(&path) {
                         paths.push(path);
                     }
                 }
@@ -258,6 +258,13 @@ fn threads(requested: Option<usize>) -> usize {
         .max(1)
 }
 
+/// Dot files, including the `._name` metadata files macOS writes next to files on exFAT and FAT drives.
+fn is_hidden(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(|n| n.starts_with('.'))
+}
+
 /// Scoring files given directly, plus every `*_hmPOS_GRCh38.txt.gz` in given directories.
 fn scoring_file_paths(inputs: &[PathBuf]) -> Result<Vec<PathBuf>> {
     let mut paths = Vec::new();
@@ -265,7 +272,7 @@ fn scoring_file_paths(inputs: &[PathBuf]) -> Result<Vec<PathBuf>> {
         if input.is_dir() {
             for entry in std::fs::read_dir(input).map_err(Error::io(input))? {
                 let path = entry.map_err(Error::io(input))?.path();
-                if path.to_str().is_some_and(|p| p.ends_with("_hmPOS_GRCh38.txt.gz")) {
+                if path.to_str().is_some_and(|p| p.ends_with("_hmPOS_GRCh38.txt.gz")) && !is_hidden(&path) {
                     paths.push(path);
                 }
             }
