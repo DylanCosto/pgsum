@@ -276,6 +276,10 @@ Known differences from the reference implementation, none of which occur in curr
 - The term limit is 50 million per score (the reference implementation stops at 10 million; the largest
   Catalog score has 13.1 million).
 - Scoring-file and Catalog weight types are both recorded; pgsum does not reject a disagreement.
+- A repeated descriptive header key (e.g. two `#citation=` lines in PGS003767–PGS003769) is accepted: every
+  line is kept in the pack's `scoring_file_header` and the key is listed in `duplicate_header_keys`. The
+  reference implementation rejects any repeated key; pgsum still rejects repeats of `format_version`,
+  `pgs_id`, `variants_number`, `weight_type`, `genome_build` and `HmPOS_build`.
 
 ## Open questions
 

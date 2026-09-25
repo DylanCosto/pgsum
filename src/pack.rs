@@ -89,6 +89,9 @@ pub struct Header {
     pub pgs_id: String,
     pub source: SourceFile,
     pub scoring_file_header: Vec<String>,
+    /// Descriptive scoring-file header keys that appear more than once; each keeps all its lines above.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub duplicate_header_keys: Vec<String>,
     pub columns: Vec<String>,
     pub catalog_metadata_sha256: String,
     /// The Catalog REST record for the score, as downloaded.

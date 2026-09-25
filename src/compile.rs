@@ -97,6 +97,7 @@ pub fn compile_file(
     }
     let declared_terms = file.declared_terms;
     let scoring_file_header = file.header_lines.clone();
+    let duplicate_header_keys = file.duplicate_keys.clone();
     let pgs_id = file.pgs_id.clone();
     let (source_sha256, source_bytes) = file.finish()?;
 
@@ -145,6 +146,7 @@ pub fn compile_file(
             bytes: source_bytes,
         },
         scoring_file_header,
+        duplicate_header_keys,
         columns: columns.names.clone(),
         catalog_metadata_sha256: crate::digest::file_sha256(metadata_path)?,
         license: metadata.get("license").and_then(|v| v.as_str()).map(str::to_owned),

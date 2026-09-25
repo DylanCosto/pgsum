@@ -15,6 +15,15 @@ pub const MAX_HEADER_LINES: usize = 2000;
 pub const MAX_COLUMNS: usize = 128;
 /// Larger than any current Catalog score (13.1M variants in September 2026).
 pub const MAX_TERMS: u64 = 50_000_000;
+/// Header keys that must appear at most once: the ones pgsum reads, and the genome builds.
+pub const STRICT_HEADER_KEYS: [&str; 6] = [
+    "format_version",
+    "pgs_id",
+    "variants_number",
+    "weight_type",
+    "genome_build",
+    "HmPOS_build",
+];
 
 /// The columns the rules read, by index into a row.
 #[derive(Clone, Debug, Default)]
@@ -83,8 +92,10 @@ impl Columns {
 pub struct ScoringFile {
     pub path: PathBuf,
     pub header_lines: Vec<String>,
-    /// `#key=value` header lines.
+    /// `#key=value` header lines; a repeated key keeps its first value.
     pub metadata: BTreeMap<String, String>,
+    /// Descriptive header keys that appear more than once (all their lines are in `header_lines`).
+    pub duplicate_keys: Vec<String>,
     pub columns: Columns,
     pub pgs_id: String,
     pub declared_terms: u64,
@@ -117,6 +128,7 @@ impl ScoringFile {
         let mut reader = BufReader::with_capacity(1 << 20, decoder);
         let mut header_lines = Vec::new();
         let mut metadata = BTreeMap::new();
+        let mut duplicate_keys = Vec::new();
         let mut line = Vec::new();
         let columns = loop {
             let text = read_line(&mut reader, &mut line, path)?
@@ -128,9 +140,19 @@ impl ScoringFile {
                 }
                 if !text.starts_with("##")
                     && let Some((key, value)) = text.strip_prefix('#').and_then(|t| t.split_once('='))
-                    && metadata.insert(key.to_owned(), value.to_owned()).is_some()
                 {
-                    return invalid!("{}: duplicate header key {key}", path.display());
+                    if metadata.contains_key(key) {
+                        // A repeated descriptive key (e.g. two citations) keeps its first value here; every
+                        // line stays in `header_lines`. Keys the rules read must be unambiguous.
+                        if STRICT_HEADER_KEYS.contains(&key) {
+                            return invalid!("{}: duplicate header key {key}", path.display());
+                        }
+                        if !duplicate_keys.iter().any(|k| k == key) {
+                            duplicate_keys.push(key.to_owned());
+                        }
+                    } else {
+                        metadata.insert(key.to_owned(), value.to_owned());
+                    }
                 }
                 continue;
             }
@@ -168,6 +190,7 @@ impl ScoringFile {
             path: path.to_owned(),
             header_lines,
             metadata,
+            duplicate_keys,
             columns,
             pgs_id,
             declared_terms,
@@ -246,4 +269,61 @@ fn read_line<'a>(reader: &mut impl BufRead, line: &'a mut Vec<u8>, path: &Path) 
     std::str::from_utf8(line)
         .map(Some)
         .map_err(|_| Error::Invalid(format!("{}: invalid UTF-8", path.display())))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+
+    fn file(name: &str, header: &[&str]) -> PathBuf {
+        let path = std::env::temp_dir().join(format!("pgsum-{}-{name}.txt.gz", std::process::id()));
+        let mut gz = flate2::write::GzEncoder::new(File::create(&path).unwrap(), flate2::Compression::fast());
+        for line in header {
+            writeln!(gz, "{line}").unwrap();
+        }
+        writeln!(
+            gz,
+            "effect_allele\teffect_weight\thm_source\thm_chr\thm_pos\nA\t0.1\tENSEMBL\t1\t100"
+        )
+        .unwrap();
+        gz.finish().unwrap();
+        path
+    }
+
+    const BASE: [&str; 5] = [
+        "#format_version=2.0",
+        "#pgs_id=PGS000001",
+        "#variants_number=1",
+        "#weight_type=beta",
+        "#HmPOS_build=GRCh38",
+    ];
+
+    #[test]
+    fn repeated_descriptive_key_is_kept() {
+        let mut header = BASE.to_vec();
+        header.extend(["#citation=First et al.", "#citation=Second et al."]);
+        let path = file("citation", &header);
+        let f = ScoringFile::open(&path).unwrap();
+        assert_eq!(f.metadata["citation"], "First et al.");
+        assert_eq!(f.duplicate_keys, ["citation"]);
+        assert_eq!(f.header_lines.iter().filter(|l| l.starts_with("#citation=")).count(), 2);
+        std::fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn repeated_strict_key_is_rejected() {
+        for key in STRICT_HEADER_KEYS {
+            let mut header = BASE.to_vec();
+            let line = format!("#{key}=other");
+            header.push(&line);
+            if !BASE.iter().any(|b| b.starts_with(&format!("#{key}="))) {
+                header.push(&line);
+            }
+            let path = file(key, &header);
+            let err = ScoringFile::open(&path).err().expect("rejected").to_string();
+            assert!(err.contains("duplicate header key"), "{key}: {err}");
+            std::fs::remove_file(path).unwrap();
+        }
+    }
 }
