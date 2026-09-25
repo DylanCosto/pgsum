@@ -102,6 +102,36 @@ enum Command {
         #[arg(long)]
         out: PathBuf,
     },
+    /// Download PGS Catalog scores and compile each into a pack, deleting downloads as it goes.
+    ///
+    /// Scores whose pack already exists with an identical Catalog record are skipped, so an interrupted
+    /// run can be restarted. A log of every score is written to `<out>/fetch.tsv`.
+    Fetch {
+        /// These PGS IDs (comma-separated or repeated).
+        #[arg(long, value_delimiter = ',', required_unless_present = "all", conflicts_with = "all")]
+        ids: Vec<String>,
+        /// Every score in the Catalog.
+        #[arg(long)]
+        all: bool,
+        /// GRCh38 reference FASTA (with `.fai`).
+        #[arg(long)]
+        reference: PathBuf,
+        /// Directory to write packs into.
+        #[arg(long)]
+        out: PathBuf,
+        /// Where downloads go while they are compiled (default: `<out>/downloads`).
+        #[arg(long)]
+        downloads: Option<PathBuf>,
+        /// Keep scoring files and Catalog records after compiling.
+        #[arg(long)]
+        keep_downloads: bool,
+        /// Skip scores with more variants than this.
+        #[arg(long)]
+        max_variants: Option<u64>,
+        /// Scores downloaded and compiled at once.
+        #[arg(long, default_value_t = 4)]
+        jobs: usize,
+    },
     /// Print a pack's terms as TSV, or its header as JSON.
     Inspect {
         /// A pack, or a genotype table with `--header`.
@@ -174,6 +204,16 @@ fn main() -> ExitCode {
             header,
             genotypes,
         } => inspect(&path, header, genotypes.as_deref()),
+        Command::Fetch {
+            ids,
+            all: _,
+            reference,
+            out,
+            downloads,
+            keep_downloads,
+            max_variants,
+            jobs,
+        } => fetch(&ids, &reference, &out, downloads, keep_downloads, max_variants, jobs),
         Command::Extract {
             gvcf,
             reference,
@@ -275,6 +315,81 @@ fn compile(inputs: &[PathBuf], reference: &Path, out: &Path) -> Result<()> {
     } else {
         Err(Error::Invalid(failures.join("\n")))
     }
+}
+
+fn fetch(
+    ids: &[String],
+    reference: &Path,
+    out: &Path,
+    downloads: Option<PathBuf>,
+    keep_downloads: bool,
+    max_variants: Option<u64>,
+    jobs: usize,
+) -> Result<()> {
+    use pgsum::fetch::Outcome;
+    let started = std::time::Instant::now();
+    let reference = Reference::open(reference)?;
+    let identity = reference_identity(&reference)?;
+    let agent = pgsum::fetch::agent();
+    let records = pgsum::fetch::catalog_records(&agent, ids)?;
+    let variants: u64 = records.iter().filter_map(|r| r["variants_number"].as_u64()).sum();
+    eprintln!("{} scores, {variants} variants in the Catalog records", records.len());
+    let downloads = downloads.unwrap_or_else(|| out.join("downloads"));
+    let options = pgsum::fetch::Options {
+        reference: &reference,
+        identity: &identity,
+        out,
+        downloads: &downloads,
+        keep_downloads,
+        max_variants,
+    };
+    let done = std::sync::atomic::AtomicUsize::new(0);
+    let total = records.len();
+    let report = |l: &pgsum::fetch::Logged| {
+        let n = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
+        let what = match &l.outcome {
+            Outcome::Compiled { terms, .. } => format!("compiled, {terms} terms"),
+            Outcome::Unchanged => "unchanged".into(),
+            Outcome::Skipped(why) => format!("skipped: {why}"),
+            Outcome::Failed(why) => format!("FAILED: {why}"),
+        };
+        eprintln!("[{n}/{total}] {}: {what} ({:.1}s)", l.id, l.seconds);
+    };
+    let mut log = pgsum::fetch::fetch_all(&agent, &records, &options, jobs, &report)?;
+    log.sort_by(|a, b| a.id.cmp(&b.id));
+    let mut tsv = String::from("pgs_id\toutcome\tterms\tsource_bytes\tseconds\tdetail\n");
+    let mut failed = 0;
+    for l in &log {
+        let (outcome, terms, bytes, detail) = match &l.outcome {
+            Outcome::Compiled { terms, source_bytes } => ("compiled", terms.to_string(), source_bytes.to_string(), ""),
+            Outcome::Unchanged => ("unchanged", String::new(), String::new(), ""),
+            Outcome::Skipped(why) => ("skipped", String::new(), String::new(), why.as_str()),
+            Outcome::Failed(why) => {
+                failed += 1;
+                ("failed", String::new(), String::new(), why.as_str())
+            }
+        };
+        tsv.push_str(&format!(
+            "{}\t{outcome}\t{terms}\t{bytes}\t{:.1}\t{}\n",
+            l.id,
+            l.seconds,
+            detail.replace(['\t', '\n'], " ")
+        ));
+    }
+    let log_path = out.join("fetch.tsv");
+    std::fs::write(&log_path, tsv).map_err(Error::io(&log_path))?;
+    eprintln!(
+        "done in {:.0}s; log in {}",
+        started.elapsed().as_secs_f64(),
+        log_path.display()
+    );
+    if failed > 0 {
+        return Err(Error::Invalid(format!(
+            "{failed} of {total} scores failed; see {}",
+            log_path.display()
+        )));
+    }
+    Ok(())
 }
 
 fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, threads: usize) -> Result<()> {

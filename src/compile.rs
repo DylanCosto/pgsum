@@ -6,7 +6,9 @@ use sha2::{Digest, Sha256};
 
 use crate::digest::file_sha256;
 use crate::orient::orient;
-use crate::pack::{self, Counts, Header, Inventory, ReferenceIdentity, SourceFile, TermRecord, Weight, WeightType};
+use crate::pack::{
+    self, Columns, Counts, Header, Inventory, ReferenceIdentity, SourceFile, TermRecord, Weight, WeightType,
+};
 use crate::reference::Reference;
 use crate::scoring_file::ScoringFile;
 use crate::term::{Reason, describe};
@@ -49,8 +51,7 @@ pub fn compile_file(
     }
     let header_weight_type = file.metadata.get("weight_type").cloned();
     let columns = file.columns.clone();
-    let mut records = Vec::with_capacity(file.declared_terms as usize * 24);
-    let mut terms = Vec::with_capacity(file.declared_terms as usize);
+    let mut terms = Columns::default();
     let mut line_hashes: Vec<([u8; 16], u32)> = Vec::with_capacity(file.declared_terms as usize);
     let mut fields = Vec::new();
     let mut centred_terms = 0;
@@ -82,7 +83,7 @@ pub fn compile_file(
             .collect();
         let hash: [u8; 32] = Sha256::digest(row.line.as_bytes()).into();
         line_hashes.push((hash[..16].try_into().expect("16 bytes"), ordinal));
-        terms.push(TermRecord {
+        terms.push(&TermRecord {
             contig: d.contig,
             pos: d.pos,
             model: d.model,
@@ -104,7 +105,7 @@ pub fn compile_file(
     let mut duplicates = 0;
     for group in line_hashes.chunk_by(|a, b| a.0 == b.0).filter(|g| g.len() > 1) {
         for &(_, i) in group {
-            terms[i as usize].reasons.insert(Reason::ExactDuplicate);
+            terms.reasons[i as usize] |= Reason::ExactDuplicate as u32;
             duplicates += 1;
         }
     }
@@ -114,7 +115,8 @@ pub fn compile_file(
         centred_terms,
         ..Counts::default()
     };
-    for t in &terms {
+    for i in 0..terms.len() {
+        let t = terms.get(i)?;
         *counts.allele_kinds.entry(t.allele_kind.as_str().into()).or_default() += 1;
         *counts.models.entry(t.model.as_str().into()).or_default() += 1;
         *counts
@@ -125,9 +127,10 @@ pub fn compile_file(
         for r in t.reasons.iter() {
             *counts.review_reasons.entry(r.as_str().into()).or_default() += 1;
         }
-        t.write(&mut records);
     }
     let actual_terms = terms.len() as u64;
+    let records = terms.encode();
+    drop(terms);
     let catalog_terms = metadata.get("variants_number").and_then(|v| v.as_u64());
     let header = Header {
         schema: pack::SCHEMA.into(),

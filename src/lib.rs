@@ -7,6 +7,7 @@ pub mod compile;
 pub mod decimal;
 pub mod digest;
 pub mod extract;
+pub mod fetch;
 pub mod genotype;
 pub mod genotypes;
 pub mod gvcf;

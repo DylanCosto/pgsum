@@ -202,16 +202,31 @@ The v0 bar: on GIAB HG002 (GRCh38, public data), for a fixed set of scores, ever
 and every score's value match an existing reference implementation of these rules. See
 `tests/parity_hg002.rs`.
 
-## Pack format (`pgsum-pack-v1`)
+## Pack format (`pgsum-pack-v2`)
 
-One file per score, `<pgs_id>.pgsp`: magic bytes, a JSON header, then one zstd frame of fixed-layout term
-records in source order (layout in `src/pack.rs`). The header carries the scoring file's name, SHA-256 and
-size, its header lines and columns, the Catalog REST record and its digest, the licence, both weight types
-(scoring file and Catalog, kept side by side rather than reconciled), the reference FASTA and `.fai`
-digests, the inventory (declared, Catalog and actual term counts) and per-state counts. Weights are stored
-exactly: a 64-bit coefficient and exponent, or the original text when the coefficient is wider.
+One file per score, `<pgs_id>.pgsp`: magic bytes, a JSON header, then one zstd frame (level 3) holding the
+terms in source order as columns (layout in `src/pack.rs`): contig, delta-encoded position, model, allele
+kind, flags, orientation, REF/ALT, review reasons, and weights split into tag, coefficient, exponent and text
+columns. The header carries the scoring file's name, SHA-256 and size, its header lines and columns, the
+Catalog REST record and its digest, the licence, both weight types (scoring file and Catalog, kept side by
+side rather than reconciled), the reference FASTA and `.fai` digests, the inventory (declared, Catalog and
+actual term counts) and per-state counts. Weights are stored exactly: a 64-bit coefficient and exponent, or
+the original text when the coefficient is wider.
+
+Why columns: on PGS000013 (6.6M terms) the v1 row layout took 45 MB and columns take 32.6 MB. What remains is
+mostly the weights' significant digits, which do not compress; zstd level 19 saves only another 4% at a
+hundredth of the speed. The 8 development packs take 64 MB (5.5 bytes per term), which puts the whole
+Catalog (4.50 billion terms, September 2026) at about 25 GB.
 
 `pgsum inspect <pack>` prints every term as TSV; `--header` prints the header.
+
+### Fetching the Catalog
+
+`pgsum fetch --ids …` or `--all` reads each score's Catalog REST record, downloads its harmonized GRCh38
+file, compiles it, and deletes the download (`--keep-downloads` keeps it). A score whose pack exists with an
+identical Catalog record and reference is skipped, so an interrupted run resumes. Transient HTTP failures
+(network, 429, 5xx) are retried with exponential backoff. `--jobs` sets how many scores are in flight
+(default 4) and `--max-variants` skips very large scores. Every score's outcome goes to `<out>/fetch.tsv`.
 
 ## Parity status
 
@@ -221,7 +236,10 @@ direction) and exact weight text are identical to the reference implementation f
 - the 8 development scores, 11,689,907 terms: PGS000001, PGS000004, PGS000013, PGS000018, PGS000027,
   PGS000662, PGS000667, PGS002724;
 - the synthetic `tests/fixtures/PGS999999` file (47 terms, at least one per rule), checked in CI by
-  `tests/compile_fixture.rs`.
+  `tests/compile_fixture.rs`;
+- 44 more Catalog scores fetched with `pgsum fetch` (4.2M terms), chosen for variety: every score with
+  interaction terms and up to three of each common weight type (beta, OR, HR, log2 OR, dosage, unweighted,
+  MetaPRS and others).
 
 **M2 (extract), 2026-09-25:** on GIAB HG002 (DeepVariant 1.10.0 gVCF, 36.0M records), every term's status,
 call state and effect-allele dosage is identical to the reference implementation for all 11,689,907 terms of
@@ -261,8 +279,9 @@ Known differences from the reference implementation, none of which occur in curr
 
 ## Open questions
 
-- Compile memory: about 4 GB peak for the development set with four files in parallel. Records could be
-  written as they are read instead of held in memory.
+- Compile memory: the resident size peaks near 3.8 GB for the development set, most of it pages of the
+  memory-mapped reference touched during orientation (reclaimable file cache). Terms are held as columns
+  while a file is compiled.
 - chrX/chrY ploidy for male samples: v0 requires diploid calls, which withholds scores with X terms for
   those samples.
 - Whether to add frequency-supported orientation for palindromic SNVs, and from which reference panel.
