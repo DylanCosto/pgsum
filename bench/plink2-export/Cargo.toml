@@ -1,0 +1,11 @@
+[package]
+name = "plink2-export"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Benchmark helper: write pgsum's genotypes and pack weights as plink2 --score inputs"
+
+[dependencies]
+pgsum = { path = "../.." }
+
+[workspace]
