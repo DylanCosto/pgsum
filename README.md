@@ -2,8 +2,9 @@
 
 Polygenic score calculation from single-sample gVCFs.
 
-**Status: early development.** The command-line interface is sketched out; `compile`, `extract` and
-`score` are not implemented yet. The genotype rules are implemented and tested.
+**Status: early development.** `compile` and `inspect` work and match the reference implementation on
+11.7 million Catalog terms. `extract` and `score` are not implemented yet; the genotype rules they will use
+are implemented and tested.
 
 ## What's different
 

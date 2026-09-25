@@ -12,3 +12,5 @@
 *.txt.gz
 /packs/
 /data/
+# Synthetic test fixtures are committed.
+!/tests/fixtures/**

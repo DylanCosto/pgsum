@@ -166,9 +166,42 @@ The v0 bar: on GIAB HG002 (GRCh38, public data), for a fixed set of scores, ever
 and every score's value match an existing reference implementation of these rules. See
 `tests/parity_hg002.rs`.
 
+## Pack format (`pgsum-pack-v1`)
+
+One file per score, `<pgs_id>.pgsp`: magic bytes, a JSON header, then one zstd frame of fixed-layout term
+records in source order (layout in `src/pack.rs`). The header carries the scoring file's name, SHA-256 and
+size, its header lines and columns, the Catalog REST record and its digest, the licence, both weight types
+(scoring file and Catalog, kept side by side rather than reconciled), the reference FASTA and `.fai`
+digests, the inventory (declared, Catalog and actual term counts) and per-state counts. Weights are stored
+exactly: a 64-bit coefficient and exponent, or the original text when the coefficient is wider.
+
+`pgsum inspect <pack>` prints every term as TSV; `--header` prints the header.
+
+## Parity status
+
+**M1 (compile), 2026-09-25:** term description, review reasons, orientation (method, REF, ALT, effect
+direction) and exact weight text are identical to the reference implementation for:
+
+- the 8 development scores, 11,689,907 terms: PGS000001, PGS000004, PGS000013, PGS000018, PGS000027,
+  PGS000662, PGS000667, PGS002724;
+- the synthetic `tests/fixtures/PGS999999` file (47 terms, at least one per rule), checked in CI by
+  `tests/compile_fixture.rs`.
+
+PGS000018's scoring file declares 1,745,180 variants and contains 1,745,179; its pack records the inventory
+as inconsistent, so its score will be withheld.
+
+Known differences from the reference implementation, none of which occur in current Catalog files:
+
+- Digits are ASCII only; the reference implementation's regular expressions also accept other Unicode
+  digits.
+- The term limit is 50 million per score (the reference implementation stops at 10 million; the largest
+  Catalog score has 13.1 million).
+- Scoring-file and Catalog weight types are both recorded; pgsum does not reject a disagreement.
+
 ## Open questions
 
-- Pack format: a custom binary (sorted positions + weight strings) or Parquet/Arrow?
+- Compile memory: about 4 GB peak for the development set with four files in parallel. Records could be
+  written as they are read instead of held in memory.
 - gVCF reading: `noodles` (pure Rust) or `rust-htslib`? noodles avoids a C dependency; htslib is faster
   on BGZF.
 - chrX/chrY ploidy for male samples: v0 requires diploid calls, which withholds scores with X terms for
