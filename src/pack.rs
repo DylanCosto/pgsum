@@ -253,6 +253,29 @@ impl Pack {
         Ok(Pack { header, records })
     }
 
+    /// Terms starting at a byte offset returned by `chunk_starts`.
+    pub fn terms_from(&self, offset: usize) -> TermIter<'_> {
+        TermIter {
+            bytes: &self.records,
+            at: offset,
+        }
+    }
+
+    /// `(byte offset, index of first term)` of every `every`-th term, starting with the first.
+    pub fn chunk_starts(&self, every: usize) -> Result<Vec<(usize, usize)>> {
+        let mut starts = Vec::new();
+        let mut it = self.terms();
+        let mut index = 0;
+        while it.at < it.bytes.len() {
+            if index % every == 0 {
+                starts.push((it.at, index));
+            }
+            it.skip_record()?;
+            index += 1;
+        }
+        Ok(starts)
+    }
+
     pub fn terms(&self) -> TermIter<'_> {
         TermIter {
             bytes: &self.records,
@@ -326,6 +349,27 @@ impl TermIter<'_> {
             .ok_or_else(|| Error::Invalid("truncated pack record".into()))?;
         self.at += N;
         Ok(slice.try_into().expect("length checked"))
+    }
+
+    /// Advance past one record without decoding it.
+    fn skip_record(&mut self) -> Result<()> {
+        let bad = || Error::Invalid("truncated pack record".into());
+        const FIXED: usize = 1 + 4 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 4;
+        let count = *self.bytes.get(self.at + FIXED).ok_or_else(bad)?;
+        self.at += FIXED + 1;
+        for _ in 0..count {
+            let tag = *self.bytes.get(self.at).ok_or_else(bad)?;
+            self.at += match tag {
+                0 => 1,
+                1 | 3 => 1 + 8 + 4,
+                2 => 2 + *self.bytes.get(self.at + 1).ok_or_else(bad)? as usize,
+                _ => return Err(Error::Invalid("invalid pack record".into())),
+            };
+        }
+        if self.at > self.bytes.len() {
+            return Err(bad());
+        }
+        Ok(())
     }
 
     fn u8(&mut self) -> Result<u8> {

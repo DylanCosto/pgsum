@@ -13,6 +13,7 @@ use std::io::Write;
 
 use num_bigint::BigInt;
 use num_traits::{Signed, Zero};
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::decimal::Decimal;
@@ -24,11 +25,19 @@ use crate::{Result, invalid};
 
 pub const SCHEMA: &str = "pgsum-score-v1";
 
+/// A contribution's coefficient: a weight's 64-bit coefficient times a dosage multiplier fits in 128 bits;
+/// wider weights use arbitrary precision.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum Coefficient {
+    Small(u128),
+    Big(BigInt),
+}
+
 /// An exact contribution `(-1)^negative × coefficient × 10^exponent`.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Contribution {
     pub negative: bool,
-    pub coefficient: BigInt,
+    pub coefficient: Coefficient,
     pub exponent: i64,
 }
 
@@ -36,9 +45,20 @@ impl Contribution {
     pub fn to_decimal(&self) -> Decimal {
         Decimal {
             negative: self.negative,
-            coefficient: self.coefficient.to_string(),
+            coefficient: match &self.coefficient {
+                Coefficient::Small(c) => c.to_string(),
+                Coefficient::Big(c) => c.to_string(),
+            },
             exponent: self.exponent,
         }
+    }
+
+    fn signed_big(&self) -> BigInt {
+        let magnitude = match &self.coefficient {
+            Coefficient::Small(c) => BigInt::from(*c),
+            Coefficient::Big(c) => c.clone(),
+        };
+        if self.negative { -magnitude } else { magnitude }
     }
 }
 
@@ -70,23 +90,26 @@ fn contribution(model: Model, weights: &[Weight], dosage: u8) -> Option<Contribu
         Model::Recessive => (weights.first()?, (dosage == 2) as u32),
         Model::DosageWeights => (weights.get(dosage as usize)?, 1),
     };
-    let (negative, coefficient, exponent) = match weight {
-        Weight::Invalid => return None,
+    match weight {
+        Weight::Invalid => None,
         Weight::Small {
             negative,
             coefficient,
             exponent,
-        } => (*negative, BigInt::from(*coefficient), *exponent as i64),
+        } => Some(Contribution {
+            negative: *negative,
+            coefficient: Coefficient::Small(*coefficient as u128 * multiplier as u128),
+            exponent: *exponent as i64,
+        }),
         Weight::Text(text) => {
             let d = Decimal::parse(text)?;
-            (d.negative, d.coefficient.parse().ok()?, d.exponent)
+            Some(Contribution {
+                negative: d.negative,
+                coefficient: Coefficient::Big(d.coefficient.parse::<BigInt>().ok()? * multiplier),
+                exponent: d.exponent,
+            })
         }
-    };
-    Some(Contribution {
-        negative,
-        coefficient: coefficient * multiplier,
-        exponent,
-    })
+    }
 }
 
 /// Classify one term against the genotype table.
@@ -134,6 +157,9 @@ pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable) -> Result<Outcome> {
     }
 }
 
+/// Overflowed amounts are kept at exponent −2000, below any accepted weight exponent (≥ −1127).
+const FLOOR: i64 = -2000;
+
 /// Exact running sum. Contributions are grouped by exponent in 128-bit accumulators and combined once at the
 /// end; the result's exponent is the smallest exponent added (and at most 0), as for `Decimal(0) + …`.
 #[derive(Default)]
@@ -146,32 +172,46 @@ pub struct ExactSum {
 impl ExactSum {
     pub fn add(&mut self, c: &Contribution) {
         self.min_exponent = self.min_exponent.min(c.exponent);
-        let signed = if c.negative {
-            -c.coefficient.clone()
-        } else {
-            c.coefficient.clone()
+        let small = match c.coefficient {
+            // At most (2^64 - 1) × 2, so it fits in i128 either sign.
+            Coefficient::Small(v) => Some(if c.negative { -(v as i128) } else { v as i128 }),
+            Coefficient::Big(_) => None,
         };
-        let small: Option<i128> = (&signed).try_into().ok();
-        let slot = match self.buckets.iter().position(|(e, _)| *e == c.exponent) {
-            Some(i) => i,
-            None => {
-                self.buckets.push((c.exponent, 0));
-                self.buckets.len() - 1
-            }
-        };
-        match small.and_then(|v| self.buckets[slot].1.checked_add(v)) {
-            Some(total) => self.buckets[slot].1 = total,
-            None => self.overflow += signed * BigInt::from(10u8).pow((c.exponent - self.min_exponent_floor()) as u32),
+        match small {
+            Some(v) => self.add_small(c.exponent, v),
+            None => self.add_big(c.exponent, c.signed_big()),
         }
     }
 
-    /// Overflowed amounts are kept at exponent −2000, below any accepted weight exponent.
-    fn min_exponent_floor(&self) -> i64 {
-        -2000
+    fn add_small(&mut self, exponent: i64, value: i128) {
+        let slot = match self.buckets.iter().position(|(e, _)| *e == exponent) {
+            Some(i) => i,
+            None => {
+                self.buckets.push((exponent, 0));
+                self.buckets.len() - 1
+            }
+        };
+        match self.buckets[slot].1.checked_add(value) {
+            Some(total) => self.buckets[slot].1 = total,
+            None => self.add_big(exponent, BigInt::from(value)),
+        }
+    }
+
+    fn add_big(&mut self, exponent: i64, value: BigInt) {
+        self.overflow += value * BigInt::from(10u8).pow((exponent - FLOOR) as u32);
+    }
+
+    /// Add another sum into this one (for sums computed in parallel).
+    pub fn merge(&mut self, other: ExactSum) {
+        self.min_exponent = self.min_exponent.min(other.min_exponent);
+        for (e, v) in other.buckets {
+            self.add_small(e, v);
+        }
+        self.overflow += other.overflow;
     }
 
     pub fn finish(&self) -> Decimal {
-        let floor = self.min_exponent_floor();
+        let floor = FLOOR;
         let ten = BigInt::from(10u8);
         let mut total = self.overflow.clone();
         for &(e, acc) in &self.buckets {
@@ -247,24 +287,86 @@ pub struct ScoreResult {
     pub inputs: Inputs,
 }
 
-fn magnitude(w: &Weight) -> Option<f64> {
-    w.to_decimal()
-        .and_then(|d| d.to_python_string().parse::<f64>().ok())
-        .map(f64::abs)
+/// A weight as floating point, for coverage only.
+fn approximate(w: &Weight) -> Option<f64> {
+    match w {
+        Weight::Invalid => None,
+        Weight::Small {
+            negative,
+            coefficient,
+            exponent,
+        } => {
+            let v = *coefficient as f64 * 10f64.powi(*exponent);
+            Some(if *negative { -v } else { v })
+        }
+        Weight::Text(_) => w.to_decimal()?.to_python_string().parse().ok(),
+    }
 }
 
 fn effect_size(t: &TermRecord) -> Option<f64> {
     match t.model {
         Model::DosageWeights => {
-            let v: Vec<f64> = t
-                .weights
-                .iter()
-                .map(|w| w.to_decimal()?.to_python_string().parse().ok())
-                .collect::<Option<_>>()?;
+            let v: Vec<f64> = t.weights.iter().map(approximate).collect::<Option<_>>()?;
             Some((v[1] - v[0]).abs().max((v[2] - v[0]).abs()))
         }
-        _ => magnitude(t.weights.first()?),
+        _ => approximate(t.weights.first()?).map(f64::abs),
     }
+}
+
+/// Terms per parallel chunk. Fixed, so results do not depend on the thread count.
+pub const CHUNK_TERMS: usize = 200_000;
+
+/// The totals of one chunk of terms.
+#[derive(Default)]
+struct Tally {
+    sum: ExactSum,
+    states: BTreeMap<&'static str, u64>,
+    total: u64,
+    scorable: u64,
+    without_weight: u64,
+    effect_all: f64,
+    effect_scorable: f64,
+    tsv: Vec<u8>,
+}
+
+fn tally(pack: &Pack, genotypes: &GenotypeTable, start: (usize, usize), end: usize, terms: bool) -> Result<Tally> {
+    let io = |e| crate::Error::Io {
+        path: "<terms>".into(),
+        source: e,
+    };
+    let mut t = Tally::default();
+    let (offset, first) = start;
+    for (i, term) in pack.terms_from(offset).take(end - first).enumerate() {
+        let term = term?;
+        let o = outcome(&term, genotypes)?;
+        t.total += 1;
+        *t.states.entry(o.status).or_default() += 1;
+        let effect = effect_size(&term);
+        match effect {
+            Some(e) => t.effect_all += e,
+            None => t.without_weight += 1,
+        }
+        if let Some(c) = &o.contribution {
+            t.scorable += 1;
+            t.effect_scorable += effect.unwrap_or(0.0);
+            t.sum.add(c);
+        }
+        if terms {
+            crate::pack::write_term_line(&mut t.tsv, first + i + 1, &term)?;
+            writeln!(
+                t.tsv,
+                "\t{}\t{}\t{}\t{}",
+                o.status,
+                o.call_state,
+                o.effect_dosage.map(|d| d.to_string()).unwrap_or_default(),
+                o.contribution
+                    .map(|c| c.to_decimal().to_python_string())
+                    .unwrap_or_default()
+            )
+            .map_err(io)?;
+        }
+    }
+    Ok(t)
 }
 
 /// Score one pack. With `terms`, also write one TSV line per term.
@@ -290,39 +392,39 @@ pub fn score(pack: &Pack, genotypes: &GenotypeTable, mut terms: Option<&mut dyn 
         )
         .map_err(io)?;
     }
+    // Chunks are scored in parallel and combined in order.
+    let starts = pack.chunk_starts(CHUNK_TERMS)?;
+    let total_terms = pack.header.inventory.actual_terms as usize;
+    let want_tsv = terms.is_some();
+    let tallies: Vec<Result<Tally>> = starts
+        .par_iter()
+        .enumerate()
+        .map(|(i, &start)| {
+            let end = starts.get(i + 1).map_or(total_terms, |s| s.1);
+            tally(pack, genotypes, start, end, want_tsv)
+        })
+        .collect();
     let mut sum = ExactSum::default();
     let mut states: BTreeMap<String, u64> = BTreeMap::new();
     let (mut total, mut scorable, mut without_weight) = (0u64, 0u64, 0u64);
     let (mut effect_all, mut effect_scorable) = (0f64, 0f64);
-    for (i, term) in pack.terms().enumerate() {
-        let t = term?;
-        let o = outcome(&t, genotypes)?;
-        total += 1;
-        *states.entry(o.status.to_owned()).or_default() += 1;
-        let effect = effect_size(&t);
-        match effect {
-            Some(e) => effect_all += e,
-            None => without_weight += 1,
+    for t in tallies {
+        let t = t?;
+        sum.merge(t.sum);
+        for (k, v) in t.states {
+            *states.entry(k.to_owned()).or_default() += v;
         }
-        if let Some(c) = &o.contribution {
-            scorable += 1;
-            effect_scorable += effect.unwrap_or(0.0);
-            sum.add(c);
-        }
+        total += t.total;
+        scorable += t.scorable;
+        without_weight += t.without_weight;
+        effect_all += t.effect_all;
+        effect_scorable += t.effect_scorable;
         if let Some(out) = terms.as_deref_mut() {
-            crate::pack::write_term_line(out, i + 1, &t)?;
-            writeln!(
-                out,
-                "\t{}\t{}\t{}\t{}",
-                o.status,
-                o.call_state,
-                o.effect_dosage.map(|d| d.to_string()).unwrap_or_default(),
-                o.contribution
-                    .map(|c| c.to_decimal().to_python_string())
-                    .unwrap_or_default()
-            )
-            .map_err(io)?;
+            out.write_all(&t.tsv).map_err(io)?;
         }
+    }
+    if total as usize != total_terms {
+        return invalid!("{}: pack holds {total} terms, header says {total_terms}", h.pgs_id);
     }
     let mut withheld = Vec::new();
     if scorable != total {
@@ -402,9 +504,14 @@ mod tests {
 
     fn c(text: &str, multiplier: u32) -> Contribution {
         let d = Decimal::parse(text).unwrap();
+        // As in packs: coefficients that fit in 64 bits take the fast path, wider ones arbitrary precision.
+        let coefficient = match d.coefficient.parse::<u64>() {
+            Ok(v) => Coefficient::Small(v as u128 * multiplier as u128),
+            Err(_) => Coefficient::Big(d.coefficient.parse::<BigInt>().unwrap() * multiplier),
+        };
         Contribution {
             negative: d.negative,
-            coefficient: d.coefficient.parse::<BigInt>().unwrap() * multiplier,
+            coefficient,
             exponent: d.exponent,
         }
     }
@@ -432,6 +539,34 @@ mod tests {
             "1.24691357802469135780246"
         );
         assert_eq!(sum(&[("1e-1000", 1), ("1e100", 1)]).len(), "1".len() + 1100 + 1);
+    }
+
+    #[test]
+    fn merged_sums_equal_one_sum() {
+        let parts = [
+            ("0.1", 2u32),
+            ("-2.5E-3", 1),
+            ("1234", 1),
+            ("0.12345678901234567890123", 2),
+            ("1E+2", 1),
+            ("-0.75", 0),
+        ];
+        let mut whole = ExactSum::default();
+        let (mut a, mut b) = (ExactSum::default(), ExactSum::default());
+        for (i, (t, m)) in parts.iter().enumerate() {
+            whole.add(&c(t, *m));
+            if i % 2 == 0 { a.add(&c(t, *m)) } else { b.add(&c(t, *m)) }
+        }
+        a.merge(b);
+        assert_eq!(a.finish(), whole.finish());
+        let mut overflowing = ExactSum::default();
+        for _ in 0..4 {
+            overflowing.add_small(0, i128::MAX / 3);
+        }
+        assert_eq!(
+            overflowing.finish().coefficient,
+            (BigInt::from(i128::MAX / 3) * BigInt::from(4u8)).to_string()
+        );
     }
 
     #[test]

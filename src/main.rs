@@ -1,29 +1,98 @@
-use std::io::{BufWriter, Write};
-use std::path::{Path, PathBuf};
-use std::process::ExitCode;
-use std::sync::Mutex;
-use std::sync::atomic::{AtomicUsize, Ordering};
-
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 use pgsum::compile::{compile_file, metadata_path, reference_identity};
 use pgsum::genotypes::GenotypeTable;
 use pgsum::pack::Pack;
 use pgsum::reference::Reference;
 use pgsum::{Error, Result};
+use rayon::prelude::*;
+use std::io::{BufWriter, Write};
+use std::path::{Path, PathBuf};
+use std::process::ExitCode;
 
 /// Polygenic score calculation from single-sample gVCFs.
 #[derive(Parser)]
 #[command(version, about)]
 struct Cli {
+    /// Worker threads for every step (default: all cores).
+    #[arg(long, global = true)]
+    threads: Option<usize>,
     #[command(subcommand)]
     command: Command,
+}
+
+/// Which packs to use. `--pack` takes files or directories (every `*.pgsp` inside) and can be repeated;
+/// `--pack-list` adds paths from a file; `--ids` keeps only the listed scores.
+#[derive(Args, Clone)]
+struct PackSelection {
+    /// A pack, or a directory of packs. Repeatable.
+    #[arg(long = "pack")]
+    packs: Vec<PathBuf>,
+    /// A file listing pack paths or directories, one per line (`#` comments allowed).
+    #[arg(long)]
+    pack_list: Option<PathBuf>,
+    /// Keep only these PGS IDs (comma-separated or repeated), e.g. `PGS000001,PGS000013`.
+    #[arg(long, value_delimiter = ',')]
+    ids: Vec<String>,
+}
+
+impl PackSelection {
+    fn resolve(&self) -> Result<Vec<PathBuf>> {
+        let mut roots = self.packs.clone();
+        if let Some(list) = &self.pack_list {
+            let text = std::fs::read_to_string(list).map_err(Error::io(list))?;
+            let base = list.parent().unwrap_or(Path::new("."));
+            for line in text
+                .lines()
+                .map(str::trim)
+                .filter(|l| !l.is_empty() && !l.starts_with('#'))
+            {
+                roots.push(base.join(line));
+            }
+        }
+        let mut paths = Vec::new();
+        for root in roots {
+            if root.is_dir() {
+                for entry in std::fs::read_dir(&root).map_err(Error::io(&root))? {
+                    let path = entry.map_err(Error::io(&root))?.path();
+                    if path.extension().is_some_and(|e| e == pgsum::pack::EXTENSION) {
+                        paths.push(path);
+                    }
+                }
+            } else {
+                paths.push(root);
+            }
+        }
+        if !self.ids.is_empty() {
+            for id in &self.ids {
+                if !pgsum::scoring_file::is_pgs_id(id) {
+                    return Err(Error::Invalid(format!("{id:?} is not a PGS ID")));
+                }
+            }
+            paths.retain(|p| {
+                p.file_stem()
+                    .and_then(|s| s.to_str())
+                    .is_some_and(|s| self.ids.iter().any(|id| id == s))
+            });
+            let found: Vec<_> = paths.iter().filter_map(|p| p.file_stem()?.to_str()).collect();
+            let missing: Vec<_> = self.ids.iter().filter(|id| !found.contains(&id.as_str())).collect();
+            if !missing.is_empty() {
+                return Err(Error::Invalid(format!("no pack for {missing:?}")));
+            }
+        }
+        paths.sort();
+        paths.dedup();
+        if paths.is_empty() {
+            return Err(Error::Invalid("no packs selected; use --pack or --pack-list".into()));
+        }
+        Ok(paths)
+    }
 }
 
 #[derive(Subcommand)]
 enum Command {
     /// Compile PGS Catalog harmonized scoring files into packs.
     Compile {
-        /// Harmonized scoring files (`*_hmPOS_GRCh38.txt.gz`).
+        /// Harmonized scoring files (`*_hmPOS_GRCh38.txt.gz`), or directories of them.
         #[arg(required = true)]
         scoring_files: Vec<PathBuf>,
         /// GRCh38 reference FASTA (with `.fai`), used to resolve SNV orientation.
@@ -32,9 +101,6 @@ enum Command {
         /// Directory to write packs into.
         #[arg(long)]
         out: PathBuf,
-        /// Scoring files compiled at once (default: all cores).
-        #[arg(long)]
-        threads: Option<usize>,
     },
     /// Print a pack's terms as TSV, or its header as JSON.
     Inspect {
@@ -55,23 +121,19 @@ enum Command {
         /// GRCh38 reference FASTA (with `.fai`).
         #[arg(long)]
         reference: PathBuf,
-        /// Packs whose sites to extract.
-        #[arg(long = "pack", required = true)]
-        packs: Vec<PathBuf>,
+        #[command(flatten)]
+        packs: PackSelection,
         /// Output genotype table (`.pgsg`).
         #[arg(long)]
         out: PathBuf,
-        /// Worker threads (default: all cores).
-        #[arg(long)]
-        threads: Option<usize>,
     },
     /// Score packs against an extracted genotype table.
     Score {
         /// Genotype table from `extract`.
         #[arg(long)]
         genotypes: PathBuf,
-        #[arg(long = "pack", required = true)]
-        packs: Vec<PathBuf>,
+        #[command(flatten)]
+        packs: PackSelection,
         /// Output directory for one JSON result per score.
         #[arg(long)]
         out: PathBuf,
@@ -85,25 +147,28 @@ enum Command {
         gvcf: PathBuf,
         #[arg(long)]
         reference: PathBuf,
-        #[arg(long = "pack", required = true)]
-        packs: Vec<PathBuf>,
+        #[command(flatten)]
+        packs: PackSelection,
         #[arg(long)]
         out: PathBuf,
-        #[arg(long)]
-        threads: Option<usize>,
         #[arg(long)]
         terms: bool,
     },
 }
 
 fn main() -> ExitCode {
-    let result: Result<()> = match Cli::parse().command {
+    let cli = Cli::parse();
+    let threads = threads(cli.threads);
+    if let Err(e) = rayon::ThreadPoolBuilder::new().num_threads(threads).build_global() {
+        eprintln!("pgsum: {e}");
+        return ExitCode::FAILURE;
+    }
+    let result: Result<()> = match cli.command {
         Command::Compile {
             scoring_files,
             reference,
             out,
-            threads,
-        } => compile(&scoring_files, &reference, &out, threads),
+        } => compile(&scoring_files, &reference, &out),
         Command::Inspect {
             path,
             header,
@@ -114,25 +179,28 @@ fn main() -> ExitCode {
             reference,
             packs,
             out,
-            threads: t,
-        } => extract(&gvcf, &reference, &packs, &out, t),
+        } => packs
+            .resolve()
+            .and_then(|packs| extract(&gvcf, &reference, &packs, &out, threads)),
         Command::Score {
             genotypes,
             packs,
             out,
             terms,
-        } => GenotypeTable::open(&genotypes).and_then(|table| score(&table, &packs, &out, terms, None)),
+        } => packs
+            .resolve()
+            .and_then(|packs| score(&GenotypeTable::open(&genotypes)?, &packs, &out, terms)),
         Command::Run {
             gvcf,
             reference,
             packs,
             out,
-            threads: t,
             terms,
-        } => std::fs::create_dir_all(&out).map_err(Error::io(&out)).and_then(|_| {
+        } => packs.resolve().and_then(|packs| {
+            std::fs::create_dir_all(&out).map_err(Error::io(&out))?;
             let table_path = out.join("genotypes.pgsg");
-            extract(&gvcf, &reference, &packs, &table_path, t)?;
-            score(&GenotypeTable::open(&table_path)?, &packs, &out, terms, t)
+            extract(&gvcf, &reference, &packs, &table_path, threads)?;
+            score(&GenotypeTable::open(&table_path)?, &packs, &out, terms)
         }),
     };
     match result {
@@ -150,40 +218,58 @@ fn threads(requested: Option<usize>) -> usize {
         .max(1)
 }
 
-fn compile(scoring_files: &[PathBuf], reference: &Path, out: &Path, requested: Option<usize>) -> Result<()> {
+/// Scoring files given directly, plus every `*_hmPOS_GRCh38.txt.gz` in given directories.
+fn scoring_file_paths(inputs: &[PathBuf]) -> Result<Vec<PathBuf>> {
+    let mut paths = Vec::new();
+    for input in inputs {
+        if input.is_dir() {
+            for entry in std::fs::read_dir(input).map_err(Error::io(input))? {
+                let path = entry.map_err(Error::io(input))?.path();
+                if path.to_str().is_some_and(|p| p.ends_with("_hmPOS_GRCh38.txt.gz")) {
+                    paths.push(path);
+                }
+            }
+        } else {
+            paths.push(input.clone());
+        }
+    }
+    paths.sort();
+    paths.dedup();
+    Ok(paths)
+}
+
+fn compile(inputs: &[PathBuf], reference: &Path, out: &Path) -> Result<()> {
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
+    let scoring_files = scoring_file_paths(inputs)?;
     let reference = Reference::open(reference)?;
     let identity = reference_identity(&reference)?;
-    let next = AtomicUsize::new(0);
-    let failures = Mutex::new(Vec::new());
-    std::thread::scope(|scope| {
-        for _ in 0..threads(requested).min(scoring_files.len()) {
-            scope.spawn(|| {
-                while let Some(path) = scoring_files.get(next.fetch_add(1, Ordering::Relaxed)) {
-                    let started = std::time::Instant::now();
-                    let result = metadata_path(path)
-                        .ok_or_else(|| Error::Invalid(format!("{}: cannot name its metadata file", path.display())))
-                        .and_then(|metadata| compile_file(path, &metadata, &reference, &identity, out));
-                    match result {
-                        Ok(h) => eprintln!(
-                            "{}: {} terms, {} resolved, inventory {} ({:.1}s)",
-                            h.pgs_id,
-                            h.inventory.actual_terms,
-                            h.counts.orientation.get("resolved").copied().unwrap_or(0),
-                            if h.inventory.consistent {
-                                "consistent"
-                            } else {
-                                "INCONSISTENT"
-                            },
-                            started.elapsed().as_secs_f64()
-                        ),
-                        Err(e) => failures.lock().unwrap().push(e.to_string()),
-                    }
+    let failures: Vec<String> = scoring_files
+        .par_iter()
+        .filter_map(|path| {
+            let started = std::time::Instant::now();
+            let result = metadata_path(path)
+                .ok_or_else(|| Error::Invalid(format!("{}: cannot name its metadata file", path.display())))
+                .and_then(|metadata| compile_file(path, &metadata, &reference, &identity, out));
+            match result {
+                Ok(h) => {
+                    eprintln!(
+                        "{}: {} terms, {} resolved, inventory {} ({:.1}s)",
+                        h.pgs_id,
+                        h.inventory.actual_terms,
+                        h.counts.orientation.get("resolved").copied().unwrap_or(0),
+                        if h.inventory.consistent {
+                            "consistent"
+                        } else {
+                            "INCONSISTENT"
+                        },
+                        started.elapsed().as_secs_f64()
+                    );
+                    None
                 }
-            });
-        }
-    });
-    let failures = failures.into_inner().unwrap();
+                Err(e) => Some(e.to_string()),
+            }
+        })
+        .collect();
     if failures.is_empty() {
         Ok(())
     } else {
@@ -191,12 +277,12 @@ fn compile(scoring_files: &[PathBuf], reference: &Path, out: &Path, requested: O
     }
 }
 
-fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, requested: Option<usize>) -> Result<()> {
+fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, threads: usize) -> Result<()> {
     let started = std::time::Instant::now();
     let reference = Reference::open(reference)?;
     let identity = reference_identity(&reference)?;
     let loaded = started.elapsed().as_secs_f64();
-    let (table, timings) = pgsum::extract::extract(gvcf, &reference, &identity, packs, threads(requested))?;
+    let (table, timings) = pgsum::extract::extract(gvcf, &reference, &identity, packs, threads)?;
     let t = std::time::Instant::now();
     table.write(out)?;
     eprintln!(
@@ -222,42 +308,42 @@ fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, request
     Ok(())
 }
 
-fn score(table: &GenotypeTable, packs: &[PathBuf], out: &Path, terms: bool, requested: Option<usize>) -> Result<()> {
+/// Score every pack against the table: packs in parallel, and each pack's terms in parallel chunks.
+fn score(table: &GenotypeTable, packs: &[PathBuf], out: &Path, terms: bool) -> Result<()> {
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
-    let next = AtomicUsize::new(0);
-    let results = Mutex::new(Vec::new());
-    let failures = Mutex::new(Vec::new());
-    std::thread::scope(|scope| {
-        for _ in 0..threads(requested).min(packs.len()) {
-            scope.spawn(|| {
-                while let Some(path) = packs.get(next.fetch_add(1, Ordering::Relaxed)) {
-                    let result = (|| -> Result<pgsum::score::ScoreResult> {
-                        let pack = Pack::open(path)?;
-                        let id = &pack.header.pgs_id;
-                        let result = if terms {
-                            let tsv = out.join(format!("{id}.terms.tsv"));
-                            let mut w = BufWriter::new(std::fs::File::create(&tsv).map_err(Error::io(&tsv))?);
-                            let r = pgsum::score::score(&pack, table, Some(&mut w))?;
-                            w.flush().map_err(Error::io(&tsv))?;
-                            r
-                        } else {
-                            pgsum::score::score(&pack, table, None)?
-                        };
-                        let json_path = out.join(format!("{id}.score.json"));
-                        let mut json = serde_json::to_vec_pretty(&result).map_err(|e| Error::Invalid(e.to_string()))?;
-                        json.push(b'\n');
-                        std::fs::write(&json_path, json).map_err(Error::io(&json_path))?;
-                        Ok(result)
-                    })();
-                    match result {
-                        Ok(r) => results.lock().unwrap().push(r),
-                        Err(e) => failures.lock().unwrap().push(format!("{}: {e}", path.display())),
-                    }
-                }
-            });
+    let started = std::time::Instant::now();
+    let outcomes: Vec<(&PathBuf, Result<pgsum::score::ScoreResult>)> = packs
+        .par_iter()
+        .map(|path| {
+            let result = (|| -> Result<pgsum::score::ScoreResult> {
+                let pack = Pack::open(path)?;
+                let id = &pack.header.pgs_id;
+                let result = if terms {
+                    let tsv = out.join(format!("{id}.terms.tsv"));
+                    let mut w = BufWriter::new(std::fs::File::create(&tsv).map_err(Error::io(&tsv))?);
+                    let r = pgsum::score::score(&pack, table, Some(&mut w))?;
+                    w.flush().map_err(Error::io(&tsv))?;
+                    r
+                } else {
+                    pgsum::score::score(&pack, table, None)?
+                };
+                let json_path = out.join(format!("{id}.score.json"));
+                let mut json = serde_json::to_vec_pretty(&result).map_err(|e| Error::Invalid(e.to_string()))?;
+                json.push(b'\n');
+                std::fs::write(&json_path, json).map_err(Error::io(&json_path))?;
+                Ok(result)
+            })();
+            (path, result)
+        })
+        .collect();
+    let mut results = Vec::new();
+    let mut failures = Vec::new();
+    for (path, r) in outcomes {
+        match r {
+            Ok(r) => results.push(r),
+            Err(e) => failures.push(format!("{}: {e}", path.display())),
         }
-    });
-    let mut results = results.into_inner().unwrap();
+    }
     results.sort_by(|a, b| a.pgs_id.cmp(&b.pgs_id));
     let mut summary = String::from(
         "pgs_id\tstatus\traw_score\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\n",
@@ -286,7 +372,13 @@ fn score(table: &GenotypeTable, packs: &[PathBuf], out: &Path, terms: bool, requ
     }
     let summary_path = out.join("scores.tsv");
     std::fs::write(&summary_path, summary).map_err(Error::io(&summary_path))?;
-    let failures = failures.into_inner().unwrap();
+    let terms_scored: u64 = results.iter().map(|r| r.required_terms).sum();
+    eprintln!(
+        "scored {} packs, {} terms, in {:.1}s",
+        results.len(),
+        terms_scored,
+        started.elapsed().as_secs_f64()
+    );
     if failures.is_empty() {
         Ok(())
     } else {

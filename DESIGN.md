@@ -69,7 +69,11 @@ Each term's outcome is `model_term_requires_review` (any review reason), `unreso
 state, or `scorable_observation` with its effect-allele dosage (the ALT dosage when the effect allele is the
 ALT, otherwise 2 − ALT dosage) and exact contribution. Output per score: a JSON result
 (`<pgs_id>.score.json`), optionally a per-term TSV (`--terms`), and a `scores.tsv` summary across scores.
-Packs are scored in parallel; all 8 development packs score against HG002 in 3.2 s.
+Packs are scored in parallel, and each pack is split into fixed chunks of 200,000 terms scored in parallel
+and combined in order (`rayon` work-stealing across both), so one large pack uses every core and results do
+not depend on the thread count. Weights with 64-bit coefficients are summed in 128-bit integers; only wider
+ones use arbitrary precision. All 8 development packs (11.7M terms) score against HG002 in 0.4 s after the
+genotype table loads (0.7 s), about 29M terms/s on 12 cores.
 
 ## Term description (compile time)
 

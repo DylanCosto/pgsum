@@ -38,11 +38,20 @@ pgsum score --genotypes sample.pgsg --pack packs/PGS000001.pgsp --out results/ -
 pgsum inspect packs/PGS000001.pgsp [--header] [--genotypes sample.pgsg]
 ```
 
+Many scores at once: `--pack` takes files or directories and can be repeated, `--pack-list` reads paths from
+a file, and `--ids PGS000001,PGS000013` keeps only those scores. `extract` reads the gVCF once for all
+selected packs. `score` runs packs in parallel and splits large packs into chunks across cores, so a
+13-million-term score uses the whole machine. `--threads` sets the worker count for any command.
+
+```sh
+pgsum run --gvcf sample.g.vcf.gz --reference GRCh38.fa --pack packs/ --ids PGS000013,PGS000018 --out results/
+```
+
 `results/` gets `<PGS_ID>.score.json` per score, `scores.tsv` across scores, and with `--terms` a per-term
 TSV.
 
 On a 12-core Mac, for 8 scores with 11.7 million terms against a 36-million-record HG002 gVCF: compile 7.6 s,
-extract 10.2 s, score 3.2 s.
+extract 10.2 s, score 1.1 s (0.4 s after loading the genotype table).
 
 ## Scoring files and licences
 
