@@ -1,7 +1,7 @@
 //! Compile a harmonized scoring file and its Catalog metadata into a pack.
 
 use std::collections::BTreeMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
@@ -13,17 +13,9 @@ use crate::pack::{
     Weight, WeightType,
 };
 use crate::reference::Reference;
-use crate::scoring_file::ScoringFile;
+use crate::scoring_file::{Origin, ScoringFile};
 use crate::term::{AlleleKind, CONTIGS, Description, Reason, describe};
 use crate::{Error, Result, invalid};
-
-/// The Catalog metadata file expected next to a scoring file: `PGS000001_hmPOS_GRCh38.txt.gz` →
-/// `PGS000001.metadata.json`.
-pub fn metadata_path(scoring_file: &Path) -> Option<PathBuf> {
-    let name = scoring_file.file_name()?.to_str()?;
-    let id = name.split('_').next()?;
-    Some(scoring_file.with_file_name(format!("{id}.metadata.json")))
-}
 
 pub fn reference_identity(reference: &Reference) -> Result<ReferenceIdentity> {
     Ok(ReferenceIdentity {
@@ -151,24 +143,54 @@ fn infer(terms: &mut Columns, candidates: &[(u32, Candidate)]) -> Option<Inferen
 }
 
 /// Compile one scoring file into `<out_dir>/<pgs_id>.pgsp` and return the pack header.
+///
+/// The metadata record is `metadata_path`, else `<pgs_id>.metadata.json` next to the scoring file. A Catalog
+/// score needs one; a custom score without one gets a record built from its header.
 pub fn compile_file(
     scoring_path: &Path,
-    metadata_path: &Path,
+    metadata_path: Option<&Path>,
     reference: &Reference,
     reference_identity: &ReferenceIdentity,
     out_dir: &Path,
 ) -> Result<Header> {
-    let metadata_bytes = std::fs::read(metadata_path).map_err(Error::io(metadata_path))?;
-    let metadata: serde_json::Value = serde_json::from_slice(&metadata_bytes)
-        .map_err(|e| Error::Invalid(format!("{}: {e}", metadata_path.display())))?;
     let mut file = ScoringFile::open(scoring_path)?;
-    if metadata.get("id").and_then(|v| v.as_str()) != Some(file.pgs_id.as_str()) {
-        return invalid!("{}: metadata is not for {}", metadata_path.display(), file.pgs_id);
-    }
+    let sibling = scoring_path.with_file_name(format!("{}.metadata.json", file.pgs_id));
+    let metadata_path = metadata_path
+        .map(Path::to_path_buf)
+        .or_else(|| sibling.exists().then_some(sibling));
+    let metadata: serde_json::Value = match (&metadata_path, file.origin) {
+        (Some(path), _) => {
+            let bytes = std::fs::read(path).map_err(Error::io(path))?;
+            let value: serde_json::Value =
+                serde_json::from_slice(&bytes).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
+            if value.get("id").and_then(|v| v.as_str()) != Some(file.pgs_id.as_str()) {
+                return invalid!("{}: metadata is not for {}", path.display(), file.pgs_id);
+            }
+            value
+        }
+        (None, Origin::PgsCatalog) => {
+            return invalid!(
+                "{}: a Catalog score needs its metadata record ({}.metadata.json from the Catalog REST API)",
+                scoring_path.display(),
+                file.pgs_id
+            );
+        }
+        (None, Origin::Custom) => {
+            let get = |k: &str| file.metadata.get(k).cloned();
+            serde_json::json!({
+                "id": file.pgs_id,
+                "name": get("pgs_name"),
+                "weight_type": get("weight_type"),
+                "license": get("license"),
+                "genome_build": get("genome_build"),
+                "source": "custom scoring file header",
+            })
+        }
+    };
     let header_weight_type = file.metadata.get("weight_type").cloned();
     let columns = file.columns.clone();
     let mut terms = Columns::default();
-    let mut line_hashes: Vec<([u8; 16], u32)> = Vec::with_capacity(file.declared_terms as usize);
+    let mut line_hashes: Vec<([u8; 16], u32)> = Vec::with_capacity(file.declared_terms.unwrap_or(0) as usize);
     let mut fields = Vec::new();
     let mut centred_terms = 0;
     let mut candidates: Vec<(u32, Candidate)> = Vec::new();
@@ -221,6 +243,7 @@ pub fn compile_file(
     let inference = infer(&mut terms, &candidates);
     drop(candidates);
     let declared_terms = file.declared_terms;
+    let origin = file.origin;
     let scoring_file_header = file.header_lines.clone();
     let duplicate_header_keys = file.duplicate_keys.clone();
     let pgs_id = file.pgs_id.clone();
@@ -262,6 +285,7 @@ pub fn compile_file(
         schema: pack::SCHEMA.into(),
         pgsum_version: env!("CARGO_PKG_VERSION").into(),
         pgs_id: pgs_id.clone(),
+        origin,
         source: SourceFile {
             name: scoring_path
                 .file_name()
@@ -273,7 +297,7 @@ pub fn compile_file(
         scoring_file_header,
         duplicate_header_keys,
         columns: columns.names.clone(),
-        catalog_metadata_sha256: crate::digest::file_sha256(metadata_path)?,
+        catalog_metadata_sha256: metadata_path.as_deref().map(crate::digest::file_sha256).transpose()?,
         license: metadata.get("license").and_then(|v| v.as_str()).map(str::to_owned),
         matches_publication: metadata.get("matches_publication").and_then(|v| v.as_bool()),
         weight_type: WeightType {
@@ -286,7 +310,12 @@ pub fn compile_file(
             declared_terms,
             catalog_terms,
             actual_terms,
-            consistent: actual_terms == declared_terms && catalog_terms == Some(actual_terms),
+            consistent: match origin {
+                Origin::PgsCatalog => declared_terms == Some(actual_terms) && catalog_terms == Some(actual_terms),
+                Origin::Custom => {
+                    declared_terms.is_none_or(|n| n == actual_terms) && catalog_terms.is_none_or(|n| n == actual_terms)
+                }
+            },
         },
         counts,
         inference,

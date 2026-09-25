@@ -156,7 +156,7 @@ pub fn fetch_one(agent: &ureq::Agent, record: &serde_json::Value, o: &Options<'_
         let json = serde_json::to_vec_pretty(record).map_err(|e| Error::Invalid(e.to_string()))?;
         std::fs::write(&metadata, json).map_err(Error::io(&metadata))?;
         download(agent, url, &scoring)?;
-        let header = compile_file(&scoring, &metadata, o.reference, o.identity, o.out)?;
+        let header = compile_file(&scoring, Some(&metadata), o.reference, o.identity, o.out)?;
         Ok(Outcome::Compiled {
             terms: header.inventory.actual_terms,
             source_bytes: header.source.bytes,

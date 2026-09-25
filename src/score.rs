@@ -480,12 +480,12 @@ pub fn score(
     if !h.inventory.consistent {
         withheld.push(format!(
             "inventory inconsistent (scoring file declares {}, Catalog {}, file has {})",
-            h.inventory.declared_terms,
+            h.inventory.declared_terms.map_or("none".into(), |n| n.to_string()),
             h.inventory.catalog_terms.map_or("unknown".into(), |n| n.to_string()),
             h.inventory.actual_terms
         ));
     }
-    if h.matches_publication != Some(true) {
+    if h.origin == crate::scoring_file::Origin::PgsCatalog && h.matches_publication != Some(true) {
         withheld.push("the Catalog does not record that the scoring file matches its publication".into());
     }
     let raw = sum.finish().to_python_string();

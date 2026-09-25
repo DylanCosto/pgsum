@@ -1,5 +1,5 @@
 use clap::{Args, Parser, Subcommand};
-use pgsum::compile::{compile_file, metadata_path, reference_identity};
+use pgsum::compile::{compile_file, reference_identity};
 use pgsum::genotypes::GenotypeTable;
 use pgsum::pack::Pack;
 use pgsum::reference::Reference;
@@ -30,7 +30,7 @@ struct PackSelection {
     /// A file listing pack paths or directories, one per line (`#` comments allowed).
     #[arg(long)]
     pack_list: Option<PathBuf>,
-    /// Keep only these PGS IDs (comma-separated or repeated), e.g. `PGS000001,PGS000013`.
+    /// Keep only these score IDs (comma-separated or repeated), e.g. `PGS000001,PGS000013,MY_SCORE`.
     #[arg(long, value_delimiter = ',')]
     ids: Vec<String>,
 }
@@ -64,8 +64,10 @@ impl PackSelection {
         }
         if !self.ids.is_empty() {
             for id in &self.ids {
-                if !pgsum::scoring_file::is_pgs_id(id) {
-                    return Err(Error::Invalid(format!("{id:?} is not a PGS ID")));
+                if !pgsum::scoring_file::is_pgs_id(id) && !pgsum::scoring_file::is_custom_id(id) {
+                    return Err(Error::Invalid(format!(
+                        "{id:?} is not a PGS Catalog or custom score ID"
+                    )));
                 }
             }
             paths.retain(|p| {
@@ -92,7 +94,8 @@ impl PackSelection {
 enum Command {
     /// Compile PGS Catalog harmonized scoring files into packs.
     Compile {
-        /// Harmonized scoring files (`*_hmPOS_GRCh38.txt.gz`), or directories of them.
+        /// Scoring files: PGS Catalog harmonized files (`*_hmPOS_GRCh38.txt.gz`, or directories of them, each with
+        /// its `<PGS_ID>.metadata.json` alongside), or custom scoring files (see DESIGN.md, "Custom scores").
         #[arg(required = true)]
         scoring_files: Vec<PathBuf>,
         /// GRCh38 reference FASTA (with `.fai`), used to resolve SNV orientation.
@@ -334,9 +337,7 @@ fn compile(inputs: &[PathBuf], reference: &Path, out: &Path) -> Result<()> {
         .par_iter()
         .filter_map(|path| {
             let started = std::time::Instant::now();
-            let result = metadata_path(path)
-                .ok_or_else(|| Error::Invalid(format!("{}: cannot name its metadata file", path.display())))
-                .and_then(|metadata| compile_file(path, &metadata, &reference, &identity, out));
+            let result = compile_file(path, None, &reference, &identity, out);
             match result {
                 Ok(h) => {
                     eprintln!(

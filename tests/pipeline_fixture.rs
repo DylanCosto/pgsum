@@ -22,7 +22,7 @@ fn synthetic_gvcf_matches_reference_implementation() {
     let identity = reference_identity(&reference).unwrap();
     compile_file(
         &fixtures.join("PGS999998_hmPOS_GRCh38.txt.gz"),
-        &fixtures.join("PGS999998.metadata.json"),
+        Some(&fixtures.join("PGS999998.metadata.json")),
         &reference,
         &identity,
         &out,
@@ -78,7 +78,7 @@ fn synthetic_scores_match_reference_implementation() {
     for id in ["PGS999997", "PGS999998"] {
         compile_file(
             &fixtures.join(format!("{id}_hmPOS_GRCh38.txt.gz")),
-            &fixtures.join(format!("{id}.metadata.json")),
+            Some(&fixtures.join(format!("{id}.metadata.json"))),
             &reference,
             &identity,
             &out,
@@ -135,7 +135,7 @@ fn target_index_is_reused_only_for_the_same_packs() {
     for id in ["PGS999997", "PGS999998"] {
         compile_file(
             &fixtures.join(format!("{id}_hmPOS_GRCh38.txt.gz")),
-            &fixtures.join(format!("{id}.metadata.json")),
+            Some(&fixtures.join(format!("{id}.metadata.json"))),
             &reference,
             &identity,
             &out,
@@ -172,7 +172,7 @@ fn inferred_other_alleles_are_opt_in() {
     for id in ids {
         compile_file(
             &fixtures.join(format!("{id}_hmPOS_GRCh38.txt.gz")),
-            &fixtures.join(format!("{id}.metadata.json")),
+            Some(&fixtures.join(format!("{id}.metadata.json"))),
             &reference,
             &identity,
             &out,
@@ -264,6 +264,61 @@ fn inferred_other_alleles_are_opt_in() {
             })
             .collect();
         assert_eq!(actual, rows, "{id}");
+    }
+    std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// A custom scoring file (plain text, `chr1` and `1` both used, no Catalog metadata) compiles, extracts and
+/// scores like a Catalog one; its strict score needs no Catalog publication record.
+#[test]
+fn custom_scoring_file() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-custom-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    let header = compile_file(&fixtures.join("MY_SCORE.tsv"), None, &reference, &identity, &out).unwrap();
+    assert_eq!(header.origin, pgsum::scoring_file::Origin::Custom);
+    assert_eq!(header.license.as_deref(), Some("CC0 1.0 (synthetic test fixture)"));
+    assert!(header.inventory.consistent);
+    let path = out.join("MY_SCORE.pgsp");
+    let (table, _) = extract(
+        &fixtures.join("synthetic.g.vcf.gz"),
+        &reference,
+        &identity,
+        std::slice::from_ref(&path),
+        None,
+        2,
+    )
+    .unwrap();
+    let result = pgsum::score::score(&Pack::open(&path).unwrap(), &table, &Default::default(), None).unwrap();
+    // 0.5×1 − 0.25×2 + 1.5×2 + 2×0 + 0.1×1, with Decimal's exponent: the smallest is −2 (from −0.25×2).
+    assert_eq!(
+        result.status, "complete_uncalibrated_score",
+        "{:?}",
+        result.withheld_because
+    );
+    assert_eq!(result.raw_score.as_deref(), Some("3.10"));
+
+    // Rejected with a clear reason: another build, and an ID that is not a valid custom ID.
+    for (name, text, expected) in [
+        ("grch37", "#pgs_id=OLD\n#genome_build=GRCh37\n", "genome_build=GRCh38"),
+        (
+            "bad-id",
+            "#pgs_id=my score\n#genome_build=GRCh38\n",
+            "custom score needs #pgs_id=",
+        ),
+    ] {
+        let file = out.join(format!("{name}.tsv"));
+        std::fs::write(
+            &file,
+            format!("{text}chr_name\tchr_position\teffect_allele\teffect_weight\n1\t4\tC\t0.5\n"),
+        )
+        .unwrap();
+        let err = compile_file(&file, None, &reference, &identity, &out)
+            .expect_err("rejected")
+            .to_string();
+        assert!(err.contains(expected), "{name}: {err}");
     }
     std::fs::remove_dir_all(&out).unwrap();
 }

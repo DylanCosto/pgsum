@@ -59,12 +59,12 @@ pub struct ReferenceIdentity {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct Inventory {
-    /// `variants_number` in the scoring file header.
-    pub declared_terms: u64,
+    /// `variants_number` in the scoring file header (optional for custom scores).
+    pub declared_terms: Option<u64>,
     /// `variants_number` in the Catalog metadata.
     pub catalog_terms: Option<u64>,
     pub actual_terms: u64,
-    /// All three counts agree.
+    /// The counts that exist agree (for Catalog scores all three must exist).
     pub consistent: bool,
 }
 
@@ -90,14 +90,19 @@ pub struct Header {
     pub schema: String,
     pub pgsum_version: String,
     pub pgs_id: String,
+    /// PGS Catalog or custom.
+    #[serde(default)]
+    pub origin: crate::scoring_file::Origin,
     pub source: SourceFile,
     pub scoring_file_header: Vec<String>,
     /// Descriptive scoring-file header keys that appear more than once; each keeps all its lines above.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub duplicate_header_keys: Vec<String>,
     pub columns: Vec<String>,
-    pub catalog_metadata_sha256: String,
-    /// The Catalog REST record for the score, as downloaded.
+    /// SHA-256 of the metadata file; absent for a custom score compiled without one.
+    pub catalog_metadata_sha256: Option<String>,
+    /// The Catalog REST record for the score, as downloaded; for a custom score, its metadata file, or a record
+    /// built from its header.
     pub catalog_metadata: serde_json::Value,
     pub license: Option<String>,
     pub matches_publication: Option<bool>,

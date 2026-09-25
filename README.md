@@ -31,6 +31,9 @@ the Catalog's inferred allele) and labels every result that used it. See DESIGN.
 # <PGS_ID>.metadata.json from the Catalog REST API) into packs.
 pgsum compile PGS000001_hmPOS_GRCh38.txt.gz --reference GRCh38.fa --out packs/
 
+# Your own score: a TSV with #pgs_id= and #genome_build=GRCh38 (see DESIGN.md, "Custom scores").
+pgsum compile my_score.tsv --reference GRCh38.fa --out packs/
+
 # Per sample: read genotypes at every pack site and score, in one step ...
 pgsum run --gvcf sample.g.vcf.gz --reference GRCh38.fa --pack packs/PGS000001.pgsp --out results/
 

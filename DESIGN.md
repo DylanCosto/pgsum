@@ -79,6 +79,35 @@ not depend on the thread count. Weights with 64-bit coefficients are summed in 1
 ones use arbitrary precision. All 8 development packs (11.7M terms) score against HG002 in 0.4 s after the
 genotype table loads (0.7 s), about 29M terms/s on 12 cores.
 
+## Custom scores
+
+Any score, not only the Catalog's, can be compiled from a tab-separated file (plain or gzipped) laid out like
+a Catalog scoring file, with the author's own GRCh38 positions:
+
+```
+#pgs_id=MY_SCORE
+#genome_build=GRCh38
+#weight_type=beta              optional, as are #pgs_name, #license and #variants_number
+chr_name	chr_position	effect_allele	other_allele	effect_weight
+chr1	1005806	T	C	0.0112
+2	21263900	A	G	-0.0231
+```
+
+- `#pgs_id=` is required: 1–64 letters, digits, `_`, `.` or `-`, starting with a letter or digit, and not a
+  Catalog ID (`PGS` + six digits), so a custom score can never be taken for a Catalog one.
+- `#genome_build=GRCh38` (or `hg38`) is required. Other builds are rejected; lift positions over first.
+- Required columns: `chr_name`, `chr_position`, `effect_allele`, and `effect_weight` or
+  `dosage_0_weight`…`dosage_2_weight`. Optional: `other_allele`, `is_dominant`, `is_recessive`,
+  `is_haplotype`, `is_diplotype`, `is_interaction`, `inclusion_criteria`, `variant_description`,
+  `imputation_method`, `hm_inferOtherAllele`, with their Catalog meanings. `chr_name` may be `1` or `chr1`
+  (`X`, `Y`, `MT`/`M` likewise).
+- Every term rule is the same as for Catalog files. A `<pgs_id>.metadata.json` next to the file is used if
+  present; otherwise the pack's metadata is built from the header. The strict score does not require a
+  Catalog publication match, and `#variants_number`, if given, must equal the number of terms.
+
+A file is treated as a Catalog file when its header has `#HmPOS_build=` or a Catalog `#pgs_id=`, and as
+custom otherwise.
+
 ## Term description (compile time)
 
 A term needs review, and cannot contribute, when any of these apply:

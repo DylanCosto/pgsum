@@ -1,0 +1,12 @@
+#pgs_id=MY_SCORE
+#pgs_name=synthetic custom score
+#genome_build=GRCh38
+#weight_type=beta
+#license=CC0 1.0 (synthetic test fixture)
+#variants_number=5
+chr_name	chr_position	effect_allele	other_allele	effect_weight
+chr1	4	C	T	0.5
+1	5	G	T	-0.25
+chr1	1	A	G	1.5
+1	22	T	C	2
+chr1	17	C	T	0.1

@@ -19,7 +19,7 @@ fn synthetic_scoring_file_matches_reference_implementation() {
     let identity = reference_identity(&reference).unwrap();
     let header = compile_file(
         &fixtures.join("PGS999999_hmPOS_GRCh38.txt.gz"),
-        &fixtures.join("PGS999999.metadata.json"),
+        Some(&fixtures.join("PGS999999.metadata.json")),
         &reference,
         &identity,
         &out,

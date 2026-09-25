@@ -1,4 +1,5 @@
-//! Streaming reader for PGS Catalog harmonized scoring files (format 2.0, `HmPOS_build=GRCh38`).
+//! Streaming reader for scoring files: PGS Catalog harmonized files (format 2.0, `HmPOS_build=GRCh38`), and
+//! custom files in the same layout with the author's own GRCh38 positions (see `DESIGN.md`, "Custom scores").
 
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -25,6 +26,28 @@ pub const STRICT_HEADER_KEYS: [&str; 6] = [
     "HmPOS_build",
 ];
 
+/// Where a scoring file comes from.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Origin {
+    /// A PGS Catalog harmonized scoring file.
+    #[default]
+    PgsCatalog,
+    /// Any other score: positions from `chr_name`/`chr_position` in GRCh38.
+    Custom,
+}
+
+/// A custom score ID: letters, digits, `_`, `.`, `-` (at most 64, starting with a letter or digit), and not a
+/// Catalog ID, so a custom score can never be mistaken for a Catalog one.
+pub fn is_custom_id(value: &str) -> bool {
+    (1..=64).contains(&value.len())
+        && value.as_bytes()[0].is_ascii_alphanumeric()
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.' | b'-'))
+        && !is_pgs_id(value)
+}
+
 /// The columns the rules read, by index into a row.
 #[derive(Clone, Debug, Default)]
 pub struct Columns {
@@ -43,6 +66,8 @@ pub struct Columns {
     pub inclusion_criteria: Option<usize>,
     pub variant_description: Option<usize>,
     pub imputation_method: Option<usize>,
+    /// Accept `chr1` as well as `1` in the position columns (custom files).
+    pub strip_chr_prefix: bool,
 }
 
 /// Model flag columns, in the order of `Columns::flags`.
@@ -55,12 +80,24 @@ pub const FLAGS: [&str; 5] = [
 ];
 
 impl Columns {
-    fn new(names: Vec<String>) -> Result<Columns> {
+    fn new(names: Vec<String>, origin: Origin) -> Result<Columns> {
         let find = |name: &str| names.iter().position(|c| c == name);
-        let (Some(effect_allele), Some(hm_chr), Some(hm_pos), Some(_)) =
-            (find("effect_allele"), find("hm_chr"), find("hm_pos"), find("hm_source"))
-        else {
-            return invalid!("required harmonized columns are missing");
+        let (effect_allele, hm_chr, hm_pos) = match origin {
+            Origin::PgsCatalog => {
+                let (Some(e), Some(c), Some(p), Some(_)) =
+                    (find("effect_allele"), find("hm_chr"), find("hm_pos"), find("hm_source"))
+                else {
+                    return invalid!("required harmonized columns are missing");
+                };
+                (e, c, p)
+            }
+            Origin::Custom => {
+                let (Some(e), Some(c), Some(p)) = (find("effect_allele"), find("chr_name"), find("chr_position"))
+                else {
+                    return invalid!("custom scores need chr_name, chr_position and effect_allele columns");
+                };
+                (e, c, p)
+            }
         };
         let dosage_weights = [
             find("dosage_0_weight"),
@@ -78,6 +115,7 @@ impl Columns {
             dosage_weights,
             hm_chr,
             hm_pos,
+            strip_chr_prefix: origin == Origin::Custom,
             hm_match_chr: find("hm_match_chr"),
             hm_match_pos: find("hm_match_pos"),
             hm_infer_other_allele: find("hm_inferOtherAllele"),
@@ -100,10 +138,42 @@ pub struct ScoringFile {
     pub duplicate_keys: Vec<String>,
     pub columns: Columns,
     pub pgs_id: String,
-    pub declared_terms: u64,
-    reader: BufReader<MultiGzDecoder<BufReader<HashingReader<File>>>>,
+    pub origin: Origin,
+    /// `variants_number`; required for Catalog files, optional for custom ones.
+    pub declared_terms: Option<u64>,
+    reader: Source,
     line: Vec<u8>,
     terms: u64,
+}
+
+/// The file's bytes, gunzipped when they start with the gzip magic number, hashed as they are read.
+enum Source {
+    Gzip(Box<BufReader<MultiGzDecoder<BufReader<HashingReader<File>>>>>),
+    Plain(BufReader<HashingReader<File>>),
+}
+
+impl Read for Source {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        match self {
+            Source::Gzip(r) => r.read(buf),
+            Source::Plain(r) => r.read(buf),
+        }
+    }
+}
+
+impl BufRead for Source {
+    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        match self {
+            Source::Gzip(r) => r.fill_buf(),
+            Source::Plain(r) => r.fill_buf(),
+        }
+    }
+    fn consume(&mut self, n: usize) {
+        match self {
+            Source::Gzip(r) => r.consume(n),
+            Source::Plain(r) => r.consume(n),
+        }
+    }
 }
 
 /// One term row: the line without its line ending, and the byte ranges of its fields.
@@ -126,8 +196,13 @@ impl<'a> Row<'a> {
 impl ScoringFile {
     pub fn open(path: &Path) -> Result<ScoringFile> {
         let file = File::open(path).map_err(Error::io(path))?;
-        let decoder = MultiGzDecoder::new(BufReader::with_capacity(1 << 20, HashingReader::new(file)));
-        let mut reader = BufReader::with_capacity(1 << 20, decoder);
+        let mut raw = BufReader::with_capacity(1 << 20, HashingReader::new(file));
+        let gzip = raw.fill_buf().map_err(Error::io(path))?.starts_with(&[0x1f, 0x8b]);
+        let mut reader = if gzip {
+            Source::Gzip(Box::new(BufReader::with_capacity(1 << 20, MultiGzDecoder::new(raw))))
+        } else {
+            Source::Plain(raw)
+        };
         let mut header_lines = Vec::new();
         let mut metadata = BTreeMap::new();
         let mut duplicate_keys = Vec::new();
@@ -171,23 +246,49 @@ impl ScoringFile {
             {
                 return invalid!("{}: invalid columns", path.display());
             }
-            break Columns::new(names).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
+            break Columns::new(names, origin_of(&metadata))
+                .map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
         };
-        if metadata.get("format_version").map(String::as_str) != Some("2.0")
-            || metadata.get("HmPOS_build").map(String::as_str) != Some("GRCh38")
-        {
-            return invalid!("{}: requires harmonized GRCh38 format 2.0", path.display());
+        let origin = origin_of(&metadata);
+        let get = |key: &str| metadata.get(key).map(String::as_str);
+        let pgs_id = get("pgs_id").unwrap_or_default().to_owned();
+        match origin {
+            Origin::PgsCatalog => {
+                if get("format_version") != Some("2.0") || get("HmPOS_build") != Some("GRCh38") {
+                    return invalid!("{}: requires harmonized GRCh38 format 2.0", path.display());
+                }
+                if !is_pgs_id(&pgs_id) {
+                    return invalid!("{}: invalid pgs_id {pgs_id:?}", path.display());
+                }
+            }
+            Origin::Custom => {
+                if !is_custom_id(&pgs_id) {
+                    return invalid!(
+                        "{}: a custom score needs #pgs_id= with letters, digits, _ . - (not a PGSnnnnnn Catalog ID); got {pgs_id:?}",
+                        path.display()
+                    );
+                }
+                if !get("genome_build")
+                    .is_some_and(|b| b.eq_ignore_ascii_case("GRCh38") || b.eq_ignore_ascii_case("hg38"))
+                {
+                    return invalid!(
+                        "{}: a custom score needs #genome_build=GRCh38 (positions on another build must be lifted over first)",
+                        path.display()
+                    );
+                }
+            }
         }
-        let pgs_id = metadata.get("pgs_id").cloned().unwrap_or_default();
-        if !is_pgs_id(&pgs_id) {
-            return invalid!("{}: invalid pgs_id {pgs_id:?}", path.display());
-        }
-        let declared_terms = metadata
-            .get("variants_number")
-            .filter(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
-            .and_then(|n| n.parse::<u64>().ok())
-            .filter(|n| (1..=MAX_TERMS).contains(n))
-            .ok_or_else(|| Error::Invalid(format!("{}: invalid variants_number", path.display())))?;
+        let declared_terms = match get("variants_number") {
+            Some(n) => Some(
+                Some(n)
+                    .filter(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+                    .and_then(|n| n.parse::<u64>().ok())
+                    .filter(|n| (1..=MAX_TERMS).contains(n))
+                    .ok_or_else(|| Error::Invalid(format!("{}: invalid variants_number", path.display())))?,
+            ),
+            None if origin == Origin::Custom => None,
+            None => return invalid!("{}: invalid variants_number", path.display()),
+        };
         Ok(ScoringFile {
             path: path.to_owned(),
             header_lines,
@@ -195,6 +296,7 @@ impl ScoringFile {
             duplicate_keys,
             columns,
             pgs_id,
+            origin,
             declared_terms,
             reader,
             line,
@@ -241,10 +343,22 @@ impl ScoringFile {
     /// Read to the end of the compressed file and return its SHA-256 and size.
     pub fn finish(self) -> Result<(String, u64)> {
         let path = self.path;
-        let mut hashing = self.reader.into_inner().into_inner().into_inner();
+        let mut hashing = match self.reader {
+            Source::Gzip(r) => r.into_inner().into_inner().into_inner(),
+            Source::Plain(r) => r.into_inner(),
+        };
         std::io::copy(&mut hashing, &mut std::io::sink()).map_err(Error::io(&path))?;
         let bytes = hashing.bytes;
         Ok((hashing.finish(), bytes))
+    }
+}
+
+/// Catalog when the header names a harmonization build or a Catalog ID; custom otherwise.
+fn origin_of(metadata: &BTreeMap<String, String>) -> Origin {
+    if metadata.contains_key("HmPOS_build") || metadata.get("pgs_id").is_some_and(|id| is_pgs_id(id)) {
+        Origin::PgsCatalog
+    } else {
+        Origin::Custom
     }
 }
 

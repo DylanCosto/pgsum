@@ -256,7 +256,13 @@ pub fn describe<'a>(row: &Row<'a>, columns: &Columns) -> Description<'a> {
         }
         vec![w]
     };
-    let contig = contig_code(row.get(columns.hm_chr));
+    let chr = row.get(columns.hm_chr);
+    let chr = if columns.strip_chr_prefix {
+        chr.strip_prefix("chr").unwrap_or(chr)
+    } else {
+        chr
+    };
+    let contig = contig_code(chr);
     let pos_text = row.get(columns.hm_pos);
     let pos = if (1..=10).contains(&pos_text.len())
         && pos_text.as_bytes()[0] != b'0'
