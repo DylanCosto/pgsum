@@ -160,6 +160,45 @@ pub struct TermRecord {
     pub weights: Vec<Weight>,
 }
 
+fn bad_body(what: &str) -> Error {
+    Error::Invalid(format!("invalid pack body: {what}"))
+}
+
+/// The 15 length-prefixed column sections of a pack body.
+fn split_sections(body: &[u8]) -> Result<Vec<&[u8]>> {
+    let mut at = 0usize;
+    let mut sections = Vec::with_capacity(15);
+    for _ in 0..15 {
+        let len = body.get(at..at + 8).ok_or_else(|| bad_body("truncated"))?;
+        let len = u64::from_le_bytes(len.try_into().expect("8 bytes")) as usize;
+        at += 8;
+        sections.push(body.get(at..at + len).ok_or_else(|| bad_body("truncated"))?);
+        at += len;
+    }
+    if at != body.len() {
+        return Err(bad_body("trailing bytes"));
+    }
+    Ok(sections)
+}
+
+/// Unsigned LEB128 varints read in order from a byte slice.
+struct Varints<'a>(&'a [u8], usize);
+
+impl Varints<'_> {
+    fn next(&mut self) -> Option<u64> {
+        let mut v = 0u64;
+        for shift in (0..64).step_by(7) {
+            let b = *self.0.get(self.1)?;
+            self.1 += 1;
+            v |= ((b & 0x7f) as u64) << shift;
+            if b & 0x80 == 0 {
+                return Some(v);
+            }
+        }
+        None
+    }
+}
+
 fn put_varint(out: &mut Vec<u8>, mut v: u64) {
     loop {
         let byte = (v & 0x7f) as u8;
@@ -316,37 +355,36 @@ impl Columns {
         v
     }
 
-    /// Decode a pack body.
-    pub fn decode(body: &[u8]) -> Result<Columns> {
-        let bad = |what: &str| Error::Invalid(format!("invalid pack body: {what}"));
-        let mut at = 0usize;
-        let mut sections = Vec::with_capacity(15);
-        for _ in 0..15 {
-            let len = body.get(at..at + 8).ok_or_else(|| bad("truncated"))?;
-            let len = u64::from_le_bytes(len.try_into().expect("8 bytes")) as usize;
-            at += 8;
-            sections.push(body.get(at..at + len).ok_or_else(|| bad("truncated"))?);
-            at += len;
-        }
-        if at != body.len() {
-            return Err(bad("trailing bytes"));
-        }
+    /// Sorted, distinct target keys of the terms that need a genotype (no review reasons, resolved
+    /// orientation), decoding only the columns that identify them.
+    pub fn target_keys(body: &[u8]) -> Result<Vec<u64>> {
+        let sections = split_sections(body)?;
         let n = sections[0].len();
-        struct Varints<'a>(&'a [u8], usize);
-        impl Varints<'_> {
-            fn next(&mut self) -> Option<u64> {
-                let mut v = 0u64;
-                for shift in (0..64).step_by(7) {
-                    let b = *self.0.get(self.1)?;
-                    self.1 += 1;
-                    v |= ((b & 0x7f) as u64) << shift;
-                    if b & 0x80 == 0 {
-                        return Some(v);
-                    }
-                }
-                None
+        let (contig, status, ref_base, alt_base) = (sections[0], sections[5], sections[7], sections[8]);
+        if [status, ref_base, alt_base].iter().any(|c| c.len() != n) {
+            return Err(bad_body("column lengths differ"));
+        }
+        let (mut positions, mut reasons) = (Varints(sections[1], 0), Varints(sections[9], 0));
+        let mut previous = 0i64;
+        let mut keys = Vec::new();
+        for i in 0..n {
+            previous += unzigzag(positions.next().ok_or_else(|| bad_body("positions"))?);
+            let r = reasons.next().ok_or_else(|| bad_body("reasons"))?;
+            if r == 0 && status[i] == Status::Resolved as u8 {
+                let pos = u32::try_from(previous).map_err(|_| bad_body("positions"))?;
+                keys.push(crate::genotypes::target_key(contig[i], pos, ref_base[i], alt_base[i]));
             }
         }
+        keys.sort_unstable();
+        keys.dedup();
+        Ok(keys)
+    }
+
+    /// Decode a pack body.
+    pub fn decode(body: &[u8]) -> Result<Columns> {
+        let bad = |what: &str| bad_body(what);
+        let sections = split_sections(body)?;
+        let n = sections[0].len();
         let mut pos = Vec::with_capacity(n);
         let mut it = Varints(sections[1], 0);
         let mut previous = 0i64;
@@ -453,7 +491,8 @@ impl Pack {
         read_header(&mut input, path)
     }
 
-    pub fn open(path: &Path) -> Result<Pack> {
+    /// A pack's header and verified, decompressed body.
+    fn read_body(path: &Path) -> Result<(Header, Vec<u8>)> {
         let mut input = BufReader::new(File::open(path).map_err(Error::io(path))?);
         let header = read_header(&mut input, path)?;
         let mut body = Vec::new();
@@ -463,6 +502,18 @@ impl Pack {
         if records_sha256(&body) != header.records_sha256 {
             return invalid!("{}: pack records differ from their digest", path.display());
         }
+        Ok((header, body))
+    }
+
+    /// A pack's header and its sorted, distinct target keys, without decoding weights.
+    pub fn open_target_keys(path: &Path) -> Result<(Header, Vec<u64>)> {
+        let (header, body) = Self::read_body(path)?;
+        let keys = Columns::target_keys(&body).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
+        Ok((header, keys))
+    }
+
+    pub fn open(path: &Path) -> Result<Pack> {
+        let (header, body) = Self::read_body(path)?;
         let columns = Columns::decode(&body).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
         if columns.len() as u64 != header.inventory.actual_terms {
             return invalid!(

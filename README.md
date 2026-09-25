@@ -50,8 +50,13 @@ pgsum run --gvcf sample.g.vcf.gz --reference GRCh38.fa --pack packs/ --ids PGS00
 `results/` gets `<PGS_ID>.score.json` per score, `scores.tsv` across scores, and with `--terms` a per-term
 TSV.
 
-On a 12-core Mac, for 8 scores with 11.7 million terms against a 36-million-record HG002 gVCF: compile 7.6 s,
-extract 10.2 s, score 1.1 s (0.4 s after loading the genotype table).
+The whole Catalog: `pgsum fetch --all --reference GRCh38.fa --out packs/` downloads and compiles all 6,990
+scores (4.5 billion terms, 31.6 GB of packs); an interrupted run resumes. For many samples against the same
+packs, pass `--targets-cache packs.pgst` to `extract` or `run`: the first run records which sites the packs
+need, later runs skip reading every pack to find out.
+
+On a 12-core Mac with a 36-million-record HG002 gVCF, against all 6,990 scores: extract 17 s (with the target
+index; 120 s the first time) and score 95 s, so about two minutes per sample.
 
 ## Scoring files and licences
 

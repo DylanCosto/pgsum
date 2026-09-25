@@ -49,7 +49,11 @@ Done once per PGS Catalog release, independent of any sample.
 - Input: a bgzipped single-sample gVCF (no index needed), the reference FASTA and `.fai`, and packs compiled
   against that same reference (checked by digest).
 - Targets: every distinct oriented SNV `(contig, pos, REF, ALT)` from a pack term with no review reasons and a
-  resolved orientation. Packs are read one at a time, so memory holds one pack's terms at most.
+  resolved orientation. Packs are read in parallel, decoding only the columns that identify targets (not the
+  weights), and the union is deduplicated whenever it doubles.
+- Target index (`--targets-cache`, `.pgst`): the union of targets with the identity (PGS ID and records
+  digest) of every pack it came from and the reference digest. A later run reads only the packs' headers and
+  reuses the index if all three match; otherwise it collects targets again and rewrites the index.
 - One pass over the file: BGZF blocks are decompressed on all cores (`noodles-bgzf` with libdeflate) and one
   thread scans the text, reading only `CHROM`, `POS`, `REF` and `INFO/END` from each record. Records on
   contigs other than chr1–22, X, Y and M are skipped. Records must be sorted and each contig contiguous.
@@ -247,6 +251,26 @@ the 8 development scores, and for the synthetic `tests/fixtures/PGS999998` + `sy
 scenario per genotype rule), checked in CI by `tests/extract_fixture.rs`. `extract` over all 8 packs
 (6,825,089 distinct targets) takes 10.2 s on 12 cores with a 3.9 GB peak.
 
+**M4 (the whole Catalog), 2026-09-25:** `pgsum fetch --all` compiled 6,990 of the 6,991 Catalog scores (4.50
+billion terms) into 31.6 GB of packs in about 1 h 50 min, limited by download speed from EBI. PGS005164 fails
+because its scoring file has a quoted allele containing a line break, which splits one row in two.
+Compile output is identical to the reference implementation for the 52 scores checked (8 development + 44
+sampled).
+
+HG002 against all 6,990 packs (12-core Mac, packs on a USB SSD):
+
+| Step | Time | Peak memory |
+|---|---|---|
+| `extract`, first run (collects targets from every pack, writes the index) | 120 s | 6.6 GB |
+| `extract` with the target index | 17.1 s | 5.4 GB |
+| `score`, all 6,990 packs (4.50B terms, about 48M terms/s) | 95 s | 8.1 GB |
+
+`extract` found 30.5M distinct targets and kept 9.8M gVCF records. Reading packs one at a time, the first
+run took 378 s (362 s of it collecting targets); the table is byte-identical either way.
+
+Under the strict rule 189 scores are complete for HG002. 2,214 have no scorable term at all: their scoring
+files give only an effect allele, so every term is `author_other_allele_missing` (see Open questions).
+
 **M3 (score), 2026-09-25:** on HG002, every term's status, effect dosage and contribution text, and every
 score's exact partial sum, are identical to the reference implementation for all 8 development scores
 (checked by `tests/parity_hg002.rs` with `PGSUM_PARITY_DIR`). For the small scores and the synthetic fixtures
@@ -282,6 +306,11 @@ Known differences from the reference implementation, none of which occur in curr
   `pgs_id`, `variants_number`, `weight_type`, `genome_build` and `HmPOS_build`.
 
 ## Open questions
+
+- Scores without an author `other_allele` (2,214 of 6,990, September 2026): the Catalog's harmonized files
+  carry `hm_inferOtherAllele`, inferred from Ensembl. The reference implementation never substitutes it;
+  an opt-in that uses it when it names exactly one allele, and labels the result, would make these scores
+  usable.
 
 - Compile memory: the resident size peaks near 3.8 GB for the development set, most of it pages of the
   memory-mapped reference touched during orientation (reclaimable file cache). Terms are held as columns

@@ -1,7 +1,7 @@
 //! Read a gVCF once and assess every target the packs need.
 //!
 //! A target is one oriented SNV `(contig, pos, REF, ALT)` from a pack term that has no review reasons and a
-//! resolved orientation; other terms never need a genotype. The gVCF is decompressed on several threads and
+//! resolved orientation; other terms never need a genotype (see `targets`). The gVCF is decompressed on several threads and
 //! scanned once in file order. Each record overlapping at least one target is kept verbatim, and after the
 //! scan every target is assessed from its overlapping records, in parallel.
 
@@ -14,54 +14,15 @@ use std::time::Instant;
 
 use crate::digest::HashingReader;
 use crate::genotype::{self, Policy, Target};
-use crate::genotypes::{CompactCall, GenotypeTable, PackRef, target_key, unpack_key};
+use crate::genotypes::{CompactCall, GenotypeTable, unpack_key};
 use crate::gvcf::{self, HeaderFacts};
-use crate::pack::{Pack, ReferenceIdentity};
+use crate::pack::ReferenceIdentity;
 use crate::reference::Reference;
 use crate::term::CONTIGS;
 use crate::{Error, Result, invalid};
 
 /// Records overlapping one target, beyond the first (rare).
 type Extra = HashMap<u32, Vec<u32>>;
-
-/// Sorted, deduplicated target keys needed by the packs, and the packs' identities. Packs are read one at a
-/// time, so memory holds one pack's terms at most. Each must have been compiled against `reference`.
-pub fn targets(packs: &[PathBuf], reference: &ReferenceIdentity) -> Result<(Vec<u64>, Vec<PackRef>)> {
-    let mut keys = Vec::new();
-    let mut deduplicated = 0;
-    let mut refs = Vec::with_capacity(packs.len());
-    for path in packs {
-        let pack = Pack::open(path)?;
-        if &pack.header.reference != reference {
-            return invalid!(
-                "{} was compiled against {} ({}), not this reference",
-                pack.header.pgs_id,
-                pack.header.reference.fasta_name,
-                pack.header.reference.fasta_sha256
-            );
-        }
-        for term in pack.terms() {
-            let t = term?;
-            let o = t.orientation;
-            if t.reasons.is_empty() && o.status == crate::orient::Status::Resolved {
-                keys.push(target_key(t.contig, t.pos, o.ref_base, o.alt_base));
-            }
-        }
-        refs.push(PackRef {
-            pgs_id: pack.header.pgs_id.clone(),
-            records_sha256: pack.header.records_sha256.clone(),
-        });
-        // Deduplicate whenever the list has doubled since the last time, so many packs cost O(n log n).
-        if keys.len() > 2 * deduplicated + (1 << 20) {
-            keys.sort_unstable();
-            keys.dedup();
-            deduplicated = keys.len();
-        }
-    }
-    keys.sort_unstable();
-    keys.dedup();
-    Ok((keys, refs))
-}
 
 pub struct Extracted {
     pub header: HeaderFacts,
@@ -277,12 +238,14 @@ pub fn extract(
     reference: &Reference,
     reference_identity: &ReferenceIdentity,
     packs: &[PathBuf],
+    targets_cache: Option<&Path>,
     threads: usize,
 ) -> Result<(GenotypeTable, Timings)> {
     let mut timings = Timings::default();
     let t = Instant::now();
-    let (keys, pack_refs) = targets(packs, reference_identity)?;
+    let (keys, pack_refs, source) = crate::targets::targets(packs, reference_identity, targets_cache)?;
     timings.targets_s = t.elapsed().as_secs_f64();
+    timings.targets_from_cache = source == crate::targets::Source::Cache;
     let t = Instant::now();
     let scanned = scan(gvcf, &keys, threads)?;
     timings.scan_s = t.elapsed().as_secs_f64();
@@ -299,6 +262,8 @@ pub fn extract(
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Timings {
     pub targets_s: f64,
+    /// The targets came from a matching target index rather than from reading the packs.
+    pub targets_from_cache: bool,
     pub scan_s: f64,
     pub assess_s: f64,
     pub table_s: f64,

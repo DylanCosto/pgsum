@@ -34,6 +34,7 @@ fn synthetic_gvcf_matches_reference_implementation() {
         &reference,
         &identity,
         std::slice::from_ref(&pack_path),
+        None,
         2,
     )
     .unwrap();
@@ -85,7 +86,15 @@ fn synthetic_scores_match_reference_implementation() {
         .unwrap();
         paths.push(out.join(format!("{id}.pgsp")));
     }
-    let (table, _) = extract(&fixtures.join("synthetic.g.vcf.gz"), &reference, &identity, &paths, 2).unwrap();
+    let (table, _) = extract(
+        &fixtures.join("synthetic.g.vcf.gz"),
+        &reference,
+        &identity,
+        &paths,
+        None,
+        2,
+    )
+    .unwrap();
 
     let complete = Pack::open(&paths[0]).unwrap();
     let mut tsv = Vec::new();
@@ -110,5 +119,39 @@ fn synthetic_scores_match_reference_implementation() {
     assert_eq!(withheld.raw_score, None);
     assert_eq!(withheld.partial.raw_score, "7.3");
     assert_eq!((withheld.scorable_terms, withheld.required_terms), (10, 26));
+    std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// A target index is written on the first run, reused when the packs are unchanged (giving an identical
+/// table), and ignored when the pack set changes.
+#[test]
+fn target_index_is_reused_only_for_the_same_packs() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-targets-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    let mut paths = Vec::new();
+    for id in ["PGS999997", "PGS999998"] {
+        compile_file(
+            &fixtures.join(format!("{id}_hmPOS_GRCh38.txt.gz")),
+            &fixtures.join(format!("{id}.metadata.json")),
+            &reference,
+            &identity,
+            &out,
+        )
+        .unwrap();
+        paths.push(out.join(format!("{id}.pgsp")));
+    }
+    let gvcf = fixtures.join("synthetic.g.vcf.gz");
+    let cache = out.join("targets.pgst");
+    let (first, t1) = extract(&gvcf, &reference, &identity, &paths, Some(&cache), 2).unwrap();
+    assert!(!t1.targets_from_cache && cache.exists());
+    let (second, t2) = extract(&gvcf, &reference, &identity, &paths, Some(&cache), 2).unwrap();
+    assert!(t2.targets_from_cache);
+    assert_eq!(first.header, second.header);
+    let (third, t3) = extract(&gvcf, &reference, &identity, &paths[..1], Some(&cache), 2).unwrap();
+    assert!(!t3.targets_from_cache);
+    assert_eq!(third.header.packs.len(), 1);
     std::fs::remove_dir_all(&out).unwrap();
 }

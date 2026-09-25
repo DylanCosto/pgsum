@@ -16,6 +16,7 @@ pub mod pack;
 pub mod reference;
 pub mod score;
 pub mod scoring_file;
+pub mod targets;
 pub mod term;
 
 /// Errors surfaced by the library and the CLI.

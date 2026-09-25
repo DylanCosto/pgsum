@@ -156,6 +156,9 @@ enum Command {
         /// Output genotype table (`.pgsg`).
         #[arg(long)]
         out: PathBuf,
+        /// Target index to reuse when it matches the selected packs, or to create (`.pgst`).
+        #[arg(long)]
+        targets_cache: Option<PathBuf>,
     },
     /// Score packs against an extracted genotype table.
     Score {
@@ -183,6 +186,9 @@ enum Command {
         out: PathBuf,
         #[arg(long)]
         terms: bool,
+        /// Target index to reuse when it matches the selected packs, or to create (`.pgst`).
+        #[arg(long)]
+        targets_cache: Option<PathBuf>,
     },
 }
 
@@ -219,9 +225,10 @@ fn main() -> ExitCode {
             reference,
             packs,
             out,
+            targets_cache,
         } => packs
             .resolve()
-            .and_then(|packs| extract(&gvcf, &reference, &packs, &out, threads)),
+            .and_then(|packs| extract(&gvcf, &reference, &packs, &out, targets_cache.as_deref(), threads)),
         Command::Score {
             genotypes,
             packs,
@@ -236,10 +243,18 @@ fn main() -> ExitCode {
             packs,
             out,
             terms,
+            targets_cache,
         } => packs.resolve().and_then(|packs| {
             std::fs::create_dir_all(&out).map_err(Error::io(&out))?;
             let table_path = out.join("genotypes.pgsg");
-            extract(&gvcf, &reference, &packs, &table_path, threads)?;
+            extract(
+                &gvcf,
+                &reference,
+                &packs,
+                &table_path,
+                targets_cache.as_deref(),
+                threads,
+            )?;
             score(&GenotypeTable::open(&table_path)?, &packs, &out, terms)
         }),
     };
@@ -399,17 +414,29 @@ fn fetch(
     Ok(())
 }
 
-fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, threads: usize) -> Result<()> {
+fn extract(
+    gvcf: &Path,
+    reference: &Path,
+    packs: &[PathBuf],
+    out: &Path,
+    targets_cache: Option<&Path>,
+    threads: usize,
+) -> Result<()> {
     let started = std::time::Instant::now();
     let reference = Reference::open(reference)?;
     let identity = reference_identity(&reference)?;
     let loaded = started.elapsed().as_secs_f64();
-    let (table, timings) = pgsum::extract::extract(gvcf, &reference, &identity, packs, threads)?;
+    let (table, timings) = pgsum::extract::extract(gvcf, &reference, &identity, packs, targets_cache, threads)?;
     let t = std::time::Instant::now();
     table.write(out)?;
     eprintln!(
-        "  timings: reference {loaded:.1}s, packs+targets {:.1}s, scan {:.1}s, assess {:.1}s, table {:.1}s, write {:.1}s",
+        "  timings: reference {loaded:.1}s, targets {:.1}s{}, scan {:.1}s, assess {:.1}s, table {:.1}s, write {:.1}s",
         timings.targets_s,
+        if timings.targets_from_cache {
+            " (from index)"
+        } else {
+            ""
+        },
         timings.scan_s,
         timings.assess_s,
         timings.table_s,
