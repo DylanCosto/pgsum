@@ -72,6 +72,8 @@ pub struct Outcome {
     pub contribution: Option<Contribution>,
     /// Set when the term was oriented with an inferred other allele.
     pub inferred: Option<Inference>,
+    /// Set when the term was scored despite an informational `variant_description`.
+    pub informational_description_accepted: bool,
 }
 
 impl Outcome {
@@ -82,6 +84,7 @@ impl Outcome {
             effect_dosage: None,
             contribution: None,
             inferred: None,
+            informational_description_accepted: false,
         }
     }
 }
@@ -122,24 +125,25 @@ pub struct Options {
     /// Score terms whose only review reason is a missing author `other_allele` with the orientation their
     /// pack inferred for them (see `pack::Inference`).
     pub allow_inferred_other_allele: bool,
+    /// Score terms whose `variant_description` is informational (fine-mapping statistics, the author's variant
+    /// IDs, known notes) despite it; see `term::informational_description`.
+    pub accept_informational_descriptions: bool,
 }
 
 /// Classify one term against the genotype table.
 pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable, options: &Options) -> Result<Outcome> {
-    if !t.reasons.is_empty() {
-        if options.allow_inferred_other_allele
-            && t.reasons.0 == Reason::OtherAlleleMissing as u32
-            && let Some((kind, o)) = t.inferred
-        {
-            return called(t, o, genotypes, Some(kind));
-        }
+    let Some((o, inferred)) = t.waived(
+        options.accept_informational_descriptions,
+        options.allow_inferred_other_allele,
+    ) else {
         return Ok(Outcome::without_call("model_term_requires_review"));
-    }
-    let o = t.orientation;
+    };
     if o.status != Status::Resolved {
         return Ok(Outcome::without_call("unresolved_orientation"));
     }
-    called(t, o, genotypes, None)
+    let mut outcome = called(t, o, genotypes, inferred)?;
+    outcome.informational_description_accepted = t.reasons.0 & Reason::VariantDescription as u32 != 0;
+    Ok(outcome)
 }
 
 /// The outcome of a term oriented by `o` (the author's orientation, or an inferred one).
@@ -159,6 +163,7 @@ fn called(t: &TermRecord, o: Orientation, genotypes: &GenotypeTable, inferred: O
         effect_dosage,
         contribution,
         inferred,
+        informational_description_accepted: false,
     };
     match entry.alt_dosage {
         Some(alt) if entry.state.is_passing() => {
@@ -301,7 +306,15 @@ pub struct ScoreResult {
     pub calibration: String,
     /// Whether scoring was allowed to use inferred other alleles, and how many scorable terms did.
     pub inferred_other_allele: InferredUse,
+    /// Whether informational `variant_description`s were accepted, and how many scorable terms had one.
+    pub informational_descriptions: InformationalUse,
     pub inputs: Inputs,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct InformationalUse {
+    pub accepted: bool,
+    pub scorable_terms: u64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -353,6 +366,7 @@ struct Tally {
     effect_all: f64,
     effect_scorable: f64,
     inferred: BTreeMap<&'static str, u64>,
+    informational: u64,
     tsv: Vec<u8>,
 }
 
@@ -387,19 +401,25 @@ fn tally(
             if let Some(kind) = o.inferred {
                 *t.inferred.entry(kind.as_str()).or_default() += 1;
             }
+            t.informational += o.informational_description_accepted as u64;
         }
         if terms {
             crate::pack::write_term_line(&mut t.tsv, first + i + 1, &term)?;
             writeln!(
                 t.tsv,
-                "\t{}\t{}\t{}\t{}\t{}",
+                "\t{}\t{}\t{}\t{}\t{}\t{}",
                 o.status,
                 o.call_state,
                 o.effect_dosage.map(|d| d.to_string()).unwrap_or_default(),
                 o.contribution
                     .map(|c| c.to_decimal().to_python_string())
                     .unwrap_or_default(),
-                o.inferred.map_or("", Inference::as_str)
+                o.inferred.map_or("", Inference::as_str),
+                if o.informational_description_accepted {
+                    "accepted"
+                } else {
+                    ""
+                }
             )
             .map_err(io)?;
         }
@@ -430,7 +450,7 @@ pub fn score(
     if let Some(out) = terms.as_deref_mut() {
         writeln!(
             out,
-            "{}\tstatus\tcall_state\teffect_dosage\tcontribution\tinferred_other_allele",
+            "{}\tstatus\tcall_state\teffect_dosage\tcontribution\tinferred_other_allele\tinformational_description",
             crate::pack::TSV_HEADER.trim_end()
         )
         .map_err(io)?;
@@ -452,8 +472,10 @@ pub fn score(
     let (mut total, mut scorable, mut without_weight) = (0u64, 0u64, 0u64);
     let (mut effect_all, mut effect_scorable) = (0f64, 0f64);
     let mut inferred: BTreeMap<String, u64> = BTreeMap::new();
+    let mut informational = 0u64;
     for t in tallies {
         let t = t?;
+        informational += t.informational;
         for (k, v) in t.inferred {
             *inferred.entry(k.to_owned()).or_default() += v;
         }
@@ -539,6 +561,10 @@ pub fn score(
             allowed: options.allow_inferred_other_allele,
             scorable_terms: inferred,
             reference_convention: h.inference.as_ref().and_then(|i| i.reference_convention.clone()),
+        },
+        informational_descriptions: InformationalUse {
+            accepted: options.accept_informational_descriptions,
+            scorable_terms: informational,
         },
         inputs: Inputs {
             pack_records_sha256: h.records_sha256.clone(),

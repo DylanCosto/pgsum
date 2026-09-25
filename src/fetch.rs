@@ -1,8 +1,8 @@
 //! Download PGS Catalog scores and compile each into a pack as it arrives.
 //!
-//! For each score: fetch its Catalog REST record, skip it if a current-format pack already exists with an
-//! identical record, otherwise download the harmonized GRCh38 scoring file, compile it, and delete the
-//! download (unless kept).
+//! For each score: fetch its Catalog REST record, skip it if a pack compiled under the current format and
+//! rules already exists with an identical record, otherwise download the harmonized GRCh38 scoring file,
+//! compile it, and delete the download (unless kept).
 //! Only compiled packs need to stay on disk, which is what makes the whole Catalog fit.
 
 use std::io::Write;
@@ -137,6 +137,7 @@ pub fn fetch_one(agent: &ureq::Agent, record: &serde_json::Value, o: &Options<'_
     let pack_path = o.out.join(format!("{id}.{}", pack::EXTENSION));
     if let Ok(existing) = Pack::open_header(&pack_path)
         && existing.schema == pack::SCHEMA
+        && existing.compile_rules == pack::COMPILE_RULES
         && &existing.catalog_metadata == record
         && &existing.reference == o.identity
     {

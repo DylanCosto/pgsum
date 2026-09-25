@@ -148,6 +148,9 @@ enum Command {
         /// With `--genotypes`: allow inferred other alleles, as `score` does.
         #[arg(long)]
         allow_inferred_other_allele: bool,
+        /// With `--genotypes`: accept informational variant descriptions, as `score` does.
+        #[arg(long)]
+        accept_informational_descriptions: bool,
     },
     /// Read genotypes from a gVCF at every site the packs need.
     Extract {
@@ -182,6 +185,9 @@ enum Command {
         /// Also score terms without an author other allele, using the orientation their pack inferred.
         #[arg(long)]
         allow_inferred_other_allele: bool,
+        /// Also score terms whose variant_description is informational (fine-mapping statistics, variant IDs).
+        #[arg(long)]
+        accept_informational_descriptions: bool,
     },
     /// Extract then score in one step.
     Run {
@@ -201,6 +207,9 @@ enum Command {
         /// Also score terms without an author other allele, using the orientation their pack inferred.
         #[arg(long)]
         allow_inferred_other_allele: bool,
+        /// Also score terms whose variant_description is informational (fine-mapping statistics, variant IDs).
+        #[arg(long)]
+        accept_informational_descriptions: bool,
     },
 }
 
@@ -222,12 +231,14 @@ fn main() -> ExitCode {
             header,
             genotypes,
             allow_inferred_other_allele,
+            accept_informational_descriptions,
         } => inspect(
             &path,
             header,
             genotypes.as_deref(),
             &pgsum::score::Options {
                 allow_inferred_other_allele,
+                accept_informational_descriptions,
             },
         ),
         Command::Fetch {
@@ -255,9 +266,11 @@ fn main() -> ExitCode {
             out,
             terms,
             allow_inferred_other_allele,
+            accept_informational_descriptions,
         } => packs.resolve().and_then(|packs| {
             let options = pgsum::score::Options {
                 allow_inferred_other_allele,
+                accept_informational_descriptions,
             };
             score(&GenotypeTable::open(&genotypes)?, &packs, &out, terms, &options)
         }),
@@ -269,9 +282,11 @@ fn main() -> ExitCode {
             terms,
             targets_cache,
             allow_inferred_other_allele,
+            accept_informational_descriptions,
         } => packs.resolve().and_then(|packs| {
             let options = pgsum::score::Options {
                 allow_inferred_other_allele,
+                accept_informational_descriptions,
             };
             std::fs::create_dir_all(&out).map_err(Error::io(&out))?;
             let table_path = out.join("genotypes.pgsg");

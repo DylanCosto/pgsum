@@ -154,6 +154,9 @@ pub struct Description<'a> {
     /// One weight (additive/dominant/recessive) or three (dosage 0, 1, 2); `None` where invalid.
     pub weights: Vec<Option<Decimal>>,
     pub centred: Option<Centred>,
+    /// The `variant_description` is an annotation that does not change how the term is scored (see
+    /// `informational_description`). The term still carries its review reason.
+    pub informational_description: bool,
 }
 
 fn is_acgt(s: &str) -> bool {
@@ -163,6 +166,47 @@ fn is_acgt(s: &str) -> bool {
 /// `[+-]`-free decimal text as accepted inside a centred description.
 fn unsigned_number(s: &str) -> bool {
     !s.starts_with(['+', '-']) && Decimal::parse(s).is_some()
+}
+
+/// `key=value` annotations seen in Catalog `variant_description` columns that describe a term without
+/// changing how it is scored: fine-mapping and estimation statistics, and the author's own variant IDs.
+const INFORMATIONAL_KEYS: &[&str] = &[
+    "PIP",
+    "BETAlast",
+    "SE",
+    "LastSampleEff",
+    "P",
+    "N",
+    "FinnGen_VariantID",
+    "ID",
+    "variant_id",
+    "VARIANT_ID",
+];
+
+/// Free-text descriptions seen in the Catalog that are notes on a term, not instructions.
+const INFORMATIONAL_TEXT: &[&str] = &[
+    "Variant info (UK Biobank)",
+    "Score calculated as product of dosage times weight across all variants",
+];
+
+/// Whether a `variant_description` is informational: only known annotation keys (and `a1=`, `a2=`, …
+/// allele lists) with non-empty values, one of the known notes, a proxy-SNP note, or the winner's-curse
+/// weight note. Anything else, e.g. "Homozygote correction", is left for review.
+pub fn informational_description(description: &str) -> bool {
+    let key_values = description.split(';').all(|item| {
+        item.split_once('=').is_some_and(|(k, v)| {
+            let k = k.trim();
+            let allele_list = k.len() > 1 && k.starts_with('a') && k[1..].bytes().all(|b| b.is_ascii_digit());
+            !v.trim().is_empty() && (INFORMATIONAL_KEYS.contains(&k) || allele_list)
+        })
+    });
+    let proxy = description
+        .strip_prefix("proxy SNP: rs")
+        .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+    key_values
+        || proxy
+        || INFORMATIONAL_TEXT.contains(&description)
+        || description.starts_with("Beta, estimated per allele log odds ratio adjusted for winner")
 }
 
 fn centred(description: &str) -> Option<Centred> {
@@ -223,6 +267,8 @@ pub fn describe<'a>(row: &Row<'a>, columns: &Columns) -> Description<'a> {
     } else {
         centred(description)
     };
+    let informational_description =
+        !description.is_empty() && centred.is_none() && informational_description(description);
     if !description.is_empty() && centred.is_none() {
         reasons.insert(Reason::VariantDescription);
     }
@@ -316,6 +362,7 @@ pub fn describe<'a>(row: &Row<'a>, columns: &Columns) -> Description<'a> {
         other_allele: other,
         weights,
         centred,
+        informational_description,
     }
 }
 
@@ -345,6 +392,33 @@ mod tests {
         assert!(centred("weight_type=NR;centre=+1").is_none());
         assert!(centred("weight_type=logOR;centre=1").is_none());
         assert!(centred("weight_type=beta;centre=1;x=2").is_none());
+    }
+
+    #[test]
+    fn informational_descriptions() {
+        for d in [
+            "PIP=0.12;BETAlast=-0.003",
+            "SE=0.01;PIP=0.5;LastSampleEff=-0.2",
+            "FinnGen_VariantID=chr1_12345_C_T",
+            "ID=chr1:12345:G:A;a1=G;a2=A",
+            "variant_id=1:12345",
+            "P=0.001;N=50000",
+            "Variant info (UK Biobank)",
+            "proxy SNP: rs123",
+        ] {
+            assert!(informational_description(d), "{d}");
+        }
+        for d in [
+            "Homozygote correction",
+            "Reference",
+            "marker",
+            "marker; the effect weight should be applied in the presence of any of the three CYP2A6 alleles",
+            "PIP=",
+            "PIP=0.1;dominant=1",
+            "proxy SNP: rsX",
+        ] {
+            assert!(!informational_description(d), "{d}");
+        }
     }
 
     #[test]

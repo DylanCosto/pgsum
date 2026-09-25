@@ -191,6 +191,7 @@ fn inferred_other_alleles_are_opt_in() {
     .unwrap();
     let allow = pgsum::score::Options {
         allow_inferred_other_allele: true,
+        ..Default::default()
     };
 
     // Per score: reference convention, then per term "status, effect dosage, contribution, inference method",
@@ -320,5 +321,69 @@ fn custom_scoring_file() {
             .to_string();
         assert!(err.contains(expected), "{name}: {err}");
     }
+    std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// Informational `variant_description`s are scored only with `accept_informational_descriptions`; a
+/// description that changes the model stays under review either way.
+#[test]
+fn informational_descriptions_are_opt_in() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-annotated-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    compile_file(&fixtures.join("ANNOTATED.tsv"), None, &reference, &identity, &out).unwrap();
+    let path = out.join("ANNOTATED.pgsp");
+    let (table, _) = extract(
+        &fixtures.join("synthetic.g.vcf.gz"),
+        &reference,
+        &identity,
+        std::slice::from_ref(&path),
+        None,
+        2,
+    )
+    .unwrap();
+    let pack = Pack::open(&path).unwrap();
+    let statuses = |options: &pgsum::score::Options| {
+        let mut tsv = Vec::new();
+        let result = pgsum::score::score(&pack, &table, options, Some(&mut tsv)).unwrap();
+        let rows: Vec<String> = String::from_utf8(tsv)
+            .unwrap()
+            .lines()
+            .skip(1)
+            .map(|l| {
+                let f: Vec<&str> = l.split('\t').collect();
+                [f[13], f[18]].join("\t")
+            })
+            .collect();
+        (result, rows)
+    };
+    let (default, rows) = statuses(&Default::default());
+    assert_eq!(
+        rows,
+        [
+            "model_term_requires_review\t",
+            "model_term_requires_review\t",
+            "scorable_observation\t"
+        ]
+    );
+    assert_eq!(default.partial.raw_score, "0.4");
+    let accept = pgsum::score::Options {
+        accept_informational_descriptions: true,
+        ..Default::default()
+    };
+    let (accepted, rows) = statuses(&accept);
+    assert_eq!(
+        rows,
+        [
+            "scorable_observation\taccepted",
+            "model_term_requires_review\t",
+            "scorable_observation\t"
+        ]
+    );
+    // 0.5 × 1 (chr1:4 heterozygous) + 0.2 × 2 (chr1:5 homozygous ALT)
+    assert_eq!(accepted.partial.raw_score, "0.9");
+    assert_eq!(accepted.informational_descriptions.scorable_terms, 1);
     std::fs::remove_dir_all(&out).unwrap();
 }

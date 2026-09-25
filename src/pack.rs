@@ -39,6 +39,9 @@ use crate::{Error, Result, invalid};
 
 pub const MAGIC: &[u8; 8] = b"PGSUMPK2";
 pub const SCHEMA: &str = "pgsum-pack-v3";
+/// Version of the compile-time rules (term description, orientation, inference, informational
+/// descriptions). A pack compiled under other rules is recompiled by `fetch`.
+pub const COMPILE_RULES: &str = "2026-09-25.informational-descriptions";
 /// Earlier schema still read: v2 has no inferred-orientation columns.
 pub const SCHEMA_V2: &str = "pgsum-pack-v2";
 pub const EXTENSION: &str = "pgsp";
@@ -89,6 +92,9 @@ pub struct WeightType {
 pub struct Header {
     pub schema: String,
     pub pgsum_version: String,
+    /// `COMPILE_RULES` when the pack was compiled; empty for packs from before it was recorded.
+    #[serde(default)]
+    pub compile_rules: String,
     pub pgs_id: String,
     /// PGS Catalog or custom.
     #[serde(default)]
@@ -172,6 +178,47 @@ pub struct TermRecord {
     /// For a term without an author `other_allele`: an orientation inferred for it, and how. Used only when
     /// scoring is asked to allow inferred other alleles.
     pub inferred: Option<(Inference, Orientation)>,
+    /// Its `variant_description` is informational (see `term::informational_description`). Used only when
+    /// scoring is asked to accept informational descriptions.
+    pub informational_description: bool,
+}
+
+impl TermRecord {
+    /// The orientation to score this term with, and the inference used for it, once the review reasons the
+    /// options waive are removed; `None` if other review reasons remain.
+    pub fn waived(&self, accept_informational: bool, allow_inferred: bool) -> Option<(Orientation, Option<Inference>)> {
+        waived(
+            self.reasons.0,
+            self.informational_description,
+            self.orientation,
+            self.inferred,
+            accept_informational,
+            allow_inferred,
+        )
+    }
+}
+
+/// See `TermRecord::waived`; shared with target collection, which reads columns directly.
+fn waived(
+    reasons: u32,
+    informational: bool,
+    orientation: Orientation,
+    inferred: Option<(Inference, Orientation)>,
+    accept_informational: bool,
+    allow_inferred: bool,
+) -> Option<(Orientation, Option<Inference>)> {
+    use crate::term::Reason;
+    let mut rest = reasons;
+    if accept_informational && informational {
+        rest &= !(Reason::VariantDescription as u32);
+    }
+    if rest == Reason::OtherAlleleMissing as u32
+        && allow_inferred
+        && let Some((kind, o)) = inferred
+    {
+        return Some((o, Some(kind)));
+    }
+    (rest == 0).then_some((orientation, None))
 }
 
 /// How a missing author `other_allele` was inferred.
@@ -327,8 +374,12 @@ impl Columns {
         self.model.push(t.model as u8);
         self.allele_kind.push(t.allele_kind as u8);
         let inferred_effect_is_alt = t.inferred.is_some_and(|(_, o)| o.effect_is_alt);
-        self.flags
-            .push(t.palindromic as u8 | (t.orientation.effect_is_alt as u8) << 1 | (inferred_effect_is_alt as u8) << 2);
+        self.flags.push(
+            t.palindromic as u8
+                | (t.orientation.effect_is_alt as u8) << 1
+                | (inferred_effect_is_alt as u8) << 2
+                | (t.informational_description as u8) << 3,
+        );
         match t.inferred {
             Some((kind, o)) => {
                 self.inferred_kind.push(kind as u8);
@@ -384,6 +435,7 @@ impl Columns {
                     },
                 )),
             },
+            informational_description: self.flags[i] & 8 != 0,
         })
     }
 
@@ -465,7 +517,8 @@ impl Columns {
         let sections = split_sections(body)?;
         let n = sections[0].len();
         let (contig, status, ref_base, alt_base) = (sections[0], sections[5], sections[7], sections[8]);
-        if [status, ref_base, alt_base].iter().any(|c| c.len() != n) {
+        let (flags, method) = (sections[4], sections[6]);
+        if [status, ref_base, alt_base, flags, method].iter().any(|c| c.len() != n) {
             return Err(bad_body("column lengths differ"));
         }
         let inferred = (sections.len() == SECTIONS_V3).then(|| (sections[15], sections[17], sections[18]));
@@ -481,23 +534,32 @@ impl Columns {
             previous += unzigzag(positions.next().ok_or_else(|| bad_body("positions"))?);
             let r = reasons.next().ok_or_else(|| bad_body("reasons"))?;
             let pos = || u32::try_from(previous).map_err(|_| bad_body("positions"));
-            if r == 0 && status[i] == Status::Resolved as u8 {
-                keys.push(crate::genotypes::target_key(
-                    contig[i],
-                    pos()?,
-                    ref_base[i],
-                    alt_base[i],
-                ));
-            } else if let Some((kind, inferred_ref, inferred_alt)) = inferred
-                && kind[i] != 0
-                && r == crate::term::Reason::OtherAlleleMissing as u64
+            // A target is needed if the term is scorable with every opt-in on; which opt-ins apply is decided
+            // when scoring, so one genotype table serves every mode.
+            let author = Orientation {
+                status: Status::from_code(status[i]).ok_or_else(|| bad_body("status"))?,
+                method: Method::from_code(method[i]).ok_or_else(|| bad_body("method"))?,
+                ref_base: ref_base[i],
+                alt_base: alt_base[i],
+                effect_is_alt: flags[i] & 2 != 0,
+            };
+            let inferred_orientation = inferred.and_then(|(kind, r, a)| {
+                Some((
+                    Inference::from_code(kind[i])?,
+                    Orientation {
+                        status: Status::Resolved,
+                        method: Method::Direct,
+                        ref_base: r[i],
+                        alt_base: a[i],
+                        effect_is_alt: flags[i] & 4 != 0,
+                    },
+                ))
+            });
+            let reasons = u32::try_from(r).map_err(|_| bad_body("reasons"))?;
+            if let Some((o, _)) = waived(reasons, flags[i] & 8 != 0, author, inferred_orientation, true, true)
+                && o.status == Status::Resolved
             {
-                keys.push(crate::genotypes::target_key(
-                    contig[i],
-                    pos()?,
-                    inferred_ref[i],
-                    inferred_alt[i],
-                ));
+                keys.push(crate::genotypes::target_key(contig[i], pos()?, o.ref_base, o.alt_base));
             }
         }
         keys.sort_unstable();

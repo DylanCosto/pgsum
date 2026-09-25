@@ -232,6 +232,7 @@ pub fn compile_file(
             reasons: d.reasons,
             weights,
             inferred: None,
+            informational_description: d.informational_description,
         });
         if let Some(c) = inference_candidate(&d, row.opt(columns.hm_infer_other_allele), reference)
             .map_err(|e| Error::Invalid(format!("{}: term {}: {e}", scoring_path.display(), ordinal + 1)))?
@@ -284,6 +285,7 @@ pub fn compile_file(
     let header = Header {
         schema: pack::SCHEMA.into(),
         pgsum_version: env!("CARGO_PKG_VERSION").into(),
+        compile_rules: pack::COMPILE_RULES.into(),
         pgs_id: pgs_id.clone(),
         origin,
         source: SourceFile {

@@ -1,0 +1,6 @@
+#pgs_id=ANNOTATED
+#genome_build=GRCh38
+chr_name	chr_position	effect_allele	other_allele	effect_weight	variant_description
+1	4	C	T	0.5	PIP=0.31;BETAlast=0.12
+1	8	G	A	0.8	Homozygote correction
+1	5	G	T	0.2	
