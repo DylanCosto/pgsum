@@ -1,5 +1,19 @@
 # Benchmarks
 
+Summary (12-core Mac, 26 GB RAM, GIAB HG002 DeepVariant gVCF, 2026-09-25):
+
+| Per sample | pgsum | pgsc_calc v2.3.0 steps | plink2 `--score` alone |
+|---|---|---|---|
+| 8 scores (11.7M terms) | 10.1 s | 432 s | 5.4 s |
+| 100 random scores (56.1M terms) | 11.8 s | 2,224 s (29.5 GB peak) | 11.1 s |
+| Whole Catalog (6,990 scores, 4.50B terms) | about 3 min | not run (see below) | not run |
+
+pgsum's times start from the gVCF (`pgsum run`: extract + score). pgsc_calc and plink2 start from a VCF of
+genotypes at the score sites that pgsum produced for them; turning a gVCF into that is not counted for them.
+plink2 alone is only the scoring engine: it also needs its weight tables built (pgsc_calc's format and match
+steps).
+
+
 ## plink2 `--score` (2026-09-25)
 
 Same machine (12-core Mac, 26 GB RAM), same sample (GIAB HG002, DeepVariant gVCF), same scores, same
@@ -34,3 +48,36 @@ plink2 --pfile g --score in/alt.scores.tsv 1 2 header-read no-mean-imputation co
   --score-col-nums 3-<N+2> --threads 12 --out alt     # and the same for in/ref.scores.tsv
 pgsum score --genotypes genotypes.pgsg --pack packs/ --ids <the PGS IDs in in/columns.txt> --out results/
 ```
+
+## pgsc_calc (2026-09-25)
+
+pgsc_calc v2.3.0 (June 2026) is a Nextflow pipeline. Its heavy steps are the `pgscatalog-utils` tools and
+plink2; they were run natively (arm64) with the versions pgsc_calc pins (`pgscatalog.core` 1.1.1,
+`pgscatalog.match` 0.4.0, `pgscatalog.calc` 0.3.1) and plink2 a6.39, with the command lines from its
+modules, and without Nextflow, so no workflow or container overhead is counted. (On this Mac, pgsc_calc's own
+conda and Docker profiles would run x86 builds under emulation: bioconda has no arm64 plink2 and there is no
+Java.) Target: the same genotype VCF as for plink2 (chromosomes renamed `1`, `2`, … to match scoring files),
+`--min_overlap 0` so no score is dropped. Scripts: `run.sh` in the benchmark folder.
+
+| Step | 8 scores | 100 scores |
+|---|---|---|
+| `pgscatalog-format` | 198.1 s | 564.9 s |
+| plink2 import | 2.3 s | 2.6 s |
+| `pgscatalog-match` | 16.5 s | 153.6 s |
+| `pgscatalog-matchmerge` | 201.9 s | 1,448.9 s |
+| plink2 `--score` | 4.0 s | 24.2 s |
+| `pgscatalog-aggregate` | 9.0 s | 29.8 s |
+| **Total** | **431.8 s** | **2,224 s** (peak 29.5 GB, above this Mac's RAM) |
+| pgsum `run` from the gVCF | 10.1 s | 11.8 s (peak 4.6 GB) |
+
+pgsum's format-and-match equivalent (`compile`) runs once per Catalog release (5.3 s for the 8 scores), not
+per sample. For the whole Catalog, pgsc_calc's per-term cost here (about 10 µs to format, 26 µs to
+match-merge) would be on the order of 40 hours per run on this machine, and its memory grew past RAM at 100
+scores, so it would have to run in batches; this was not measured.
+
+Agreement: where both tools score the same rows the sums agree to pgsc_calc's printed precision (7 of the 8
+development scores; 55 of 99 scored random ones with `--allow-inferred-other-allele`). The others differ in
+which rows are included, not in arithmetic: pgsum's review rules exclude rows pgsc_calc scores
+(`variant_description` in PGS000667, missing other alleles pgsum cannot infer, ambiguous overlapping gVCF
+records), and pgsc_calc only sees sites present in the VCF it was given, which for effect-allele-only scores
+misses sites pgsum infers (e.g. PGS000054, whose effect allele is the reference at every site).
