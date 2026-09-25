@@ -18,7 +18,10 @@ use crate::scoring_file::is_pgs_id;
 use crate::{Error, Result, invalid};
 
 pub const REST: &str = "https://www.pgscatalog.org/rest";
-const ATTEMPTS: u32 = 6;
+const ATTEMPTS: u32 = 8;
+/// Above this many IDs, records come from the paginated listing (a few dozen requests) instead of one request
+/// per score, which the Catalog's API rate-limits.
+const LISTING_ABOVE: usize = 25;
 
 pub fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
@@ -41,6 +44,7 @@ fn with_retries<T>(what: &str, mut f: impl FnMut() -> std::result::Result<T, ure
             Err(e) => last = e.to_string(),
         }
         if attempt + 1 < ATTEMPTS {
+            // 1 s, 2 s, 4 s … 64 s: about two minutes in all, enough for a rate limit to clear.
             std::thread::sleep(Duration::from_secs(2u64.pow(attempt)));
         }
     }
@@ -62,17 +66,38 @@ fn get_json(agent: &ureq::Agent, url: &str) -> Result<serde_json::Value> {
 
 /// Catalog records for the given IDs, or for every score when `ids` is empty.
 pub fn catalog_records(agent: &ureq::Agent, ids: &[String]) -> Result<Vec<serde_json::Value>> {
-    if !ids.is_empty() {
-        return ids
-            .par_iter()
-            .map(|id| {
-                if !is_pgs_id(id) {
-                    return invalid!("{id:?} is not a PGS ID");
-                }
-                get_json(agent, &format!("{REST}/score/{id}"))
-            })
-            .collect();
+    if let Some(bad) = ids.iter().find(|id| !is_pgs_id(id)) {
+        return invalid!("{bad:?} is not a PGS ID");
     }
+    if ids.len() > LISTING_ABOVE {
+        let wanted: std::collections::HashSet<&str> = ids.iter().map(String::as_str).collect();
+        let records: Vec<_> = all_records(agent)?
+            .into_iter()
+            .filter(|r| r["id"].as_str().is_some_and(|id| wanted.contains(id)))
+            .collect();
+        let found: std::collections::HashSet<&str> = records.iter().filter_map(|r| r["id"].as_str()).collect();
+        let missing: Vec<_> = ids.iter().filter(|id| !found.contains(id.as_str())).collect();
+        if !missing.is_empty() {
+            return invalid!("not in the Catalog listing: {missing:?}");
+        }
+        return Ok(records);
+    }
+    if !ids.is_empty() {
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(4)
+            .build()
+            .map_err(|e| Error::Invalid(e.to_string()))?;
+        return pool.install(|| {
+            ids.par_iter()
+                .map(|id| get_json(agent, &format!("{REST}/score/{id}")))
+                .collect()
+        });
+    }
+    all_records(agent)
+}
+
+/// Every score's record, from the paginated listing.
+fn all_records(agent: &ureq::Agent) -> Result<Vec<serde_json::Value>> {
     let mut records = Vec::new();
     let mut url = Some(format!("{REST}/score/all?limit=250"));
     while let Some(u) = url {
