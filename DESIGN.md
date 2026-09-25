@@ -222,6 +222,25 @@ Evidence and effect (September 2026 Catalog, GIAB HG002):
 
   Scores without inferred terms give byte-identical results in both modes.
 
+## Inferred palindromes (opt-in)
+
+Palindromic SNVs (A/T, C/G) are 3.0% of Catalog terms and unresolvable from the alleles alone: both strands
+fit the reference. They block completeness for 2,591 scores. Most Catalog scores are reported on the forward
+strand (across 40 checked scores, 0.05% of resolved SNVs needed the complement), but not all: small scores
+in particular mix strands.
+
+Compile records each score's strand evidence (resolved non-palindromic SNVs on the forward strand and on the
+complement) in the pack header (`palindromes`). When at least 100 such SNVs exist and at least 99.9% are on
+the forward strand, each palindromic SNV gets its forward-strand reading as an inferred orientation
+(`strand_consistent_palindrome`). `score --allow-inferred-palindromes` uses it; results report
+`inferred_palindromes` (allowed, scorable terms, whether the score met the rule).
+
+Validation against 1000 Genomes phase 3 (GRCh38 lift-over), independent of pgsum: in 30 scores that publish
+`allelefrequency_effect`, at palindromic SNVs where both the author frequency and the 1000 Genomes frequency
+are outside 0.35–0.65, the forward-strand reading puts the effect allele on the same side of 0.5 as the
+author in 99.90% of 238,518 sites across the 19 scores that meet the rule, and in 88.45% of 1,403 sites in
+the 11 that do not (three of those are at 50–60%, i.e. genuinely mixed strands).
+
 ## Completeness
 
 Two sums are reported for every score.

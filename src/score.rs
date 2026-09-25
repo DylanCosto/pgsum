@@ -128,6 +128,9 @@ pub struct Options {
     /// Score terms whose `variant_description` is informational (fine-mapping statistics, the author's variant
     /// IDs, known notes) despite it; see `term::informational_description`.
     pub accept_informational_descriptions: bool,
+    /// Score palindromic SNVs on the forward strand when the score's other SNVs are (almost) all there (see
+    /// `pack::Inference::StrandConsistentPalindrome`).
+    pub allow_inferred_palindromes: bool,
 }
 
 /// Classify one term against the genotype table.
@@ -135,6 +138,7 @@ pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable, options: &Options) -> 
     let Some((o, inferred)) = t.waived(
         options.accept_informational_descriptions,
         options.allow_inferred_other_allele,
+        options.allow_inferred_palindromes,
     ) else {
         return Ok(Outcome::without_call("model_term_requires_review"));
     };
@@ -308,7 +312,17 @@ pub struct ScoreResult {
     pub inferred_other_allele: InferredUse,
     /// Whether informational `variant_description`s were accepted, and how many scorable terms had one.
     pub informational_descriptions: InformationalUse,
+    /// Whether palindromic SNVs could be read on the forward strand, and how many scorable terms were.
+    pub inferred_palindromes: PalindromeUse,
     pub inputs: Inputs,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct PalindromeUse {
+    pub allowed: bool,
+    pub scorable_terms: u64,
+    /// Whether the pack's strand evidence met the rule (see `pack::PalindromeSummary`).
+    pub strand_consistent: Option<bool>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -511,6 +525,9 @@ pub fn score(
         withheld.push("the Catalog does not record that the scoring file matches its publication".into());
     }
     let raw = sum.finish().to_python_string();
+    let palindrome_terms = inferred
+        .remove(Inference::StrandConsistentPalindrome.as_str())
+        .unwrap_or(0);
     Ok(ScoreResult {
         schema: SCHEMA.into(),
         pgsum_version: env!("CARGO_PKG_VERSION").into(),
@@ -561,6 +578,11 @@ pub fn score(
             allowed: options.allow_inferred_other_allele,
             scorable_terms: inferred,
             reference_convention: h.inference.as_ref().and_then(|i| i.reference_convention.clone()),
+        },
+        inferred_palindromes: PalindromeUse {
+            allowed: options.allow_inferred_palindromes,
+            scorable_terms: palindrome_terms,
+            strand_consistent: h.palindromes.as_ref().map(|p| p.applied),
         },
         informational_descriptions: InformationalUse {
             accepted: options.accept_informational_descriptions,

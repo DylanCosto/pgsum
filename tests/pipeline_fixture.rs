@@ -387,3 +387,55 @@ fn informational_descriptions_are_opt_in() {
     assert_eq!(accepted.informational_descriptions.scorable_terms, 1);
     std::fs::remove_dir_all(&out).unwrap();
 }
+
+/// Palindromic SNVs are read on the forward strand only with `allow_inferred_palindromes`, and only in a
+/// score whose other SNVs are (at least 99.9%, with at least 100 of them) on the forward strand.
+#[test]
+fn inferred_palindromes_need_a_forward_strand_score() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-palindrome-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    let mut paths = Vec::new();
+    for id in ["PAL_OK", "PAL_MIXED"] {
+        let h = compile_file(&fixtures.join(format!("{id}.tsv")), None, &reference, &identity, &out).unwrap();
+        let p = h.palindromes.expect("palindromes summarised");
+        assert_eq!(p.applied, id == "PAL_OK", "{id}: {p:?}");
+        paths.push(out.join(format!("{id}.pgsp")));
+    }
+    let (table, _) = extract(
+        &fixtures.join("synthetic.g.vcf.gz"),
+        &reference,
+        &identity,
+        &paths,
+        None,
+        2,
+    )
+    .unwrap();
+    let allow = pgsum::score::Options {
+        allow_inferred_palindromes: true,
+        ..Default::default()
+    };
+    let ok = Pack::open(&paths[0]).unwrap();
+    let default = pgsum::score::score(&ok, &table, &Default::default(), None).unwrap();
+    assert_eq!(
+        (default.scorable_terms, default.partial.raw_score.as_str()),
+        (100, "5.050")
+    );
+    // Plus chr1:1 A/T (effect is the reference, homozygous reference: 1.0 × 2) and chr1:2 G/C (effect is the ALT,
+    // homozygous reference: 0.5 × 0); chr1:5 A/T is not scorable (the sample carries G).
+    let inferred = pgsum::score::score(&ok, &table, &allow, None).unwrap();
+    assert_eq!(
+        (inferred.scorable_terms, inferred.partial.raw_score.as_str()),
+        (102, "7.050")
+    );
+    assert_eq!(inferred.inferred_palindromes.scorable_terms, 2);
+    assert_eq!(inferred.states.get("other_called_allele"), Some(&1));
+
+    let mixed = pgsum::score::score(&Pack::open(&paths[1]).unwrap(), &table, &allow, None).unwrap();
+    assert_eq!(mixed.inferred_palindromes.strand_consistent, Some(false));
+    assert_eq!(mixed.inferred_palindromes.scorable_terms, 0);
+    assert_eq!(mixed.states.get("unresolved_orientation"), Some(&1));
+    std::fs::remove_dir_all(&out).unwrap();
+}

@@ -9,8 +9,8 @@ use crate::digest::file_sha256;
 use crate::genotypes::ANY_ALT;
 use crate::orient::{Method, Orientation, Status, orient};
 use crate::pack::{
-    self, Columns, Counts, Header, Inference, InferenceSummary, Inventory, ReferenceIdentity, SourceFile, TermRecord,
-    Weight, WeightType,
+    self, Columns, Counts, Header, Inference, InferenceSummary, Inventory, PalindromeSummary, ReferenceIdentity,
+    SourceFile, TermRecord, Weight, WeightType,
 };
 use crate::reference::Reference;
 use crate::scoring_file::{Origin, ScoringFile};
@@ -28,6 +28,12 @@ pub fn reference_identity(reference: &Reference) -> Result<ReferenceIdentity> {
         fai_sha256: file_sha256(&reference.fai_path)?,
     })
 }
+
+/// Share of a score's resolved non-palindromic SNVs that must orient on the forward strand for its palindromic
+/// SNVs to be read on the forward strand.
+pub const PALINDROME_FORWARD_SHARE: f64 = 0.999;
+/// Resolved non-palindromic SNVs a score needs before its strand is trusted for palindromes.
+pub const PALINDROME_MINIMUM_EVIDENCE: u64 = 100;
 
 /// Share of eligible terms that must follow one reference convention for it to be used.
 pub const REFERENCE_CONVENTION_THRESHOLD: f64 = 0.99;
@@ -74,6 +80,60 @@ fn inference_candidate(d: &Description<'_>, catalog_other: &str, reference: &Ref
         reference: (base != b'N').then_some(base),
         catalog,
     }))
+}
+
+/// A palindromic SNV read on the forward strand: the reference base is one of its alleles.
+fn forward_reading(d: &Description<'_>, reference: &Reference) -> Result<Option<Orientation>> {
+    let contig = CONTIGS[d.contig as usize - 1];
+    let base = reference.fetch(contig, d.pos as u64 - 1, d.pos as u64)?.as_bytes()[0];
+    let (effect, other) = (d.effect_allele.as_bytes()[0], d.other_allele.as_bytes()[0]);
+    let alt = if base == effect {
+        other
+    } else if base == other {
+        effect
+    } else {
+        return Ok(None);
+    };
+    Ok(Some(Orientation {
+        status: Status::Resolved,
+        method: Method::Direct,
+        ref_base: base,
+        alt_base: alt,
+        effect_is_alt: effect == alt,
+    }))
+}
+
+/// Read the score's palindromic SNVs on the forward strand when its other SNVs are (almost) all there.
+fn infer_palindromes(
+    terms: &mut Columns,
+    palindromes: &[(u32, Orientation)],
+    forward: u64,
+    complement: u64,
+) -> Option<PalindromeSummary> {
+    if palindromes.is_empty() {
+        return None;
+    }
+    let evidence = forward + complement;
+    let applied =
+        evidence >= PALINDROME_MINIMUM_EVIDENCE && forward as f64 >= PALINDROME_FORWARD_SHARE * evidence as f64;
+    if applied {
+        for &(i, o) in palindromes {
+            let i = i as usize;
+            terms.inferred_kind[i] = Inference::StrandConsistentPalindrome as u8;
+            terms.inferred_method[i] = o.method as u8;
+            terms.inferred_ref[i] = o.ref_base;
+            terms.inferred_alt[i] = o.alt_base;
+            terms.flags[i] |= (o.effect_is_alt as u8) << 2;
+        }
+    }
+    Some(PalindromeSummary {
+        forward,
+        complement,
+        palindromic: palindromes.len() as u64,
+        applied,
+        minimum_forward_share: PALINDROME_FORWARD_SHARE,
+        minimum_evidence: PALINDROME_MINIMUM_EVIDENCE,
+    })
 }
 
 /// Decide the score's reference convention and fill in each candidate's inferred orientation: the
@@ -194,6 +254,9 @@ pub fn compile_file(
     let mut fields = Vec::new();
     let mut centred_terms = 0;
     let mut candidates: Vec<(u32, Candidate)> = Vec::new();
+    // Strand evidence, and each palindromic SNV's forward-strand reading.
+    let (mut forward, mut complement) = (0u64, 0u64);
+    let mut palindromes: Vec<(u32, Orientation)> = Vec::new();
     let mut ordinal: u32 = 0;
     while let Some(row) = file.next_row(&mut fields)? {
         let d = describe(&row, &columns);
@@ -234,6 +297,21 @@ pub fn compile_file(
             inferred: None,
             informational_description: d.informational_description,
         });
+        match orientation.status {
+            Status::Resolved if d.allele_kind == AlleleKind::LiteralSnv => match orientation.method {
+                Method::Direct => forward += 1,
+                Method::Complement => complement += 1,
+                Method::None => {}
+            },
+            Status::PalindromicOrientationUnresolved => {
+                if let Some(o) = forward_reading(&d, reference)
+                    .map_err(|e| Error::Invalid(format!("{}: term {}: {e}", scoring_path.display(), ordinal + 1)))?
+                {
+                    palindromes.push((ordinal, o));
+                }
+            }
+            _ => {}
+        }
         if let Some(c) = inference_candidate(&d, row.opt(columns.hm_infer_other_allele), reference)
             .map_err(|e| Error::Invalid(format!("{}: term {}: {e}", scoring_path.display(), ordinal + 1)))?
         {
@@ -243,6 +321,7 @@ pub fn compile_file(
     }
     let inference = infer(&mut terms, &candidates);
     drop(candidates);
+    let palindromes = infer_palindromes(&mut terms, &palindromes, forward, complement);
     let declared_terms = file.declared_terms;
     let origin = file.origin;
     let scoring_file_header = file.header_lines.clone();
@@ -321,6 +400,7 @@ pub fn compile_file(
         },
         counts,
         inference,
+        palindromes,
         records_sha256: pack::records_sha256(&records),
     };
     pack::write(

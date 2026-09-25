@@ -41,7 +41,7 @@ pub const MAGIC: &[u8; 8] = b"PGSUMPK2";
 pub const SCHEMA: &str = "pgsum-pack-v3";
 /// Version of the compile-time rules (term description, orientation, inference, informational
 /// descriptions). A pack compiled under other rules is recompiled by `fetch`.
-pub const COMPILE_RULES: &str = "2026-09-25.informational-descriptions";
+pub const COMPILE_RULES: &str = "2026-09-25.strand-consistent-palindromes";
 /// Earlier schema still read: v2 has no inferred-orientation columns.
 pub const SCHEMA_V2: &str = "pgsum-pack-v2";
 pub const EXTENSION: &str = "pgsp";
@@ -119,6 +119,9 @@ pub struct Header {
     /// How a missing author `other_allele` could be inferred (v3 packs).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub inference: Option<InferenceSummary>,
+    /// Strand evidence for reading palindromic SNVs on the forward strand.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub palindromes: Option<PalindromeSummary>,
     /// SHA-256 of the uncompressed record bytes.
     pub records_sha256: String,
 }
@@ -186,14 +189,18 @@ pub struct TermRecord {
 impl TermRecord {
     /// The orientation to score this term with, and the inference used for it, once the review reasons the
     /// options waive are removed; `None` if other review reasons remain.
-    pub fn waived(&self, accept_informational: bool, allow_inferred: bool) -> Option<(Orientation, Option<Inference>)> {
+    pub fn waived(
+        &self,
+        accept_informational: bool,
+        allow_inferred: bool,
+        allow_palindromes: bool,
+    ) -> Option<(Orientation, Option<Inference>)> {
         waived(
             self.reasons.0,
             self.informational_description,
             self.orientation,
             self.inferred,
-            accept_informational,
-            allow_inferred,
+            [accept_informational, allow_inferred, allow_palindromes],
         )
     }
 }
@@ -204,21 +211,28 @@ fn waived(
     informational: bool,
     orientation: Orientation,
     inferred: Option<(Inference, Orientation)>,
-    accept_informational: bool,
-    allow_inferred: bool,
+    [accept_informational, allow_inferred, allow_palindromes]: [bool; 3],
 ) -> Option<(Orientation, Option<Inference>)> {
     use crate::term::Reason;
     let mut rest = reasons;
     if accept_informational && informational {
         rest &= !(Reason::VariantDescription as u32);
     }
-    if rest == Reason::OtherAlleleMissing as u32
-        && allow_inferred
-        && let Some((kind, o)) = inferred
-    {
-        return Some((o, Some(kind)));
+    match inferred {
+        Some((kind @ Inference::StrandConsistentPalindrome, o))
+            if rest == 0 && allow_palindromes && orientation.status == Status::PalindromicOrientationUnresolved =>
+        {
+            Some((o, Some(kind)))
+        }
+        Some((kind, o))
+            if kind != Inference::StrandConsistentPalindrome
+                && rest == Reason::OtherAlleleMissing as u32
+                && allow_inferred =>
+        {
+            Some((o, Some(kind)))
+        }
+        _ => (rest == 0).then_some((orientation, None)),
     }
-    (rest == 0).then_some((orientation, None))
 }
 
 /// How a missing author `other_allele` was inferred.
@@ -233,13 +247,17 @@ pub enum Inference {
     ReferenceAnchoredEffectIsRef = 2,
     /// The Catalog's `hm_inferOtherAllele` names exactly one base, and the pair orients unambiguously.
     CatalogInferredOtherAllele = 3,
+    /// A palindromic SNV (A/T or C/G) read on the forward strand, because at least 99.9% of the score's
+    /// other SNVs orient on the forward strand (see `compile::PALINDROME_FORWARD_SHARE`).
+    StrandConsistentPalindrome = 4,
 }
 
 impl Inference {
-    pub const ALL: [Inference; 3] = [
+    pub const ALL: [Inference; 4] = [
         Inference::ReferenceAnchoredEffectIsAlt,
         Inference::ReferenceAnchoredEffectIsRef,
         Inference::CatalogInferredOtherAllele,
+        Inference::StrandConsistentPalindrome,
     ];
 
     pub fn as_str(self) -> &'static str {
@@ -247,12 +265,27 @@ impl Inference {
             Inference::ReferenceAnchoredEffectIsAlt => "reference_anchored_effect_is_alt",
             Inference::ReferenceAnchoredEffectIsRef => "reference_anchored_effect_is_ref",
             Inference::CatalogInferredOtherAllele => "catalog_inferred_other_allele",
+            Inference::StrandConsistentPalindrome => "strand_consistent_palindrome",
         }
     }
 
     fn from_code(code: u8) -> Option<Inference> {
         Inference::ALL.into_iter().find(|i| *i as u8 == code)
     }
+}
+
+/// A pack's strand evidence for its palindromic SNVs.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct PalindromeSummary {
+    /// Resolved non-palindromic SNVs oriented on the forward strand, and on the complement.
+    pub forward: u64,
+    pub complement: u64,
+    /// Palindromic SNVs whose forward-strand reading fits the reference.
+    pub palindromic: u64,
+    /// Whether the palindromic SNVs got a forward-strand inferred orientation.
+    pub applied: bool,
+    pub minimum_forward_share: f64,
+    pub minimum_evidence: u64,
 }
 
 /// A pack's evidence for inferring missing other alleles.
@@ -556,7 +589,7 @@ impl Columns {
                 ))
             });
             let reasons = u32::try_from(r).map_err(|_| bad_body("reasons"))?;
-            if let Some((o, _)) = waived(reasons, flags[i] & 8 != 0, author, inferred_orientation, true, true)
+            if let Some((o, _)) = waived(reasons, flags[i] & 8 != 0, author, inferred_orientation, [true; 3])
                 && o.status == Status::Resolved
             {
                 keys.push(crate::genotypes::target_key(contig[i], pos()?, o.ref_base, o.alt_base));
