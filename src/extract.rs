@@ -28,6 +28,7 @@ type Extra = HashMap<u32, Vec<u32>>;
 /// time, so memory holds one pack's terms at most. Each must have been compiled against `reference`.
 pub fn targets(packs: &[PathBuf], reference: &ReferenceIdentity) -> Result<(Vec<u64>, Vec<PackRef>)> {
     let mut keys = Vec::new();
+    let mut deduplicated = 0;
     let mut refs = Vec::with_capacity(packs.len());
     for path in packs {
         let pack = Pack::open(path)?;
@@ -50,9 +51,15 @@ pub fn targets(packs: &[PathBuf], reference: &ReferenceIdentity) -> Result<(Vec<
             pgs_id: pack.header.pgs_id.clone(),
             records_sha256: pack.header.records_sha256.clone(),
         });
-        keys.sort_unstable();
-        keys.dedup();
+        // Deduplicate whenever the list has doubled since the last time, so many packs cost O(n log n).
+        if keys.len() > 2 * deduplicated + (1 << 20) {
+            keys.sort_unstable();
+            keys.dedup();
+            deduplicated = keys.len();
+        }
     }
+    keys.sort_unstable();
+    keys.dedup();
     Ok((keys, refs))
 }
 
