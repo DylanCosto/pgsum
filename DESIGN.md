@@ -172,9 +172,26 @@ orientation its pack inferred at compile time, in this order:
 `--terms` adds the method per term. Packs record the evidence (`inference` in the header: eligible terms,
 counts on each side of the convention, the convention chosen, terms per method).
 
-In a sample of 30 such scores, 22 had no Catalog-inferred alleles at all (position-only submissions); the
-reference convention held for 100% of the positioned SNVs of the three checked (PGS019915, PGS002240: effect
-is ALT; PGS004233: effect is REF).
+Evidence and effect (September 2026 Catalog, GIAB HG002):
+
+- **The rule's premise, checked on author data.** In 52 scores that do publish author alleles (8 development
+  + 44 sampled), 8,970,169 SNV terms have an effect allele that is not the reference; in all but 8 of them
+  the author's other allele is the reference.
+- **What the packs inferred.** 2,160 packs have terms without an author other allele (1.34B terms). 1,539
+  scores follow the effect-is-ALT convention and 13 the effect-is-REF one; 608 follow neither (effect allele
+  equal to the reference about half the time, typical of risk-allele coding) and rely on the Catalog's
+  allele. Inferred orientations cover 94.6% of those terms: 73.0% effect-is-ALT, 20.0% Catalog-inferred,
+  1.6% effect-is-REF.
+- **HG002 across all 6,990 scores:**
+
+  | | Default | `--allow-inferred-other-allele` |
+  |---|---|---|
+  | Complete (strict) | 189 | 289 |
+  | Term coverage ≥ 99% | 1,973 | 3,512 |
+  | Term coverage ≥ 90% | 2,946 | 4,502 |
+  | No scorable term | 2,214 | 114 |
+
+  Scores without inferred terms give byte-identical results in both modes.
 
 ## Completeness
 
@@ -293,6 +310,10 @@ HG002 against all 6,990 packs (12-core Mac, packs on a USB SSD):
 | `extract`, first run (collects targets from every pack, writes the index) | 120 s | 6.6 GB |
 | `extract` with the target index | 17.1 s | 5.4 GB |
 | `score`, all 6,990 packs (4.50B terms, about 48M terms/s) | 95 s | 8.1 GB |
+
+After the 2,160 packs with inferred orientations were recompiled, targets rose to 39.3M; rebuilding the
+target index took 137 s, and scoring took 163–171 s with the packs no longer in the file cache (35 GB of
+packs, 26 GB of RAM), so full-Catalog scoring is bound by reading packs from the drive.
 
 `extract` found 30.5M distinct targets and kept 9.8M gVCF records. Reading packs one at a time, the first
 run took 378 s (362 s of it collecting targets); the table is byte-identical either way.
