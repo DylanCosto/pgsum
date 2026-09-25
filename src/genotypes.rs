@@ -34,18 +34,28 @@ fn base_code(b: u8) -> u64 {
     BASES.iter().position(|&x| x == b).expect("resolved bases are ACGT") as u64
 }
 
-/// Target key: contig code, position, REF and ALT packed so that keys sort by (contig, pos, REF, ALT).
+/// ALT byte of a target that counts any non-reference allele.
+pub const ANY_ALT: u8 = b'*';
+
+/// Target key: contig code, position, REF and ALT packed so that keys sort by (contig, pos, REF, ALT). An ALT
+/// of `ANY_ALT` sets bit 2 and sorts after the specific ALTs.
 pub fn target_key(contig: u8, pos: u32, ref_base: u8, alt_base: u8) -> u64 {
-    (contig as u64) << 40 | (pos as u64) << 8 | base_code(ref_base) << 4 | base_code(alt_base)
+    let alt = if alt_base == ANY_ALT { 4 } else { base_code(alt_base) };
+    (contig as u64) << 40 | (pos as u64) << 8 | base_code(ref_base) << 4 | alt
 }
 
-/// `(contig, pos, REF, ALT)` from a target key.
+/// `(contig, pos, REF, ALT)` from a target key; ALT is `ANY_ALT` for an any-allele target.
 pub fn unpack_key(key: u64) -> (u8, u32, u8, u8) {
+    let alt = if key & 4 != 0 {
+        ANY_ALT
+    } else {
+        BASES[(key & 3) as usize]
+    };
     (
         (key >> 40) as u8,
         (key >> 8) as u32,
         BASES[(key >> 4 & 3) as usize],
-        BASES[(key & 3) as usize],
+        alt,
     )
 }
 
@@ -364,6 +374,9 @@ mod tests {
         assert_eq!(unpack_key(a), (1, 69_516_650, b'C', b'T'));
         assert!(target_key(1, 5, b'T', b'A') < target_key(1, 6, b'A', b'C'));
         assert!(target_key(1, u32::MAX >> 1, b'T', b'G') < target_key(2, 1, b'A', b'C'));
+        let any = target_key(3, 100, b'G', ANY_ALT);
+        assert_eq!(unpack_key(any), (3, 100, b'G', ANY_ALT));
+        assert!(target_key(3, 100, b'G', b'T') < any && any < target_key(3, 101, b'A', b'C'));
     }
 
     #[test]

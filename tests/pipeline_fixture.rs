@@ -49,7 +49,7 @@ fn synthetic_gvcf_matches_reference_implementation() {
     let table = GenotypeTable::open(&path).unwrap();
 
     let mut tsv = Vec::new();
-    pgsum::score::score(&pack, &table, Some(&mut tsv)).unwrap();
+    pgsum::score::score(&pack, &table, &Default::default(), Some(&mut tsv)).unwrap();
     let actual: Vec<String> = String::from_utf8(tsv)
         .unwrap()
         .lines()
@@ -98,7 +98,7 @@ fn synthetic_scores_match_reference_implementation() {
 
     let complete = Pack::open(&paths[0]).unwrap();
     let mut tsv = Vec::new();
-    let result = pgsum::score::score(&complete, &table, Some(&mut tsv)).unwrap();
+    let result = pgsum::score::score(&complete, &table, &Default::default(), Some(&mut tsv)).unwrap();
     assert_eq!(result.status, "complete_uncalibrated_score");
     assert_eq!(result.raw_score.as_deref(), Some("1332.64750200000000000000000"));
     assert_eq!(result.partial.raw_score, "1332.64750200000000000000000");
@@ -114,7 +114,7 @@ fn synthetic_scores_match_reference_implementation() {
     let expected = std::fs::read_to_string(fixtures.join("PGS999997.expected.tsv")).unwrap();
     assert_eq!(actual, expected.lines().collect::<Vec<_>>());
 
-    let withheld = pgsum::score::score(&Pack::open(&paths[1]).unwrap(), &table, None).unwrap();
+    let withheld = pgsum::score::score(&Pack::open(&paths[1]).unwrap(), &table, &Default::default(), None).unwrap();
     assert_eq!(withheld.status, "score_withheld");
     assert_eq!(withheld.raw_score, None);
     assert_eq!(withheld.partial.raw_score, "7.3");
@@ -153,5 +153,117 @@ fn target_index_is_reused_only_for_the_same_packs() {
     let (third, t3) = extract(&gvcf, &reference, &identity, &paths[..1], Some(&cache), 2).unwrap();
     assert!(!t3.targets_from_cache);
     assert_eq!(third.header.packs.len(), 1);
+    std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// Scores without an author other allele: unscorable by default; with `allow_inferred_other_allele`, oriented
+/// by the score's reference convention (PGS999996 effect is ALT, PGS999995 effect is REF) or, with no
+/// convention, by the Catalog's inferred allele when it names one base that orients unambiguously (PGS999994).
+/// Expected outcomes follow from the synthetic gVCF scenarios at each position.
+#[test]
+fn inferred_other_alleles_are_opt_in() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-infer-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    let ids = ["PGS999996", "PGS999995", "PGS999994"];
+    let mut paths = Vec::new();
+    for id in ids {
+        compile_file(
+            &fixtures.join(format!("{id}_hmPOS_GRCh38.txt.gz")),
+            &fixtures.join(format!("{id}.metadata.json")),
+            &reference,
+            &identity,
+            &out,
+        )
+        .unwrap();
+        paths.push(out.join(format!("{id}.pgsp")));
+    }
+    let (table, _) = extract(
+        &fixtures.join("synthetic.g.vcf.gz"),
+        &reference,
+        &identity,
+        &paths,
+        None,
+        2,
+    )
+    .unwrap();
+    let allow = pgsum::score::Options {
+        allow_inferred_other_allele: true,
+    };
+
+    // Per score: reference convention, then per term "status, effect dosage, contribution, inference method",
+    // then the strict status and the partial sum.
+    let expected = [
+        (
+            "PGS999996",
+            Some("effect_is_alt"),
+            vec![
+                "scorable_observation\t0\t0.0\treference_anchored_effect_is_alt",
+                "scorable_observation\t1\t0.2\treference_anchored_effect_is_alt",
+                "scorable_observation\t2\t0.6\treference_anchored_effect_is_alt",
+                "other_called_allele\t\t\treference_anchored_effect_is_alt",
+                "scorable_observation\t1\t0.5\treference_anchored_effect_is_alt",
+                "scorable_observation\t0\t0.0\treference_anchored_effect_is_alt",
+            ],
+            "score_withheld",
+            "1.3",
+        ),
+        (
+            "PGS999995",
+            Some("effect_is_ref"),
+            vec![
+                "scorable_observation\t2\t0.2\treference_anchored_effect_is_ref",
+                "scorable_observation\t1\t0.2\treference_anchored_effect_is_ref",
+                "scorable_observation\t0\t0.0\treference_anchored_effect_is_ref",
+                "scorable_observation\t2\t0.8\treference_anchored_effect_is_ref",
+                "scorable_observation\t1\t0.5\treference_anchored_effect_is_ref",
+                "scorable_observation\t1\t0.6\treference_anchored_effect_is_ref",
+            ],
+            "complete_uncalibrated_score",
+            "2.3",
+        ),
+        (
+            "PGS999994",
+            None,
+            vec![
+                "scorable_observation\t1\t0.2\tcatalog_inferred_other_allele",
+                "scorable_observation\t0\t0.0\tcatalog_inferred_other_allele",
+                "model_term_requires_review\t\t\t",
+                "model_term_requires_review\t\t\t",
+                "model_term_requires_review\t\t\t",
+            ],
+            "score_withheld",
+            "0.2",
+        ),
+    ];
+    for (path, (id, convention, rows, status, partial)) in paths.iter().zip(expected) {
+        let pack = Pack::open(path).unwrap();
+        assert_eq!(pack.header.pgs_id, id);
+        let default = pgsum::score::score(&pack, &table, &Default::default(), None).unwrap();
+        assert_eq!(default.scorable_terms, 0, "{id}: nothing is scorable by default");
+        assert_eq!(default.partial.raw_score, "0");
+
+        let mut tsv = Vec::new();
+        let result = pgsum::score::score(&pack, &table, &allow, Some(&mut tsv)).unwrap();
+        assert_eq!(
+            result.inferred_other_allele.reference_convention.as_deref(),
+            convention,
+            "{id}"
+        );
+        assert_eq!(result.status, status, "{id}");
+        assert_eq!(result.partial.raw_score, partial, "{id}");
+        let actual: Vec<String> = String::from_utf8(tsv)
+            .unwrap()
+            .lines()
+            .skip(1)
+            .map(|line| {
+                let f: Vec<&str> = line.split('\t').collect();
+                [f[13], f[15], f[16], f[17]].join("\t")
+            })
+            .collect();
+        assert_eq!(actual, rows, "{id}");
+    }
     std::fs::remove_dir_all(&out).unwrap();
 }

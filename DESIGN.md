@@ -148,6 +148,34 @@ A record is a reference block when every ALT is `<NON_REF>`, `<*>` or `.`.
 
 Phase (`|` with a numeric `PS`) is preserved in the output but does not affect additive scoring.
 
+## Inferred other alleles (opt-in)
+
+2,214 of the 6,990 Catalog scores (September 2026) give only an effect allele. Their terms carry the review
+reason `author_other_allele_missing` and are unscorable by default, as in the reference implementation.
+`score --allow-inferred-other-allele` scores such a term (when that is its only review reason) with an
+orientation its pack inferred at compile time, in this order:
+
+1. **Reference convention of the score.** Among the score's terms without an author other allele whose
+   effect allele is one base at a position with an A, C, G or T reference base: if at least 99% have an
+   effect allele different from the reference, the effect allele is the ALT and the other allele the
+   reference (`reference_anchored_effect_is_alt`); if at least 99% have the reference as effect allele, the
+   effect dosage is the number of reference alleles, so any non-reference allele counts against it
+   (`reference_anchored_effect_is_ref`). Terms not following the convention fall through to 2. The
+   score-level threshold also guards strand: a score coded on the opposite strand has an effect allele equal
+   to the reference at palindromic sites and cannot reach 99%.
+2. **The Catalog's `hm_inferOtherAllele`**, when it names exactly one base and that pair orients like an
+   author pair (not palindromic, exactly one strand matches the reference)
+   (`catalog_inferred_other_allele`).
+
+`extract` always includes inferred targets, so one genotype table serves both modes. Results report
+`inferred_other_allele`: whether it was allowed, the scorable terms per method, and the pack's convention;
+`--terms` adds the method per term. Packs record the evidence (`inference` in the header: eligible terms,
+counts on each side of the convention, the convention chosen, terms per method).
+
+In a sample of 30 such scores, 22 had no Catalog-inferred alleles at all (position-only submissions); the
+reference convention held for 100% of the positioned SNVs of the three checked (PGS019915, PGS002240: effect
+is ALT; PGS004233: effect is REF).
+
 ## Completeness
 
 Two sums are reported for every score.
@@ -206,12 +234,13 @@ The v0 bar: on GIAB HG002 (GRCh38, public data), for a fixed set of scores, ever
 and every score's value match an existing reference implementation of these rules. See
 `tests/parity_hg002.rs`.
 
-## Pack format (`pgsum-pack-v2`)
+## Pack format (`pgsum-pack-v3`)
 
 One file per score, `<pgs_id>.pgsp`: magic bytes, a JSON header, then one zstd frame (level 3) holding the
 terms in source order as columns (layout in `src/pack.rs`): contig, delta-encoded position, model, allele
 kind, flags, orientation, REF/ALT, review reasons, and weights split into tag, coefficient, exponent and text
-columns. The header carries the scoring file's name, SHA-256 and size, its header lines and columns, the
+columns, plus four columns for inferred orientations (v3; v2 packs, without them, are still read). The header
+carries the scoring file's name, SHA-256 and size, its header lines and columns, the
 Catalog REST record and its digest, the licence, both weight types (scoring file and Catalog, kept side by
 side rather than reconciled), the reference FASTA and `.fai` digests, the inventory (declared, Catalog and
 actual term counts) and per-state counts. Weights are stored exactly: a 64-bit coefficient and exponent, or
@@ -306,11 +335,6 @@ Known differences from the reference implementation, none of which occur in curr
   `pgs_id`, `variants_number`, `weight_type`, `genome_build` and `HmPOS_build`.
 
 ## Open questions
-
-- Scores without an author `other_allele` (2,214 of 6,990, September 2026): the Catalog's harmonized files
-  carry `hm_inferOtherAllele`, inferred from Ensembl. The reference implementation never substitutes it;
-  an opt-in that uses it when it names exactly one allele, and labels the result, would make these scores
-  usable.
 
 - Compile memory: the resident size peaks near 3.8 GB for the development set, most of it pages of the
   memory-mapped reference touched during orientation (reclaimable file cache). Terms are held as columns

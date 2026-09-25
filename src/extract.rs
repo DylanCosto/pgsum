@@ -209,7 +209,7 @@ pub fn assess(keys: &[u64], scanned: &Extracted, reference: &Reference, threads:
                         let target = Target {
                             pos: pos as u64,
                             ref_allele: &r,
-                            alt: &a,
+                            alt: (alt_base != crate::genotypes::ANY_ALT).then_some(a.as_str()),
                         };
                         let call = genotype::assess(&records, &target, policy, |p, len| {
                             reference.fetch(contig, p - 1, p - 1 + len as u64).ok()

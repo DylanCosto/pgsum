@@ -131,12 +131,13 @@ impl State {
     }
 }
 
-/// The oriented target: the term's REF and ALT at `pos` (1-based).
+/// The oriented target: the term's REF and ALT at `pos` (1-based). `alt: None` counts any non-reference
+/// allele, for terms whose effect allele is the reference and whose other allele is not given.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Target<'a> {
     pub pos: u64,
     pub ref_allele: &'a str,
-    pub alt: &'a str,
+    pub alt: Option<&'a str>,
 }
 
 /// An assessed call.
@@ -254,7 +255,7 @@ fn assess_site(
                 continue;
             }
             match record.alts.get(i as usize - 1) {
-                Some(alt) if alt == target.alt => dosage += 1,
+                Some(alt) if target.alt.is_none_or(|t| alt == t) => dosage += 1,
                 _ => return Call::state(State::OtherCalledAllele),
             }
         }
@@ -334,7 +335,7 @@ mod tests {
     const TARGET: Target<'static> = Target {
         pos: 3,
         ref_allele: "G",
-        alt: "T",
+        alt: Some("T"),
     };
 
     fn state(records: &[Record]) -> State {
@@ -383,7 +384,7 @@ mod tests {
         let target = Target {
             pos: 3,
             ref_allele: "A",
-            alt: "T",
+            alt: Some("T"),
         };
         assert_eq!(
             assess(&[block(1, 8)], &target, &Policy::default(), reference).state,
@@ -449,7 +450,7 @@ mod tests {
         let target = Target {
             pos: 3,
             ref_allele: "GTA",
-            alt: "G",
+            alt: Some("G"),
         };
         let call = assess(&[block(1, 4)], &target, &Policy::default(), reference);
         assert_eq!(call.state, State::IncompleteReferenceSpan);
@@ -464,6 +465,21 @@ mod tests {
         let mut r = variant([Some(0), Some(1)]);
         r.alts = vec!["A".into()];
         assert_eq!(state(&[r]), State::OtherCalledAllele);
+    }
+
+    #[test]
+    fn any_alt_target_counts_every_non_reference_allele() {
+        let any = Target {
+            pos: 3,
+            ref_allele: "G",
+            alt: None,
+        };
+        let mut r = variant([Some(1), Some(2)]);
+        r.alts = vec!["T".into(), "C".into()];
+        let call = assess(&[r], &any, &Policy::default(), reference);
+        assert_eq!((call.state, call.alt_dosage), (State::ObservedVariant, Some(2)));
+        let call = assess(&[block(1, 8)], &any, &Policy::default(), reference);
+        assert_eq!((call.state, call.alt_dosage), (State::ObservedReference, Some(0)));
     }
 
     #[test]

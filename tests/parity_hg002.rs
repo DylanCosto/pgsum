@@ -30,7 +30,7 @@ fn parity_hg002() {
             continue;
         };
         let mut tsv = Vec::new();
-        let result = pgsum::score::score(&pack, &table, Some(&mut tsv)).unwrap();
+        let result = pgsum::score::score(&pack, &table, &Default::default(), Some(&mut tsv)).unwrap();
         let tsv = String::from_utf8(tsv).unwrap();
         let mut terms = 0;
         for (i, (a, e)) in tsv.lines().zip(expected.lines()).enumerate() {

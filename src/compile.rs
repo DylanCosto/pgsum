@@ -1,17 +1,20 @@
 //! Compile a harmonized scoring file and its Catalog metadata into a pack.
 
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
 use sha2::{Digest, Sha256};
 
 use crate::digest::file_sha256;
-use crate::orient::orient;
+use crate::genotypes::ANY_ALT;
+use crate::orient::{Method, Orientation, Status, orient};
 use crate::pack::{
-    self, Columns, Counts, Header, Inventory, ReferenceIdentity, SourceFile, TermRecord, Weight, WeightType,
+    self, Columns, Counts, Header, Inference, InferenceSummary, Inventory, ReferenceIdentity, SourceFile, TermRecord,
+    Weight, WeightType,
 };
 use crate::reference::Reference;
 use crate::scoring_file::ScoringFile;
-use crate::term::{Reason, describe};
+use crate::term::{AlleleKind, CONTIGS, Description, Reason, describe};
 use crate::{Error, Result, invalid};
 
 /// The Catalog metadata file expected next to a scoring file: `PGS000001_hmPOS_GRCh38.txt.gz` →
@@ -32,6 +35,119 @@ pub fn reference_identity(reference: &Reference) -> Result<ReferenceIdentity> {
         fasta_sha256: file_sha256(&reference.path)?,
         fai_sha256: file_sha256(&reference.fai_path)?,
     })
+}
+
+/// Share of eligible terms that must follow one reference convention for it to be used.
+pub const REFERENCE_CONVENTION_THRESHOLD: f64 = 0.99;
+
+/// What is known about a term without an author `other_allele`.
+#[derive(Clone, Copy, Debug)]
+struct Candidate {
+    effect: u8,
+    /// The reference base at the term's position, when it is A, C, G or T.
+    reference: Option<u8>,
+    /// The orientation from the Catalog's inferred other allele, when it names one base and resolves.
+    catalog: Option<Orientation>,
+}
+
+/// A term is a candidate when it has no author other allele and its effect allele is one base at a position
+/// inside the reference.
+fn inference_candidate(d: &Description<'_>, catalog_other: &str, reference: &Reference) -> Result<Option<Candidate>> {
+    let effect = d.effect_allele.as_bytes();
+    if !d.other_allele.is_empty() || effect.len() != 1 || !b"ACGT".contains(&effect[0]) || d.contig == 0 || d.pos == 0 {
+        return Ok(None);
+    }
+    let contig = CONTIGS[d.contig as usize - 1];
+    if reference.contig_length(contig).is_none_or(|len| d.pos as u64 > len) {
+        return Ok(None);
+    }
+    let base = reference.fetch(contig, d.pos as u64 - 1, d.pos as u64)?.as_bytes()[0];
+    let catalog = if catalog_other.len() == 1
+        && b"ACGT".contains(&catalog_other.as_bytes()[0])
+        && catalog_other != d.effect_allele
+    {
+        let mut with_other = d.clone();
+        with_other.other_allele = catalog_other;
+        with_other.allele_kind = AlleleKind::LiteralSnv;
+        with_other.palindromic = matches!(
+            (d.effect_allele, catalog_other),
+            ("A", "T") | ("T", "A") | ("C", "G") | ("G", "C")
+        );
+        Some(orient(&with_other, reference)?).filter(|o| o.status == Status::Resolved)
+    } else {
+        None
+    };
+    Ok(Some(Candidate {
+        effect: effect[0],
+        reference: (base != b'N').then_some(base),
+        catalog,
+    }))
+}
+
+/// Decide the score's reference convention and fill in each candidate's inferred orientation: the
+/// reference-anchored one when the term follows the convention, otherwise the Catalog's.
+fn infer(terms: &mut Columns, candidates: &[(u32, Candidate)]) -> Option<InferenceSummary> {
+    if candidates.is_empty() {
+        return None;
+    }
+    let with_reference: Vec<_> = candidates
+        .iter()
+        .filter_map(|(_, c)| c.reference.map(|r| (c.effect, r)))
+        .collect();
+    let eligible = with_reference.len() as u64;
+    let not_reference = with_reference.iter().filter(|(e, r)| e != r).count() as u64;
+    let is_reference = eligible - not_reference;
+    let reaches = |n: u64| eligible > 0 && n as f64 >= REFERENCE_CONVENTION_THRESHOLD * eligible as f64;
+    let convention = if reaches(not_reference) {
+        Some(Inference::ReferenceAnchoredEffectIsAlt)
+    } else if reaches(is_reference) {
+        Some(Inference::ReferenceAnchoredEffectIsRef)
+    } else {
+        None
+    };
+    let mut summary = InferenceSummary {
+        eligible_terms: eligible,
+        effect_not_reference: not_reference,
+        effect_is_reference: is_reference,
+        reference_convention: convention.map(|c| match c {
+            Inference::ReferenceAnchoredEffectIsAlt => "effect_is_alt".to_owned(),
+            _ => "effect_is_ref".to_owned(),
+        }),
+        threshold: REFERENCE_CONVENTION_THRESHOLD,
+        terms: BTreeMap::new(),
+    };
+    let anchored = |c: &Candidate| -> Option<(Inference, Orientation)> {
+        let r = c.reference?;
+        let o = |alt_base, effect_is_alt| Orientation {
+            status: Status::Resolved,
+            method: Method::Direct,
+            ref_base: r,
+            alt_base,
+            effect_is_alt,
+        };
+        match convention? {
+            Inference::ReferenceAnchoredEffectIsAlt if c.effect != r => {
+                Some((Inference::ReferenceAnchoredEffectIsAlt, o(c.effect, true)))
+            }
+            Inference::ReferenceAnchoredEffectIsRef if c.effect == r => {
+                Some((Inference::ReferenceAnchoredEffectIsRef, o(ANY_ALT, false)))
+            }
+            _ => None,
+        }
+    };
+    for (i, c) in candidates {
+        let chosen = anchored(c).or(c.catalog.map(|o| (Inference::CatalogInferredOtherAllele, o)));
+        if let Some((kind, o)) = chosen {
+            let i = *i as usize;
+            terms.inferred_kind[i] = kind as u8;
+            terms.inferred_method[i] = o.method as u8;
+            terms.inferred_ref[i] = o.ref_base;
+            terms.inferred_alt[i] = o.alt_base;
+            terms.flags[i] |= (o.effect_is_alt as u8) << 2;
+            *summary.terms.entry(kind.as_str().to_owned()).or_default() += 1;
+        }
+    }
+    Some(summary)
 }
 
 /// Compile one scoring file into `<out_dir>/<pgs_id>.pgsp` and return the pack header.
@@ -55,6 +171,7 @@ pub fn compile_file(
     let mut line_hashes: Vec<([u8; 16], u32)> = Vec::with_capacity(file.declared_terms as usize);
     let mut fields = Vec::new();
     let mut centred_terms = 0;
+    let mut candidates: Vec<(u32, Candidate)> = Vec::new();
     let mut ordinal: u32 = 0;
     while let Some(row) = file.next_row(&mut fields)? {
         let d = describe(&row, &columns);
@@ -92,9 +209,17 @@ pub fn compile_file(
             orientation,
             reasons: d.reasons,
             weights,
+            inferred: None,
         });
+        if let Some(c) = inference_candidate(&d, row.opt(columns.hm_infer_other_allele), reference)
+            .map_err(|e| Error::Invalid(format!("{}: term {}: {e}", scoring_path.display(), ordinal + 1)))?
+        {
+            candidates.push((ordinal, c));
+        }
         ordinal += 1;
     }
+    let inference = infer(&mut terms, &candidates);
+    drop(candidates);
     let declared_terms = file.declared_terms;
     let scoring_file_header = file.header_lines.clone();
     let duplicate_header_keys = file.duplicate_keys.clone();
@@ -164,6 +289,7 @@ pub fn compile_file(
             consistent: actual_terms == declared_terms && catalog_terms == Some(actual_terms),
         },
         counts,
+        inference,
         records_sha256: pack::records_sha256(&records),
     };
     pack::write(

@@ -18,9 +18,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::decimal::Decimal;
 use crate::genotypes::{GenotypeTable, target_key};
+use crate::orient::Orientation;
 use crate::orient::Status;
-use crate::pack::{Pack, TermRecord, Weight};
-use crate::term::{CONTIGS, Model};
+use crate::pack::{Inference, Pack, TermRecord, Weight};
+use crate::term::{CONTIGS, Model, Reason};
 use crate::{Result, invalid};
 
 pub const SCHEMA: &str = "pgsum-score-v1";
@@ -69,6 +70,8 @@ pub struct Outcome {
     pub call_state: &'static str,
     pub effect_dosage: Option<u8>,
     pub contribution: Option<Contribution>,
+    /// Set when the term was oriented with an inferred other allele.
+    pub inferred: Option<Inference>,
 }
 
 impl Outcome {
@@ -78,6 +81,7 @@ impl Outcome {
             call_state: "",
             effect_dosage: None,
             contribution: None,
+            inferred: None,
         }
     }
 }
@@ -112,15 +116,34 @@ fn contribution(model: Model, weights: &[Weight], dosage: u8) -> Option<Contribu
     }
 }
 
+/// Scoring choices beyond the default rules.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Options {
+    /// Score terms whose only review reason is a missing author `other_allele` with the orientation their
+    /// pack inferred for them (see `pack::Inference`).
+    pub allow_inferred_other_allele: bool,
+}
+
 /// Classify one term against the genotype table.
-pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable) -> Result<Outcome> {
+pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable, options: &Options) -> Result<Outcome> {
     if !t.reasons.is_empty() {
+        if options.allow_inferred_other_allele
+            && t.reasons.0 == Reason::OtherAlleleMissing as u32
+            && let Some((kind, o)) = t.inferred
+        {
+            return called(t, o, genotypes, Some(kind));
+        }
         return Ok(Outcome::without_call("model_term_requires_review"));
     }
     let o = t.orientation;
     if o.status != Status::Resolved {
         return Ok(Outcome::without_call("unresolved_orientation"));
     }
+    called(t, o, genotypes, None)
+}
+
+/// The outcome of a term oriented by `o` (the author's orientation, or an inferred one).
+fn called(t: &TermRecord, o: Orientation, genotypes: &GenotypeTable, inferred: Option<Inference>) -> Result<Outcome> {
     let key = target_key(t.contig, t.pos, o.ref_base, o.alt_base);
     let Some(entry) = genotypes.get(key) else {
         return invalid!(
@@ -130,30 +153,22 @@ pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable) -> Result<Outcome> {
         );
     };
     let state = entry.state.as_str();
+    let outcome = |status, effect_dosage, contribution| Outcome {
+        status,
+        call_state: state,
+        effect_dosage,
+        contribution,
+        inferred,
+    };
     match entry.alt_dosage {
         Some(alt) if entry.state.is_passing() => {
             let dosage = if o.effect_is_alt { alt } else { 2 - alt };
             match contribution(t.model, &t.weights, dosage) {
-                Some(c) => Ok(Outcome {
-                    status: "scorable_observation",
-                    call_state: state,
-                    effect_dosage: Some(dosage),
-                    contribution: Some(c),
-                }),
-                None => Ok(Outcome {
-                    status: "model_term_requires_review",
-                    call_state: state,
-                    effect_dosage: None,
-                    contribution: None,
-                }),
+                Some(c) => Ok(outcome("scorable_observation", Some(dosage), Some(c))),
+                None => Ok(outcome("model_term_requires_review", None, None)),
             }
         }
-        _ => Ok(Outcome {
-            status: state,
-            call_state: state,
-            effect_dosage: None,
-            contribution: None,
-        }),
+        _ => Ok(outcome(state, None, None)),
     }
 }
 
@@ -284,7 +299,18 @@ pub struct ScoreResult {
     pub formula: String,
     pub imputation_performed: bool,
     pub calibration: String,
+    /// Whether scoring was allowed to use inferred other alleles, and how many scorable terms did.
+    pub inferred_other_allele: InferredUse,
     pub inputs: Inputs,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct InferredUse {
+    pub allowed: bool,
+    /// Scorable terms oriented with an inferred other allele, by method.
+    pub scorable_terms: BTreeMap<String, u64>,
+    /// The pack's reference convention (`effect_is_alt`, `effect_is_ref`), if any.
+    pub reference_convention: Option<String>,
 }
 
 /// A weight as floating point, for coverage only.
@@ -326,10 +352,18 @@ struct Tally {
     without_weight: u64,
     effect_all: f64,
     effect_scorable: f64,
+    inferred: BTreeMap<&'static str, u64>,
     tsv: Vec<u8>,
 }
 
-fn tally(pack: &Pack, genotypes: &GenotypeTable, start: (usize, usize), end: usize, terms: bool) -> Result<Tally> {
+fn tally(
+    pack: &Pack,
+    genotypes: &GenotypeTable,
+    options: &Options,
+    start: (usize, usize),
+    end: usize,
+    terms: bool,
+) -> Result<Tally> {
     let io = |e| crate::Error::Io {
         path: "<terms>".into(),
         source: e,
@@ -338,7 +372,7 @@ fn tally(pack: &Pack, genotypes: &GenotypeTable, start: (usize, usize), end: usi
     let (offset, first) = start;
     for (i, term) in pack.terms_from(offset).take(end - first).enumerate() {
         let term = term?;
-        let o = outcome(&term, genotypes)?;
+        let o = outcome(&term, genotypes, options)?;
         t.total += 1;
         *t.states.entry(o.status).or_default() += 1;
         let effect = effect_size(&term);
@@ -350,18 +384,22 @@ fn tally(pack: &Pack, genotypes: &GenotypeTable, start: (usize, usize), end: usi
             t.scorable += 1;
             t.effect_scorable += effect.unwrap_or(0.0);
             t.sum.add(c);
+            if let Some(kind) = o.inferred {
+                *t.inferred.entry(kind.as_str()).or_default() += 1;
+            }
         }
         if terms {
             crate::pack::write_term_line(&mut t.tsv, first + i + 1, &term)?;
             writeln!(
                 t.tsv,
-                "\t{}\t{}\t{}\t{}",
+                "\t{}\t{}\t{}\t{}\t{}",
                 o.status,
                 o.call_state,
                 o.effect_dosage.map(|d| d.to_string()).unwrap_or_default(),
                 o.contribution
                     .map(|c| c.to_decimal().to_python_string())
-                    .unwrap_or_default()
+                    .unwrap_or_default(),
+                o.inferred.map_or("", Inference::as_str)
             )
             .map_err(io)?;
         }
@@ -370,7 +408,12 @@ fn tally(pack: &Pack, genotypes: &GenotypeTable, start: (usize, usize), end: usi
 }
 
 /// Score one pack. With `terms`, also write one TSV line per term.
-pub fn score(pack: &Pack, genotypes: &GenotypeTable, mut terms: Option<&mut dyn Write>) -> Result<ScoreResult> {
+pub fn score(
+    pack: &Pack,
+    genotypes: &GenotypeTable,
+    options: &Options,
+    mut terms: Option<&mut dyn Write>,
+) -> Result<ScoreResult> {
     let h = &pack.header;
     if !genotypes
         .header
@@ -387,7 +430,7 @@ pub fn score(pack: &Pack, genotypes: &GenotypeTable, mut terms: Option<&mut dyn 
     if let Some(out) = terms.as_deref_mut() {
         writeln!(
             out,
-            "{}\tstatus\tcall_state\teffect_dosage\tcontribution",
+            "{}\tstatus\tcall_state\teffect_dosage\tcontribution\tinferred_other_allele",
             crate::pack::TSV_HEADER.trim_end()
         )
         .map_err(io)?;
@@ -401,15 +444,19 @@ pub fn score(pack: &Pack, genotypes: &GenotypeTable, mut terms: Option<&mut dyn 
         .enumerate()
         .map(|(i, &start)| {
             let end = starts.get(i + 1).map_or(total_terms, |s| s.1);
-            tally(pack, genotypes, start, end, want_tsv)
+            tally(pack, genotypes, options, start, end, want_tsv)
         })
         .collect();
     let mut sum = ExactSum::default();
     let mut states: BTreeMap<String, u64> = BTreeMap::new();
     let (mut total, mut scorable, mut without_weight) = (0u64, 0u64, 0u64);
     let (mut effect_all, mut effect_scorable) = (0f64, 0f64);
+    let mut inferred: BTreeMap<String, u64> = BTreeMap::new();
     for t in tallies {
         let t = t?;
+        for (k, v) in t.inferred {
+            *inferred.entry(k.to_owned()).or_default() += v;
+        }
         sum.merge(t.sum);
         for (k, v) in t.states {
             *states.entry(k.to_owned()).or_default() += v;
@@ -488,6 +535,11 @@ pub fn score(pack: &Pack, genotypes: &GenotypeTable, mut terms: Option<&mut dyn 
         formula: "Sum of published per-term contributions at the observed effect-allele dosage".into(),
         imputation_performed: false,
         calibration: "uncalibrated: no percentile or absolute risk".into(),
+        inferred_other_allele: InferredUse {
+            allowed: options.allow_inferred_other_allele,
+            scorable_terms: inferred,
+            reference_convention: h.inference.as_ref().and_then(|i| i.reference_convention.clone()),
+        },
         inputs: Inputs {
             pack_records_sha256: h.records_sha256.clone(),
             scoring_file_sha256: h.source.sha256.clone(),

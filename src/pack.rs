@@ -9,7 +9,7 @@
 //! | contig code (0 = unresolved) | u8 |
 //! | position (0 = unresolved) | zigzag varint of the difference from the previous term's position |
 //! | model, allele kind | u8, u8 |
-//! | flags: bit 0 palindromic, bit 1 effect allele is ALT | u8 |
+//! | flags: bit 0 palindromic, bit 1 effect allele is ALT, bit 2 inferred effect allele is ALT | u8 |
 //! | orientation status, method | u8, u8 |
 //! | REF base, ALT base (0 unless resolved) | u8, u8 |
 //! | review reasons | varint bit set |
@@ -18,6 +18,7 @@
 //! | weight coefficient (tags 1 and 3) | varint per such weight |
 //! | weight exponent (tags 1 and 3) | zigzag varint per such weight |
 //! | weight text (tag 2) | u8 length then the text, per such weight |
+//! | inferred orientation (v3): kind, method, REF, ALT | u8 each; kind 0 = none (see `Inference`) |
 //!
 //! Columns keep like values together, which compresses about a third better than rows: most of what is left
 //! is the weights' significant digits.
@@ -37,7 +38,9 @@ use crate::term::{AlleleKind, CONTIGS, Model, Reasons};
 use crate::{Error, Result, invalid};
 
 pub const MAGIC: &[u8; 8] = b"PGSUMPK2";
-pub const SCHEMA: &str = "pgsum-pack-v2";
+pub const SCHEMA: &str = "pgsum-pack-v3";
+/// Earlier schema still read: v2 has no inferred-orientation columns.
+pub const SCHEMA_V2: &str = "pgsum-pack-v2";
 pub const EXTENSION: &str = "pgsp";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -102,6 +105,9 @@ pub struct Header {
     pub reference: ReferenceIdentity,
     pub inventory: Inventory,
     pub counts: Counts,
+    /// How a missing author `other_allele` could be inferred (v3 packs).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inference: Option<InferenceSummary>,
     /// SHA-256 of the uncompressed record bytes.
     pub records_sha256: String,
 }
@@ -158,25 +164,80 @@ pub struct TermRecord {
     pub orientation: Orientation,
     pub reasons: Reasons,
     pub weights: Vec<Weight>,
+    /// For a term without an author `other_allele`: an orientation inferred for it, and how. Used only when
+    /// scoring is asked to allow inferred other alleles.
+    pub inferred: Option<(Inference, Orientation)>,
+}
+
+/// How a missing author `other_allele` was inferred.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum Inference {
+    /// The score's effect alleles are the non-reference allele at (at least 99% of) its positioned SNVs, so
+    /// the other allele is the reference base.
+    ReferenceAnchoredEffectIsAlt = 1,
+    /// The score's effect alleles are the reference base at (at least 99% of) its positioned SNVs, so the
+    /// effect dosage is the number of reference alleles.
+    ReferenceAnchoredEffectIsRef = 2,
+    /// The Catalog's `hm_inferOtherAllele` names exactly one base, and the pair orients unambiguously.
+    CatalogInferredOtherAllele = 3,
+}
+
+impl Inference {
+    pub const ALL: [Inference; 3] = [
+        Inference::ReferenceAnchoredEffectIsAlt,
+        Inference::ReferenceAnchoredEffectIsRef,
+        Inference::CatalogInferredOtherAllele,
+    ];
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Inference::ReferenceAnchoredEffectIsAlt => "reference_anchored_effect_is_alt",
+            Inference::ReferenceAnchoredEffectIsRef => "reference_anchored_effect_is_ref",
+            Inference::CatalogInferredOtherAllele => "catalog_inferred_other_allele",
+        }
+    }
+
+    fn from_code(code: u8) -> Option<Inference> {
+        Inference::ALL.into_iter().find(|i| *i as u8 == code)
+    }
+}
+
+/// A pack's evidence for inferring missing other alleles.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct InferenceSummary {
+    /// Terms without an author `other_allele` whose effect allele is one base at a harmonized position with an
+    /// A, C, G or T reference base.
+    pub eligible_terms: u64,
+    pub effect_not_reference: u64,
+    pub effect_is_reference: u64,
+    /// `effect_is_alt`, `effect_is_ref`, or none when neither reaches the threshold.
+    pub reference_convention: Option<String>,
+    pub threshold: f64,
+    /// Terms with an inferred orientation, by method.
+    pub terms: BTreeMap<String, u64>,
 }
 
 fn bad_body(what: &str) -> Error {
     Error::Invalid(format!("invalid pack body: {what}"))
 }
 
-/// The 15 length-prefixed column sections of a pack body.
+const SECTIONS_V2: usize = 15;
+const SECTIONS_V3: usize = 19;
+
+/// The length-prefixed column sections of a pack body: 15 in v2, 19 in v3.
 fn split_sections(body: &[u8]) -> Result<Vec<&[u8]>> {
     let mut at = 0usize;
-    let mut sections = Vec::with_capacity(15);
-    for _ in 0..15 {
+    let mut sections = Vec::with_capacity(SECTIONS_V3);
+    while at < body.len() {
         let len = body.get(at..at + 8).ok_or_else(|| bad_body("truncated"))?;
         let len = u64::from_le_bytes(len.try_into().expect("8 bytes")) as usize;
         at += 8;
         sections.push(body.get(at..at + len).ok_or_else(|| bad_body("truncated"))?);
         at += len;
     }
-    if at != body.len() {
-        return Err(bad_body("trailing bytes"));
+    if sections.len() != SECTIONS_V2 && sections.len() != SECTIONS_V3 {
+        return Err(bad_body("unexpected number of columns"));
     }
     Ok(sections)
 }
@@ -235,6 +296,12 @@ pub struct Columns {
     /// Index of each term's first weight in `weights`; one extra entry for the end.
     pub weight_start: Vec<u32>,
     pub weights: Vec<Weight>,
+    /// Inferred orientation for terms without an author other allele: `Inference` code (0 = none), method,
+    /// REF and ALT (`ANY_ALT` for any non-reference allele). Its effect-is-ALT flag is bit 2 of `flags`.
+    pub inferred_kind: Vec<u8>,
+    pub inferred_method: Vec<u8>,
+    pub inferred_ref: Vec<u8>,
+    pub inferred_alt: Vec<u8>,
 }
 
 impl Columns {
@@ -254,8 +321,23 @@ impl Columns {
         self.pos.push(t.pos);
         self.model.push(t.model as u8);
         self.allele_kind.push(t.allele_kind as u8);
+        let inferred_effect_is_alt = t.inferred.is_some_and(|(_, o)| o.effect_is_alt);
         self.flags
-            .push(t.palindromic as u8 | (t.orientation.effect_is_alt as u8) << 1);
+            .push(t.palindromic as u8 | (t.orientation.effect_is_alt as u8) << 1 | (inferred_effect_is_alt as u8) << 2);
+        match t.inferred {
+            Some((kind, o)) => {
+                self.inferred_kind.push(kind as u8);
+                self.inferred_method.push(o.method as u8);
+                self.inferred_ref.push(o.ref_base);
+                self.inferred_alt.push(o.alt_base);
+            }
+            None => {
+                self.inferred_kind.push(0);
+                self.inferred_method.push(0);
+                self.inferred_ref.push(0);
+                self.inferred_alt.push(0);
+            }
+        }
         self.status.push(t.orientation.status as u8);
         self.method.push(t.orientation.method as u8);
         self.ref_base.push(t.orientation.ref_base);
@@ -284,6 +366,19 @@ impl Columns {
             },
             reasons: Reasons(self.reasons[i]),
             weights: self.weights[a..b].to_vec(),
+            inferred: match self.inferred_kind[i] {
+                0 => None,
+                code => Some((
+                    Inference::from_code(code).ok_or_else(bad)?,
+                    Orientation {
+                        status: Status::Resolved,
+                        method: Method::from_code(self.inferred_method[i]).ok_or_else(bad)?,
+                        ref_base: self.inferred_ref[i],
+                        alt_base: self.inferred_alt[i],
+                        effect_is_alt: self.flags[i] & 4 != 0,
+                    },
+                )),
+            },
         })
     }
 
@@ -337,6 +432,10 @@ impl Columns {
             coefficients,
             exponents,
             texts,
+            self.inferred_kind.clone(),
+            self.inferred_method.clone(),
+            self.inferred_ref.clone(),
+            self.inferred_alt.clone(),
         ]);
         let mut out = Vec::with_capacity(sections.iter().map(|s| s.len() + 8).sum());
         for section in sections {
@@ -364,15 +463,36 @@ impl Columns {
         if [status, ref_base, alt_base].iter().any(|c| c.len() != n) {
             return Err(bad_body("column lengths differ"));
         }
+        let inferred = (sections.len() == SECTIONS_V3).then(|| (sections[15], sections[17], sections[18]));
+        if let Some((kind, r, a)) = inferred
+            && [kind, r, a].iter().any(|c| c.len() != n)
+        {
+            return Err(bad_body("column lengths differ"));
+        }
         let (mut positions, mut reasons) = (Varints(sections[1], 0), Varints(sections[9], 0));
         let mut previous = 0i64;
         let mut keys = Vec::new();
         for i in 0..n {
             previous += unzigzag(positions.next().ok_or_else(|| bad_body("positions"))?);
             let r = reasons.next().ok_or_else(|| bad_body("reasons"))?;
+            let pos = || u32::try_from(previous).map_err(|_| bad_body("positions"));
             if r == 0 && status[i] == Status::Resolved as u8 {
-                let pos = u32::try_from(previous).map_err(|_| bad_body("positions"))?;
-                keys.push(crate::genotypes::target_key(contig[i], pos, ref_base[i], alt_base[i]));
+                keys.push(crate::genotypes::target_key(
+                    contig[i],
+                    pos()?,
+                    ref_base[i],
+                    alt_base[i],
+                ));
+            } else if let Some((kind, inferred_ref, inferred_alt)) = inferred
+                && kind[i] != 0
+                && r == crate::term::Reason::OtherAlleleMissing as u64
+            {
+                keys.push(crate::genotypes::target_key(
+                    contig[i],
+                    pos()?,
+                    inferred_ref[i],
+                    inferred_alt[i],
+                ));
             }
         }
         keys.sort_unstable();
@@ -427,7 +547,13 @@ impl Columns {
                 _ => return Err(bad("weight tag")),
             });
         }
-        let fixed = [2usize, 3, 4, 5, 6, 7, 8];
+        let v3 = sections.len() == SECTIONS_V3;
+        let inferred = |k: usize| if v3 { sections[k].to_vec() } else { vec![0; n] };
+        let fixed: &[usize] = if v3 {
+            &[2, 3, 4, 5, 6, 7, 8, 15, 16, 17, 18]
+        } else {
+            &[2, 3, 4, 5, 6, 7, 8]
+        };
         if fixed.iter().any(|&k| sections[k].len() != n)
             || counts.len() != n
             || weight_start.last().copied() != Some(tags.len() as u32)
@@ -447,6 +573,10 @@ impl Columns {
             reasons,
             weight_start,
             weights,
+            inferred_kind: inferred(15),
+            inferred_method: inferred(16),
+            inferred_ref: inferred(17),
+            inferred_alt: inferred(18),
         })
     }
 }
@@ -612,7 +742,7 @@ fn read_header(input: &mut impl Read, path: &Path) -> Result<Header> {
     input.read_exact(&mut header_json).map_err(Error::io(path))?;
     let header: Header =
         serde_json::from_slice(&header_json).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
-    if header.schema != SCHEMA {
+    if header.schema != SCHEMA && header.schema != SCHEMA_V2 {
         return invalid!("{}: pack schema {} is not {SCHEMA}", path.display(), header.schema);
     }
     Ok(header)

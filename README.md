@@ -20,6 +20,10 @@ Every score gets two answers:
 
 Weights are summed exactly (no floating point), and every output records the digests of its inputs.
 
+About a third of Catalog scores publish only an effect allele. They are unscorable by default; with
+`--allow-inferred-other-allele`, pgsum infers the other allele from the score's own reference convention (or
+the Catalog's inferred allele) and labels every result that used it. See DESIGN.md.
+
 ## Usage
 
 ```sh

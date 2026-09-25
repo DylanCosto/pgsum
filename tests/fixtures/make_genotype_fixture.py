@@ -121,3 +121,37 @@ with gzip.GzipFile("PGS999997_hmPOS_GRCh38.txt.gz", "wb", compresslevel=9, mtime
 with open("PGS999997.metadata.json", "w") as f:
     json.dump(dict(id="PGS999997", name="synthetic complete score", variants_number=len(rows), weight_type="beta",
                    matches_publication=True, license="CC0 1.0 (synthetic test fixture)"), f, indent=1)
+
+
+# Scores without an author other allele, for the opt-in inference rules. Each row sits on a scenario above.
+def effect_only(pgs_id, name, rows, infer_column=False):
+    """rows: (pos, effect, weight[, hm_inferOtherAllele])."""
+    cols = ["rsID", "chr_name", "effect_allele", "effect_weight", "hm_source", "hm_chr", "hm_pos"]
+    if infer_column:
+        cols.append("hm_inferOtherAllele")
+    lines = []
+    for r in rows:
+        p, e, w = r[:3]
+        line = [f"rs{p}", "1", e, w, "ENSEMBL", "1", str(p)]
+        if infer_column:
+            line.append(r[3])
+        lines.append("\t".join(line))
+    header = ["###PGS CATALOG SCORING FILE - synthetic test fixture", "#format_version=2.0", f"#pgs_id={pgs_id}",
+              f"#variants_number={len(lines)}", "#weight_type=beta", "#HmPOS_build=GRCh38"]
+    with gzip.GzipFile(f"{pgs_id}_hmPOS_GRCh38.txt.gz", "wb", compresslevel=9, mtime=0) as f:
+        f.write(("\n".join(header + ["\t".join(cols)] + lines) + "\n").encode())
+    with open(f"{pgs_id}.metadata.json", "w") as f:
+        json.dump(dict(id=pgs_id, name=name, variants_number=len(lines), weight_type="beta", matches_publication=True,
+                       license="CC0 1.0 (synthetic test fixture)"), f, indent=1)
+
+
+# Every effect allele differs from the reference base: the other allele is the reference.
+effect_only("PGS999996", "synthetic effect is ALT", [
+    (1, "G", "0.1"), (4, "C", "0.2"), (5, "G", "0.3"), (16, "G", "0.4"), (17, "C", "0.5"), (22, "T", "0.6")])
+# Every effect allele is the reference base: count reference copies (any non-reference allele counts against).
+effect_only("PGS999995", "synthetic effect is REF", [
+    (1, "A", "0.1"), (4, "T", "0.2"), (5, "T", "0.3"), (6, "G", "0.4"), (16, "T", "0.5"), (17, "T", "0.6")])
+# No convention (half and half): only the Catalog's inferred allele can orient a term.
+effect_only("PGS999994", "synthetic Catalog-inferred", [
+    (4, "C", "0.2", "T"), (5, "T", "0.3", "G"), (2, "C", "0.4", "A/T"), (1, "A", "0.5", "T"), (24, "G", "0.6", "")],
+    infer_column=True)

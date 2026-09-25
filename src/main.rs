@@ -142,6 +142,9 @@ enum Command {
         /// Add each term's status, call state and effect dosage from this genotype table.
         #[arg(long)]
         genotypes: Option<PathBuf>,
+        /// With `--genotypes`: allow inferred other alleles, as `score` does.
+        #[arg(long)]
+        allow_inferred_other_allele: bool,
     },
     /// Read genotypes from a gVCF at every site the packs need.
     Extract {
@@ -173,6 +176,9 @@ enum Command {
         /// Also write a per-term TSV for each score.
         #[arg(long)]
         terms: bool,
+        /// Also score terms without an author other allele, using the orientation their pack inferred.
+        #[arg(long)]
+        allow_inferred_other_allele: bool,
     },
     /// Extract then score in one step.
     Run {
@@ -189,6 +195,9 @@ enum Command {
         /// Target index to reuse when it matches the selected packs, or to create (`.pgst`).
         #[arg(long)]
         targets_cache: Option<PathBuf>,
+        /// Also score terms without an author other allele, using the orientation their pack inferred.
+        #[arg(long)]
+        allow_inferred_other_allele: bool,
     },
 }
 
@@ -209,7 +218,15 @@ fn main() -> ExitCode {
             path,
             header,
             genotypes,
-        } => inspect(&path, header, genotypes.as_deref()),
+            allow_inferred_other_allele,
+        } => inspect(
+            &path,
+            header,
+            genotypes.as_deref(),
+            &pgsum::score::Options {
+                allow_inferred_other_allele,
+            },
+        ),
         Command::Fetch {
             ids,
             all: _,
@@ -234,9 +251,13 @@ fn main() -> ExitCode {
             packs,
             out,
             terms,
-        } => packs
-            .resolve()
-            .and_then(|packs| score(&GenotypeTable::open(&genotypes)?, &packs, &out, terms)),
+            allow_inferred_other_allele,
+        } => packs.resolve().and_then(|packs| {
+            let options = pgsum::score::Options {
+                allow_inferred_other_allele,
+            };
+            score(&GenotypeTable::open(&genotypes)?, &packs, &out, terms, &options)
+        }),
         Command::Run {
             gvcf,
             reference,
@@ -244,7 +265,11 @@ fn main() -> ExitCode {
             out,
             terms,
             targets_cache,
+            allow_inferred_other_allele,
         } => packs.resolve().and_then(|packs| {
+            let options = pgsum::score::Options {
+                allow_inferred_other_allele,
+            };
             std::fs::create_dir_all(&out).map_err(Error::io(&out))?;
             let table_path = out.join("genotypes.pgsg");
             extract(
@@ -255,7 +280,7 @@ fn main() -> ExitCode {
                 targets_cache.as_deref(),
                 threads,
             )?;
-            score(&GenotypeTable::open(&table_path)?, &packs, &out, terms)
+            score(&GenotypeTable::open(&table_path)?, &packs, &out, terms, &options)
         }),
     };
     match result {
@@ -458,7 +483,13 @@ fn extract(
 }
 
 /// Score every pack against the table: packs in parallel, and each pack's terms in parallel chunks.
-fn score(table: &GenotypeTable, packs: &[PathBuf], out: &Path, terms: bool) -> Result<()> {
+fn score(
+    table: &GenotypeTable,
+    packs: &[PathBuf],
+    out: &Path,
+    terms: bool,
+    options: &pgsum::score::Options,
+) -> Result<()> {
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
     let started = std::time::Instant::now();
     let outcomes: Vec<(&PathBuf, Result<pgsum::score::ScoreResult>)> = packs
@@ -470,11 +501,11 @@ fn score(table: &GenotypeTable, packs: &[PathBuf], out: &Path, terms: bool) -> R
                 let result = if terms {
                     let tsv = out.join(format!("{id}.terms.tsv"));
                     let mut w = BufWriter::new(std::fs::File::create(&tsv).map_err(Error::io(&tsv))?);
-                    let r = pgsum::score::score(&pack, table, Some(&mut w))?;
+                    let r = pgsum::score::score(&pack, table, options, Some(&mut w))?;
                     w.flush().map_err(Error::io(&tsv))?;
                     r
                 } else {
-                    pgsum::score::score(&pack, table, None)?
+                    pgsum::score::score(&pack, table, options, None)?
                 };
                 let json_path = out.join(format!("{id}.score.json"));
                 let mut json = serde_json::to_vec_pretty(&result).map_err(|e| Error::Invalid(e.to_string()))?;
@@ -535,7 +566,7 @@ fn score(table: &GenotypeTable, packs: &[PathBuf], out: &Path, terms: bool) -> R
     }
 }
 
-fn inspect(path: &Path, header: bool, genotypes: Option<&Path>) -> Result<()> {
+fn inspect(path: &Path, header: bool, genotypes: Option<&Path>, options: &pgsum::score::Options) -> Result<()> {
     let mut out = BufWriter::new(std::io::stdout().lock());
     let json = |out: &mut BufWriter<_>, value: &dyn erased::Json| value.write(out);
     let is_table = std::fs::File::open(path)
@@ -554,7 +585,7 @@ fn inspect(path: &Path, header: bool, genotypes: Option<&Path>) -> Result<()> {
         } else {
             match genotypes {
                 Some(g) => {
-                    pgsum::score::score(&pack, &GenotypeTable::open(g)?, Some(&mut out))?;
+                    pgsum::score::score(&pack, &GenotypeTable::open(g)?, options, Some(&mut out))?;
                 }
                 None => pack.write_terms_tsv(&mut out)?,
             }
