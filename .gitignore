@@ -1,0 +1,14 @@
+/target
+# Scoring files, packs and sample data are never committed (see DESIGN.md).
+*.vcf
+*.vcf.gz
+*.gvcf.gz
+*.tbi
+*.csi
+*.fa
+*.fa.gz
+*.fasta
+*.fai
+*.txt.gz
+/packs/
+/data/
