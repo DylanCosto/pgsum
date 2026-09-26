@@ -4,6 +4,7 @@
 //! and `score` (packs × genotypes → one result per score). See `DESIGN.md` for the rules.
 
 pub mod alleles;
+pub mod cohort;
 pub mod compile;
 pub mod decimal;
 pub mod digest;
@@ -15,6 +16,7 @@ pub mod gvcf;
 pub mod index;
 pub mod orient;
 pub mod pack;
+pub mod panel;
 pub mod public;
 pub mod reference;
 pub mod score;

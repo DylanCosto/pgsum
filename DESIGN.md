@@ -104,6 +104,42 @@ not depend on the thread count. Weights with 64-bit coefficients are summed in 1
 ones use arbitrary precision. All 8 development packs (11.7M terms) score against HG002 in 0.4 s after the
 genotype table loads (0.7 s), about 29M terms/s on 12 cores.
 
+## Cohorts (`extract --all-samples`)
+
+A multi-sample VCF (a joint-called cohort, or a reference panel such as 1000 Genomes) is read once for every
+sample. The scan is the whole-file scan above; each record overlapping a target is kept whole, and once the
+scan has passed a target (a later record starts beyond it, or its contig is done) the target is assessed for
+every sample: the record lines are reduced to one sample's column and given to the same genotype rules as a
+single-sample run. In a genotype-only VCF a record has a handful of distinct sample fields (`0|0`, `0|1`,
+`1|1`, …), so each distinct field is assessed once per target and the call reused for every sample that has
+it. The call is stored as a 2-bit code: the ALT dosage of a passing call, or missing.
+
+The cohort file (`pgsum-cohort-v1`, `.pgsc`) holds the codes in blocks of 65,536 targets (four samples to a
+byte), written as the scan finishes each contig so memory holds only records still needed, with the sequence
+targets and a header footer listing every frame's SHA-256.
+
+`score` on a cohort file writes `cohort-scores.tsv.zst`: per sample and score, the exact partial sum, scorable
+terms and coverage. A term's contribution at the commonest code is added once to a shared baseline and
+corrected for the samples with other codes, so the work per term is proportional to the samples that differ;
+each sample's sum is written with the exponent its own contributions give, so it is the same text as a
+single-sample run. `tests/cohort_fixture.rs` checks that every sample's codes, sums and scorable counts equal
+extracting and scoring that sample alone.
+
+## Reference panels (`score --reference-panel`)
+
+A partial score is only comparable with scores over the same terms. With `--reference-panel panel.pgsc
+--reference-groups labels.tsv`, each score is placed among the panel's scores computed over exactly the terms
+scorable in the sample and in every panel sample: `reference.matched_terms` and their share of terms and
+weight, the sample's exact sum over them, its mid-rank percentile among all panel samples, and per group the
+mean, SD, percentile and z-score. The panel must be extracted with the same packs.
+
+The sample is assigned the nearest group (`ancestry.nearest_group`, e.g. a 1000 Genomes superpopulation) by
+the likelihood of its genotypes under each group's allele frequencies (Hardy–Weinberg, frequencies clamped to
+[0.001, 0.999]) at every 20th panel SNV target where it has a passing call; `reference.nearest_group_percentile`
+is the percentile to read. Score sites are in linkage, so likelihood differences overstate certainty, and an
+admixed sample may sit between groups. Percentiles are uncalibrated: no ancestry adjustment beyond the choice
+of group, and no absolute risk.
+
 ## Custom scores
 
 Any score, not only the Catalog's, can be compiled from a tab-separated file (plain or gzipped) laid out like

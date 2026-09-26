@@ -81,7 +81,7 @@ const CHUNK_BYTES: usize = 4 << 20;
 const REGION_GAP: u64 = 1 << 14;
 
 /// The per-record matching shared by both ways of reading: keeps each record that overlaps a target.
-struct Collector<'a> {
+pub(crate) struct Collector<'a> {
     /// The sample's column, when the VCF has several: records are then kept with that column only.
     sample_column: Option<usize>,
     keys: &'a [u64],
@@ -100,10 +100,33 @@ struct Collector<'a> {
     cursor: usize,      // first target of the current contig not yet passed
     last_chrom: Vec<u8>,
     last_code: Option<u8>,
+    /// Sample columns in the file, and whether its header defines DeepVariant's `RefCall` filter.
+    samples: usize,
+    refcall_defined: bool,
 }
 
 impl<'a> Collector<'a> {
-    fn new(keys: &'a [u64], ends: &'a [u64], header: &HeaderFacts) -> Self {
+    pub(crate) fn header_samples(&self) -> usize {
+        self.samples
+    }
+
+    pub(crate) fn refcall_defined(&self) -> bool {
+        self.refcall_defined
+    }
+
+    pub(crate) fn contig_ranges(&self) -> [(usize, usize); 26] {
+        self.contig_ranges
+    }
+
+    pub(crate) fn max_span(&self) -> u64 {
+        self.max_span
+    }
+
+    pub(crate) fn records_scanned(&self) -> u64 {
+        self.records_scanned
+    }
+
+    pub(crate) fn new(keys: &'a [u64], ends: &'a [u64], header: &HeaderFacts) -> Self {
         let max_span = keys
             .iter()
             .zip(ends)
@@ -111,7 +134,7 @@ impl<'a> Collector<'a> {
             .max()
             .unwrap_or(0);
         Collector {
-            sample_column: (header.samples > 1).then_some(header.sample_column),
+            sample_column: (header.samples > 1 && !header.all_samples).then_some(header.sample_column),
             keys,
             ends,
             max_span,
@@ -127,6 +150,8 @@ impl<'a> Collector<'a> {
             cursor: 0,
             last_chrom: Vec::new(),
             last_code: None,
+            samples: header.samples,
+            refcall_defined: header.refcall_defined,
         }
     }
 
@@ -186,6 +211,24 @@ impl<'a> Collector<'a> {
     /// Append a chunk scanned by `scan_chunk`, checking order across chunks as `record` does. `lines_before`
     /// is the file's line count before the chunk; errors carry file line numbers.
     fn merge(&mut self, scan: ChunkScan, lines_before: u64) -> std::result::Result<(), (u64, Error)> {
+        self.check_order(&scan, lines_before)?;
+        let base_id = (self.offsets.len() - 1) as u32;
+        let base = self.arena.len() as u64;
+        self.arena.extend_from_slice(&scan.arena);
+        self.offsets.extend(scan.offsets[1..].iter().map(|o| o + base));
+        for (id, t) in scan.hits {
+            let id = base_id + id;
+            if self.first[t as usize] == u32::MAX {
+                self.first[t as usize] = id;
+            } else {
+                self.extra.entry(t).or_default().push(id);
+            }
+        }
+        Ok(())
+    }
+
+    /// Check a chunk's records continue the file in order (sorted, each contig contiguous) and count them.
+    pub(crate) fn check_order(&mut self, scan: &ChunkScan, lines_before: u64) -> std::result::Result<(), (u64, Error)> {
         for &(code, first, last, line) in &scan.segments {
             if code != self.current.0 {
                 if self.seen[code as usize] {
@@ -208,18 +251,6 @@ impl<'a> Collector<'a> {
         }
         self.records_scanned += scan.records;
         self.canonical_records += scan.canonical_records;
-        let base_id = (self.offsets.len() - 1) as u32;
-        let base = self.arena.len() as u64;
-        self.arena.extend_from_slice(&scan.arena);
-        self.offsets.extend(scan.offsets[1..].iter().map(|o| o + base));
-        for (id, t) in scan.hits {
-            let id = base_id + id;
-            if self.first[t as usize] == u32::MAX {
-                self.first[t as usize] = id;
-            } else {
-                self.extra.entry(t).or_default().push(id);
-            }
-        }
         Ok(())
     }
 
@@ -259,17 +290,17 @@ fn keep_line(sample_column: Option<usize>, line: &[u8], arena: &mut Vec<u8>) {
 
 /// Records of one chunk of the file, found overlapping targets by `scan_chunk`.
 #[derive(Default)]
-struct ChunkScan {
+pub(crate) struct ChunkScan {
     /// Kept records (as `keep_line` writes them) and their end offsets in `arena`, from 0.
-    arena: Vec<u8>,
-    offsets: Vec<u64>,
+    pub(crate) arena: Vec<u8>,
+    pub(crate) offsets: Vec<u64>,
     /// (kept record in this chunk, target) in file order.
-    hits: Vec<(u32, u32)>,
-    lines: u64,
+    pub(crate) hits: Vec<(u32, u32)>,
+    pub(crate) lines: u64,
     records: u64,
     canonical_records: u64,
     /// Runs of records on one contig: code, first and last POS, and the line (in the chunk) of the first.
-    segments: Vec<(u8, u64, u64, u64)>,
+    pub(crate) segments: Vec<(u8, u64, u64, u64)>,
 }
 
 /// Find the records of a chunk of whole lines that overlap targets, as `Collector::record` would. Errors
@@ -537,6 +568,28 @@ fn compression(path: &Path) -> Result<Compression> {
 /// Read the whole file once: bgzipped VCFs are decompressed on `threads` threads, plain gzip and
 /// uncompressed VCFs are read on one.
 fn scan_full(gvcf: &Path, keys: &[u64], ends: &[u64], sample: Option<&str>, threads: usize) -> Result<Extracted> {
+    let header = HeaderFacts {
+        requested_sample: sample.map(str::to_owned),
+        ..HeaderFacts::default()
+    };
+    let (header, collector, digest, bytes) =
+        stream_records(gvcf, keys, ends, header, threads, |c, scan, lines_before| {
+            c.merge(scan, lines_before)
+        })?;
+    Ok(collector.finish(header, digest, bytes))
+}
+
+/// Read a whole VCF once, handing each chunk of records, scanned for the targets they overlap, to `on_scan`
+/// in file order together with the collector (which holds the targets and checks record order) and the number
+/// of lines before the chunk. Returns the header facts, the collector, and the file's SHA-256 and size.
+pub(crate) fn stream_records<'a>(
+    gvcf: &Path,
+    keys: &'a [u64],
+    ends: &'a [u64],
+    mut header: HeaderFacts,
+    threads: usize,
+    mut on_scan: impl FnMut(&mut Collector<'a>, ChunkScan, u64) -> std::result::Result<(), (u64, Error)>,
+) -> Result<(HeaderFacts, Collector<'a>, String, u64)> {
     let file = File::open(gvcf).map_err(Error::io(gvcf))?;
     let hashing = HashingReader::new(file);
     let workers = NonZero::new(threads.max(1)).expect("at least one");
@@ -559,10 +612,6 @@ fn scan_full(gvcf: &Path, keys: &[u64], ends: &[u64], sample: Option<&str>, thre
         (reader, shared)
     };
     let at = |line_no: u64, e: Error| Error::Invalid(format!("{}: line {line_no}: {e}", gvcf.display()));
-    let mut header = HeaderFacts {
-        requested_sample: sample.map(str::to_owned),
-        ..HeaderFacts::default()
-    };
     let mut line = Vec::with_capacity(1 << 16);
     let mut line_no = 0u64;
     loop {
@@ -589,9 +638,9 @@ fn scan_full(gvcf: &Path, keys: &[u64], ends: &[u64], sample: Option<&str>, thre
             break;
         }
     }
-    // Records: chunks of whole lines, parsed in parallel a batch at a time and merged in file order, so the
+    // Records: chunks of whole lines, parsed in parallel a batch at a time and handed on in file order, so the
     // result is the same as reading line by line.
-    let mut merged = Collector::new(keys, ends, &header);
+    let mut collector = Collector::new(keys, ends, &header);
     let batch_len = 2 * threads.max(1);
     let mut carry: Vec<u8> = Vec::new();
     let mut eof = false;
@@ -623,21 +672,20 @@ fn scan_full(gvcf: &Path, keys: &[u64], ends: &[u64], sample: Option<&str>, thre
                 batch.push(chunk);
             }
         }
-        let scans: Vec<_> = batch.par_iter().map(|chunk| scan_chunk(chunk, &merged)).collect();
+        let scans: Vec<_> = batch.par_iter().map(|chunk| scan_chunk(chunk, &collector)).collect();
         for scan in scans {
             let scan = scan.map_err(|(line, e)| at(line_no + line, e))?;
             let lines = scan.lines;
-            merged.merge(scan, line_no).map_err(|(line, e)| at(line, e))?;
+            on_scan(&mut collector, scan, line_no).map_err(|(line, e)| at(line, e))?;
             line_no += lines;
         }
     }
-    if merged.canonical_records == 0 {
+    if collector.canonical_records == 0 {
         return invalid!(
             "{}: no records on chr1–chr22, chrX, chrY or chrM (named chr1 or 1, …)",
             gvcf.display()
         );
     }
-    let collector = merged;
     // Finish hashing the file (a decompressor may stop before the final empty BGZF block).
     drop(reader);
     let mut hashing = std::sync::Arc::try_unwrap(hashed)
@@ -648,7 +696,43 @@ fn scan_full(gvcf: &Path, keys: &[u64], ends: &[u64], sample: Option<&str>, thre
     let gvcf_bytes = hashing.bytes;
     let digest = hashing.finish();
     remember_file_sha256(gvcf, &digest);
-    Ok(collector.finish(header, digest, gvcf_bytes))
+    Ok((header, collector, digest, gvcf_bytes))
+}
+
+/// The target of a key: a sequence target's normalized alleles, or an SNV's REF and ALT (`r` and `a` hold
+/// their text).
+pub(crate) fn target_for<'t>(
+    key: u64,
+    sequences: &'t [(u64, Variant)],
+    r: &'t mut String,
+    a: &'t mut String,
+) -> Result<Target<'t>> {
+    let (code, pos) = key_position(key);
+    let contig = CONTIGS[code as usize - 1];
+    let sex_chromosome = matches!(contig, "chrX" | "chrY");
+    if is_sequence_key(key) {
+        let i = sequences
+            .binary_search_by_key(&key, |(k, _)| *k)
+            .map_err(|_| Error::Invalid(format!("{contig}:{pos}: sequence target without alleles")))?;
+        let v = &sequences[i].1;
+        return Ok(Target {
+            pos: v.pos,
+            ref_allele: &v.ref_allele,
+            alt: Some(&v.alt),
+            sequence: true,
+            sex_chromosome,
+        });
+    }
+    let (_, _, ref_base, alt_base) = unpack_key(key);
+    *r = (ref_base as char).to_string();
+    *a = (alt_base as char).to_string();
+    Ok(Target {
+        pos: pos as u64,
+        ref_allele: r.as_str(),
+        alt: (alt_base != crate::genotypes::ANY_ALT).then_some(a.as_str()),
+        sequence: false,
+        sex_chromosome,
+    })
 }
 
 /// Assess every target from its records, on `threads` threads.
@@ -699,33 +783,8 @@ pub fn assess(
                                 .collect::<Result<Vec<_>>>()?;
                             last_ids.clone_from(&ids);
                         }
-                        let (r, a, sequence);
-                        let target = if is_sequence_key(key) {
-                            let v = sequences
-                                .binary_search_by_key(&key, |(k, _)| *k)
-                                .map(|i| &sequences[i].1)
-                                .map_err(|_| {
-                                    Error::Invalid(format!("{contig}:{pos}: sequence target without alleles"))
-                                })?;
-                            sequence = v;
-                            Target {
-                                pos: sequence.pos,
-                                ref_allele: &sequence.ref_allele,
-                                alt: Some(&sequence.alt),
-                                sequence: true,
-                                sex_chromosome: matches!(contig, "chrX" | "chrY"),
-                            }
-                        } else {
-                            let (_, _, ref_base, alt_base) = unpack_key(key);
-                            (r, a) = ((ref_base as char).to_string(), (alt_base as char).to_string());
-                            Target {
-                                pos: pos as u64,
-                                ref_allele: &r,
-                                alt: (alt_base != crate::genotypes::ANY_ALT).then_some(a.as_str()),
-                                sequence: false,
-                                sex_chromosome: matches!(contig, "chrX" | "chrY"),
-                            }
-                        };
+                        let (mut r, mut a) = (String::new(), String::new());
+                        let target = target_for(key, sequences, &mut r, &mut a)?;
                         let call = genotype::assess(&records, &target, policy, |p, len| {
                             reference.fetch(contig, p - 1, p - 1 + len as u64).ok()
                         });

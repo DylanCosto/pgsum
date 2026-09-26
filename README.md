@@ -2,8 +2,8 @@
 
 Polygenic score calculation from gVCFs, exact and without imputation.
 
-**Status: v0.2, early development.** The full pipeline works and has been validated on one genome, GIAB
-HG002 (see [Validation](#validation)); broader validation is under way.
+**Status: v0.2, early development.** The full pipeline works; genotype calls are validated against the seven
+GIAB truth sets (see [Validation](#validation)).
 
 ## What's different
 
@@ -29,7 +29,7 @@ score noticeably.
 
 Both are raw sums on the author's scale, not percentiles. A partial score can only be compared with other
 scores computed over the same terms: a reference population scored on a different set of sites is not a
-valid comparison.
+valid comparison. `score --reference-panel` does that comparison for you (below).
 
 Sums are exact decimals, so the same inputs give byte-identical output on any machine and thread count,
 and every output records the digests of its inputs. The exactness is for reproducibility: a result like
@@ -93,6 +93,31 @@ TSV. With `--bundle`, every result goes into one `results.jsonl.zst` (one JSON o
 file per score: for the whole Catalog that is 4 MB rather than 6,990 small files, which on an exFAT drive with
 1 MB allocation blocks take 14 GB.
 
+### Many samples and reference percentiles
+
+A multi-sample VCF (a joint-called cohort, or a panel such as 1000 Genomes) is read once for every sample,
+and `score` then scores every sample, with the same rules and exact sums as a single-sample run:
+
+```sh
+pgsum extract --gvcf cohort.vcf.gz --all-samples --reference GRCh38.fa --pack packs/ --out cohort.pgsc
+pgsum score --genotypes cohort.pgsc --pack packs/ --out cohort-results/   # cohort-scores.tsv.zst
+```
+
+A partial score only means something next to scores over the same terms. Given a panel extracted with the
+same packs and its sample groups, `score` places each score among the panel's scores computed over exactly
+the terms scorable in your genome and in every panel sample, and assigns your genome the nearest group:
+
+```sh
+pgsum extract --gvcf 1kgp.vcf.gz --all-samples --accept-missing-quality --reference GRCh38.fa --pack packs/ --out 1kgp.pgsc
+pgsum score --genotypes sample.pgsg --pack packs/ --out results/ \
+    --reference-panel 1kgp.pgsc --reference-groups integrated_call_samples_v3.20130502.ALL.panel
+```
+
+Each result then has `reference` (matched terms and coverage, percentile among all panel samples and within
+each group, group mean, SD and z-score) and `ancestry` (the nearest group), and `scores.tsv` gains the
+percentile in the nearest group. For HG002 against 1000 Genomes this takes 33 s for 100 scores and assigns
+EUR. Percentiles are uncalibrated: no ancestry adjustment beyond the choice of group, and no absolute risk.
+
 ### Inputs
 
 pgsum reads gVCFs from DeepVariant (long- and short-read), DRAGEN and GATK HaplotypeCaller, and plain VCFs,
@@ -136,18 +161,27 @@ Without an index, `extract` reads the whole file on all cores: 5 s for a 154-mil
 
 What has been checked, and against what:
 
-- **Genotype calls against a truth set.** At every score site on chr1–22 inside the GIAB v4.2.1 HG002
-  benchmark regions (40.6 million sites; `bench/giab_concordance.py`):
+- **Genotype calls against truth sets, on seven genomes.** At every score site on chr1–22 inside each GIAB
+  v4.2.1 benchmark region (about 40 million sites per genome; `bench/giab_concordance.py`):
 
-  | HG002 input | Sites called | SNV agreement | Indel agreement | Wrong hom-ref calls |
-  |---|---|---|---|---|
-  | DeepVariant, PacBio Revio | 98.9% | 99.9989% | 99.958% | 390 of 34.0M |
-  | DeepVariant, Illumina | 99.0% | 99.9966% | 99.986% | 1,050 of 34.1M |
-  | DRAGEN 3.7.6, Illumina | 98.7% | 99.9974% | 99.994% | 498 of 34.0M |
+  | Genome (ancestry) | Input | Sites called | SNV agreement | Indel agreement | Wrong hom-ref calls |
+  |---|---|---|---|---|---|
+  | HG001 (European) | DRAGEN 3.7.6 gVCF, Illumina | 98.9% | 99.9968% | 99.995% | 698 of 33.6M |
+  | HG002 (Ashkenazi) | DeepVariant gVCF, PacBio Revio | 98.9% | 99.9989% | 99.958% | 390 of 34.0M |
+  | HG002 | DeepVariant gVCF, Illumina | 99.0% | 99.9966% | 99.986% | 1,050 of 34.1M |
+  | HG002 | DRAGEN 3.7.6 gVCF, Illumina | 98.7% | 99.9974% | 99.994% | 498 of 34.0M |
+  | HG003 (Ashkenazi) | DeepVariant 1.5 gVCF, PacBio Revio | 98.8% | 99.9990% | 99.983% | 97 of 33.8M |
+  | HG004 (Ashkenazi) | DRAGEN 3.7.6 gVCF, Illumina | 98.7% | 99.9974% | 99.994% | 595 of 33.7M |
+  | HG005 (Han Chinese) | DRAGEN 4.2.4 VCF (no gVCF public) | 14.8%¹ | 99.9988% | 99.981% | — |
+  | HG006 (Han Chinese) | DRAGEN 4.2.4 VCF | 14.7%¹ | 99.9980% | 99.980% | — |
+  | HG007 (Han Chinese) | DRAGEN 4.2.4 VCF | 14.8%¹ | 99.9978% | 99.968% | — |
+
+  ¹ A plain VCF has records only where the caller saw a variant, so only those sites are called; for these
+  three genomes the check covers variant calls, not reference blocks.
 
   "Wrong hom-ref calls" are sites read as homozygous reference (mostly from gVCF reference blocks) where
-  GIAB has a variant. For the long-read gVCF, 886 of the 887 disagreements are the genotype the caller wrote
-  in the gVCF; the other is a rule noted in DESIGN.md (Open questions).
+  GIAB has a variant. For the long-read HG002 gVCF, 886 of the 887 disagreements are the genotype the caller
+  wrote in the gVCF; the other is a rule measured in DESIGN.md (Open questions).
 - **Arithmetic against plink2.** On the same HG002 genotypes, pgsum's sums match plink2 `--score` for 108
   scores to plink2's printed precision (`bench/README.md`). This does not test genotype calling: plink2 was
   given pgsum's calls.
@@ -165,16 +199,17 @@ What has been checked, and against what:
 ## Limitations
 
 - GRCh38 only; VCFs on another assembly are refused.
-- One sample per run. Built for per-sample gVCFs (about 545 samples an hour against 100 scores); on one
-  large joint-called VCF it reads the whole file for each sample, so plink2 is far faster there (2,504
-  samples in 6 minutes against about 73 hours; `bench/README.md`).
-- Raw scores only: no ancestry adjustment, percentiles or absolute risk.
+- Percentiles are relative to a reference panel you supply (for example 1000 Genomes), within the nearest
+  group; there is no ancestry adjustment beyond that choice and no absolute risk. Placing the whole Catalog
+  needs a panel extracted for all of it, which is large; panels are meant for a chosen set of scores.
+- Cohort scoring costs grow with scores × samples: 100 scores for 2,504 samples take about 2 minutes to
+  score after a 3.5-minute read, and the whole Catalog for a large cohort is not practical on one machine.
 - A plain VCF (no reference blocks) scores poorly: pgsum does not assume the reference where a VCF is silent.
 - chrX dosage: terms on chrX count 0, 1 or 2 copies as the gVCF's diploid calls give them, so a male's
   hemizygous ALT counts as 2. Scores differ in whether their authors coded males 0/1 or 0/2; results for
   scores with chrX terms say so (`sex_chromosomes`).
-- Validated end to end on one genome (HG002); calls from other callers and samples follow the same rules
-  but have not been checked against a truth set beyond it.
+- Genotype calls are checked against truth sets for the seven GIAB genomes (above); no East Asian gVCF is
+  public, so reference-block reading is checked on European and Ashkenazi genomes only.
 
 ## Scoring files and licences
 

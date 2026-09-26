@@ -194,6 +194,10 @@ enum Command {
         /// The sample to read from a multi-sample VCF.
         #[arg(long)]
         sample: Option<String>,
+        /// Read every sample of a multi-sample VCF into a cohort file (`.pgsc`), in one pass; `score` then
+        /// scores every sample.
+        #[arg(long, conflicts_with = "sample")]
+        all_samples: bool,
         /// Accept calls that report neither depth nor GQ, on GT and FILTER alone (genotype-only VCFs: imputed,
         /// array or joint-called data). Recorded in the table's policy ID.
         #[arg(long)]
@@ -201,7 +205,7 @@ enum Command {
     },
     /// Score packs against an extracted genotype table.
     Score {
-        /// Genotype table from `extract`.
+        /// Genotype table from `extract`, or a cohort file from `extract --all-samples`.
         #[arg(long)]
         genotypes: PathBuf,
         #[command(flatten)]
@@ -228,6 +232,8 @@ enum Command {
         /// Also score indels and multi-base terms oriented by reference fit or a public variant set.
         #[arg(long)]
         allow_inferred_indels: bool,
+        #[command(flatten)]
+        reference: ReferenceArgs,
     },
     /// Extract then score in one step.
     Run {
@@ -321,7 +327,17 @@ fn main() -> ExitCode {
             scan,
             sample,
             accept_missing_quality,
+            all_samples,
         } => packs.resolve().and_then(|packs| {
+            if all_samples {
+                let options = pgsum::cohort::CohortOptions {
+                    targets_cache: targets_cache.as_deref(),
+                    haploid_xy_as_homozygous,
+                    accept_missing_quality,
+                    threads,
+                };
+                return extract_cohort(&gvcf, &reference, &packs, &out, &options);
+            }
             let options = ExtractOptions {
                 targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
@@ -342,6 +358,7 @@ fn main() -> ExitCode {
             accept_informational_descriptions,
             allow_inferred_palindromes,
             allow_inferred_indels,
+            reference,
         } => packs.resolve().and_then(|packs| {
             let options = pgsum::score::Options {
                 allow_inferred_other_allele,
@@ -349,7 +366,12 @@ fn main() -> ExitCode {
                 allow_inferred_palindromes,
                 allow_inferred_indels,
             };
-            score(&GenotypeTable::open(&genotypes)?, &packs, &out, terms, bundle, &options)
+            if is_cohort(&genotypes)? {
+                return score_cohort(&genotypes, &packs, &out, &options);
+            }
+            let table = GenotypeTable::open(&genotypes)?;
+            let panel = open_panel(&reference, &table)?;
+            score(&table, &packs, &out, terms, bundle, &options, panel.as_ref())
         }),
         Command::Run {
             gvcf,
@@ -392,6 +414,7 @@ fn main() -> ExitCode {
                 terms,
                 bundle,
                 &options,
+                None,
             )
         }),
     };
@@ -404,6 +427,21 @@ fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// A reference panel to place scores in (`score --reference`).
+#[derive(clap::Args, Clone, Debug, Default)]
+struct ReferenceArgs {
+    /// Place each score among this panel's scores over the same terms: a cohort file from
+    /// `extract --all-samples` with the same packs (for example 1000 Genomes).
+    #[arg(long = "reference-panel", requires = "reference_groups")]
+    reference_panel: Option<PathBuf>,
+    /// TSV naming each panel sample's group: a header with `sample` and the group column.
+    #[arg(long = "reference-groups")]
+    reference_groups: Option<PathBuf>,
+    /// The group column of `--reference-groups`.
+    #[arg(long = "reference-group-column", default_value = "super_pop")]
+    reference_group_column: String,
 }
 
 fn threads(requested: Option<usize>) -> usize {
@@ -591,10 +629,144 @@ fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, options
     Ok(())
 }
 
+fn is_cohort(path: &Path) -> Result<bool> {
+    let mut magic = [0u8; 8];
+    let mut f = std::fs::File::open(path).map_err(Error::io(path))?;
+    let n = std::io::Read::read(&mut f, &mut magic).map_err(Error::io(path))?;
+    Ok(n == 8 && &magic == pgsum::cohort::MAGIC)
+}
+
+fn extract_cohort(
+    vcf: &Path,
+    reference: &Path,
+    packs: &[PathBuf],
+    out: &Path,
+    options: &pgsum::cohort::CohortOptions,
+) -> Result<()> {
+    let started = std::time::Instant::now();
+    let reference = Reference::open(reference)?;
+    let identity = reference_identity(&reference)?;
+    let summary = pgsum::cohort::extract_cohort(vcf, &reference, &identity, packs, options, out)?;
+    let h = &summary.header;
+    eprintln!(
+        "{} samples, {} records scanned, {} targets in {:.1}s",
+        h.samples.len(),
+        h.records_scanned,
+        h.targets,
+        started.elapsed().as_secs_f64()
+    );
+    for (state, n) in &h.states {
+        eprintln!("  {state}: {n}");
+    }
+    Ok(())
+}
+
+/// Score every pack for every sample of a cohort file: `cohort-scores.tsv.zst`, one line per sample and score.
+fn score_cohort(cohort: &Path, packs: &[PathBuf], out: &Path, options: &pgsum::score::Options) -> Result<()> {
+    std::fs::create_dir_all(out).map_err(Error::io(out))?;
+    let started = std::time::Instant::now();
+    let table = pgsum::cohort::CohortTable::open(cohort)?;
+    table.preload()?;
+    let scores: Vec<Result<pgsum::cohort::CohortScore>> = packs
+        .par_iter()
+        .map(|p| pgsum::cohort::score_cohort(&Pack::open(p)?, &table, options))
+        .collect();
+    let mut scores = scores.into_iter().collect::<Result<Vec<_>>>()?;
+    scores.sort_by(|a, b| a.pgs_id.cmp(&b.pgs_id));
+    let path = out.join("cohort-scores.tsv.zst");
+    let tmp = path.with_extension("zst.tmp");
+    let written = (|| -> std::io::Result<()> {
+        let mut w = zstd::Encoder::new(BufWriter::new(std::fs::File::create(&tmp)?), 3)?;
+        writeln!(
+            w,
+            "sample\tpgs_id\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\t\
+             meets_coverage_guideline"
+        )?;
+        for (s, sample) in table.header.samples.iter().enumerate() {
+            for c in &scores {
+                let (tf, wf) = (
+                    if c.total_terms == 0 {
+                        0.0
+                    } else {
+                        c.scorable[s] as f64 / c.total_terms as f64
+                    },
+                    if c.effect_all == 0.0 {
+                        0.0
+                    } else {
+                        c.effect_scorable[s] / c.effect_all
+                    },
+                );
+                let meets = tf >= pgsum::score::COVERAGE_GUIDELINE && wf >= pgsum::score::COVERAGE_GUIDELINE;
+                writeln!(
+                    w,
+                    "{sample}\t{}\t{}\t{}\t{}\t{tf:.6}\t{wf:.6}\t{}",
+                    c.pgs_id,
+                    c.text(s),
+                    c.scorable[s],
+                    c.total_terms,
+                    meets as u8
+                )?;
+            }
+        }
+        w.finish()?.flush()?;
+        std::fs::rename(&tmp, &path)
+    })();
+    written.map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        Error::io(&path)(e)
+    })?;
+    eprintln!(
+        "scored {} packs for {} samples in {:.1}s",
+        scores.len(),
+        table.header.samples.len(),
+        started.elapsed().as_secs_f64()
+    );
+    Ok(())
+}
+
 /// Above this many packs, `score` decompresses the whole genotype table up front.
 const PRELOAD_PACKS: usize = 50;
 
 /// Score every pack against the table: packs in parallel, and each pack's terms in parallel chunks.
+/// A reference panel, its groups, and the sample's nearest group.
+struct Panel {
+    name: String,
+    cohort: pgsum::cohort::CohortTable,
+    groups: pgsum::panel::Groups,
+    ancestry: pgsum::panel::Ancestry,
+}
+
+fn open_panel(args: &ReferenceArgs, table: &GenotypeTable) -> Result<Option<Panel>> {
+    let (Some(path), Some(groups)) = (&args.reference_panel, &args.reference_groups) else {
+        return Ok(None);
+    };
+    let started = std::time::Instant::now();
+    let cohort = pgsum::cohort::CohortTable::open(path)?;
+    cohort.preload()?;
+    let groups = pgsum::panel::read_groups(groups, &cohort, &args.reference_group_column)?;
+    table.preload()?;
+    let ancestry = pgsum::panel::nearest_group(table, &cohort, &groups)?;
+    eprintln!(
+        "reference panel {}: {} samples; nearest {} {} ({} sites, {:.1}s)",
+        path.display(),
+        cohort.header.samples.len(),
+        groups.column,
+        ancestry.nearest_group,
+        ancestry.sites,
+        started.elapsed().as_secs_f64()
+    );
+    Ok(Some(Panel {
+        name: path
+            .file_name()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        cohort,
+        groups,
+        ancestry,
+    }))
+}
+
+#[allow(clippy::too_many_arguments)]
 fn score(
     table: &GenotypeTable,
     packs: &[PathBuf],
@@ -602,6 +774,7 @@ fn score(
     terms: bool,
     bundle: bool,
     options: &pgsum::score::Options,
+    panel: Option<&Panel>,
 ) -> Result<()> {
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
     let started = std::time::Instant::now();
@@ -624,6 +797,19 @@ fn score(
                 } else {
                     pgsum::score::score(&pack, table, options, None)?
                 };
+                let mut result = result;
+                if let Some(p) = panel {
+                    result.reference = Some(pgsum::panel::place(
+                        &pack,
+                        table,
+                        &p.cohort,
+                        &p.name,
+                        &p.groups,
+                        Some(&p.ancestry),
+                        options,
+                    )?);
+                    result.ancestry = Some(p.ancestry.clone());
+                }
                 if !bundle {
                     let json_path = out.join(format!("{id}.score.json"));
                     let mut json = serde_json::to_vec_pretty(&result).map_err(|e| Error::Invalid(e.to_string()))?;
@@ -646,12 +832,12 @@ fn score(
     results.sort_by(|a, b| a.pgs_id.cmp(&b.pgs_id));
     let mut summary = String::from(
         "pgs_id\tstatus\traw_score\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\t\
-         meets_coverage_guideline\tchrx_terms\n",
+         meets_coverage_guideline\tchrx_terms\treference_group\treference_percentile\tmatched_term_coverage\n",
     );
     for r in &results {
         let c = &r.partial.coverage;
         summary.push_str(&format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{}\t{}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{}\t{}\t{}\t{}\t{}\n",
             r.pgs_id,
             r.status,
             r.raw_score.as_deref().unwrap_or(""),
@@ -661,7 +847,20 @@ fn score(
             c.term_fraction,
             c.weight_fraction,
             r.partial.meets_coverage_guideline as u8,
-            r.sex_chromosomes.chrx_terms
+            r.sex_chromosomes.chrx_terms,
+            r.reference
+                .as_ref()
+                .and_then(|p| p.nearest_group.clone())
+                .unwrap_or_default(),
+            r.reference
+                .as_ref()
+                .and_then(|p| p.nearest_group_percentile)
+                .map(|v| format!("{v:.2}"))
+                .unwrap_or_default(),
+            r.reference
+                .as_ref()
+                .map(|p| format!("{:.6}", p.matched_term_fraction))
+                .unwrap_or_default()
         ));
         eprintln!(
             "{}: {} (partial {} over {:.2}% of terms, {:.2}% of weight)",

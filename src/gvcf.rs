@@ -25,6 +25,11 @@ pub struct HeaderFacts {
     /// The sample to read from a multi-sample VCF (`--sample`), set before reading the header.
     #[serde(skip)]
     pub requested_sample: Option<String>,
+    /// Read every sample (cohort extraction): the header's sample names are kept in `sample_names`.
+    #[serde(skip)]
+    pub all_samples: bool,
+    #[serde(skip)]
+    pub sample_names: Vec<String>,
     /// `##DeepVariant_version=`, when it is a plain `X.Y.Z` version.
     pub deepvariant_version: Option<String>,
     /// The header defines DeepVariant's `RefCall` filter.
@@ -61,6 +66,20 @@ impl HeaderFacts {
         if line.starts_with("#CHROM\t") {
             let fields: Vec<&str> = line.split('\t').collect();
             let samples = fields.get(9..).unwrap_or_default();
+            if self.all_samples {
+                if samples.is_empty() {
+                    return invalid!("the VCF has no sample columns");
+                }
+                let unique: std::collections::HashSet<_> = samples.iter().collect();
+                if unique.len() != samples.len() {
+                    return invalid!("the VCF names a sample more than once");
+                }
+                self.sample_names = samples.iter().map(|s| (*s).to_owned()).collect();
+                self.sample_id = format!("{} samples", samples.len());
+                self.sample_column = 9;
+                self.samples = samples.len();
+                return Ok(true);
+            }
             let column = match (&self.requested_sample, samples) {
                 (_, []) => return invalid!("the VCF has no sample columns"),
                 (Some(name), _) => match samples.iter().position(|s| s == name) {

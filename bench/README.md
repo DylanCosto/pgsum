@@ -44,12 +44,17 @@ samples, 81.6 million records, 15.5 GB), the same 100 scores:
 | plink2: import to pgen at the 7.2M score sites | 340 s |
 | plink2: `--score` for all 2,504 samples (alt and ref tables) | 14 s |
 | **plink2 total, 2,504 samples** | **354 s (0.14 s per sample)** |
-| pgsum `run --sample S --accept-missing-quality`, one sample | 103–113 s |
-| pgsum, 2,504 samples one at a time (extrapolated) | about 73 hours |
+| pgsum `extract --all-samples --accept-missing-quality`, all 2,504 samples in one pass | 209 s (0.8 GB peak) |
+| pgsum `score` on the cohort file, 100 scores × 2,504 samples (exact sums) | 115 s |
+| **pgsum total, 2,504 samples** | **324 s (0.13 s per sample)** |
+| pgsum `run --sample S`, one sample at a time (before the cohort mode) | 103–113 s per sample |
 
-pgsum reads the whole multi-sample file once per sample and keeps one column, so on a large joint-called VCF
-it is roughly 750 times slower per sample than plink2, which reads the file once for everyone. Scoring many
-samples from one file in one pass is not implemented.
+The cohort mode reads the file once for every sample. Every one of the 200 scores of HG00096 and NA12878 is
+identical, as text, to their single-sample runs (`tests/cohort_fixture.rs` checks the same on a fixture).
+Scoring is slower than plink2's because every sum is exact; the read is faster than plink2's import.
+
+Placing HG002 among these 2,504 samples for the same 100 scores (`score --reference-panel`), over the terms
+scorable in both, takes 33 s and assigns HG002 to EUR.
 
 The file has only `GT`, so by default pgsum calls nothing (`quality_missing`); `--accept-missing-quality`
 accepts genotype-only calls. With it, pgsum's sums for HG00096 match plink2's to plink2's precision on the

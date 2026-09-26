@@ -53,6 +53,24 @@ impl Contribution {
         }
     }
 
+    /// The nearest `f64` (for placing scores in a distribution, never for the reported sums).
+    pub fn to_f64(&self) -> f64 {
+        let magnitude = match &self.coefficient {
+            Coefficient::Small(c) => *c as f64,
+            Coefficient::Big(c) => c.to_string().parse::<f64>().unwrap_or(f64::NAN),
+        };
+        let v = magnitude * 10f64.powi(self.exponent as i32);
+        if self.negative { -v } else { v }
+    }
+
+    /// The same amount with the opposite sign.
+    pub fn negated(&self) -> Contribution {
+        Contribution {
+            negative: !self.negative,
+            ..self.clone()
+        }
+    }
+
     fn signed_big(&self) -> BigInt {
         let magnitude = match &self.coefficient {
             Coefficient::Small(c) => BigInt::from(*c),
@@ -146,22 +164,57 @@ impl Options {
     }
 }
 
+/// Where a term's genotype comes from, before any sample is looked at.
+pub(crate) enum Plan {
+    /// Not scorable for any sample: `model_term_requires_review` or `unresolved_orientation`.
+    Unscorable(&'static str),
+    Snv {
+        key: u64,
+        effect_is_alt: bool,
+    },
+    Sequence {
+        variant: crate::alleles::Variant,
+        effect_is_alt: bool,
+    },
+}
+
+/// A term's plan, the inference its orientation used, and whether an informational description was accepted.
+pub(crate) fn plan(t: &TermRecord, options: &Options) -> (Plan, Option<Inference>, bool) {
+    let Some((oriented, inferred)) = t.waived(options.waivers()) else {
+        return (Plan::Unscorable("model_term_requires_review"), None, false);
+    };
+    let informational = t.reasons.0 & Reason::VariantDescription as u32 != 0;
+    let plan = match oriented {
+        Oriented::Snv(o) if o.status != Status::Resolved => Plan::Unscorable("unresolved_orientation"),
+        Oriented::Snv(o) => Plan::Snv {
+            key: target_key(t.contig, t.pos, o.ref_base, o.alt_base),
+            effect_is_alt: o.effect_is_alt,
+        },
+        Oriented::Sequence { variant, effect_is_alt } => Plan::Sequence { variant, effect_is_alt },
+    };
+    (plan, inferred, informational)
+}
+
+/// A term's contribution at an effect-allele dosage, and its absolute effect (see `Coverage`).
+pub(crate) fn term_contribution(t: &TermRecord, dosage: u8) -> Option<Contribution> {
+    contribution(t.model, &t.weights, dosage)
+}
+
+pub(crate) fn term_effect(t: &TermRecord) -> Option<f64> {
+    effect_size(t)
+}
+
 /// Classify one term against the genotype table.
 pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable, options: &Options) -> Result<Outcome> {
-    let Some((oriented, inferred)) = t.waived(options.waivers()) else {
-        return Ok(Outcome::without_call("model_term_requires_review"));
-    };
-    let mut outcome = match oriented {
-        Oriented::Snv(o) if o.status != Status::Resolved => return Ok(Outcome::without_call("unresolved_orientation")),
-        Oriented::Snv(o) => {
-            let key = target_key(t.contig, t.pos, o.ref_base, o.alt_base);
-            called(t, genotypes.get(key)?, o.effect_is_alt, inferred)?
-        }
-        Oriented::Sequence { variant, effect_is_alt } => {
+    let (plan, inferred, informational) = plan(t, options);
+    let mut outcome = match plan {
+        Plan::Unscorable(status) => return Ok(Outcome::without_call(status)),
+        Plan::Snv { key, effect_is_alt } => called(t, genotypes.get(key)?, effect_is_alt, inferred)?,
+        Plan::Sequence { variant, effect_is_alt } => {
             called(t, genotypes.get_sequence(t.contig, &variant)?, effect_is_alt, inferred)?
         }
     };
-    outcome.informational_description_accepted = t.reasons.0 & Reason::VariantDescription as u32 != 0;
+    outcome.informational_description_accepted = informational;
     Ok(outcome)
 }
 
@@ -200,7 +253,7 @@ const FLOOR: i64 = -2000;
 
 /// Exact running sum. Contributions are grouped by exponent in 128-bit accumulators and combined once at the
 /// end; the result's exponent is the smallest exponent added (and at most 0), as for `Decimal(0) + …`.
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct ExactSum {
     buckets: Vec<(i64, i128)>,
     overflow: BigInt,
@@ -351,6 +404,12 @@ pub struct ScoreResult {
     pub inferred_indels: IndelUse,
     /// Terms on chrX and chrY, with a note on the dosage convention when there are any.
     pub sex_chromosomes: SexChromosomes,
+    /// The score placed among a reference panel's scores over the same terms (`score --reference`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reference: Option<crate::panel::Placement>,
+    /// The panel group nearest to the sample (`score --reference`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ancestry: Option<crate::panel::Ancestry>,
     pub inputs: Inputs,
 }
 
@@ -671,6 +730,8 @@ pub fn score(
                     .into()
             }),
         },
+        reference: None,
+        ancestry: None,
         inputs: Inputs {
             pack_records_sha256: h.records_sha256.clone(),
             scoring_file_sha256: h.source.sha256.clone(),

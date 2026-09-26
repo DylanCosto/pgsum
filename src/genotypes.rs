@@ -116,7 +116,7 @@ pub fn unpack_key(key: u64) -> (u8, u32, u8, u8) {
     )
 }
 
-fn index_sequences(sequences: &[(u64, Variant)]) -> HashMap<(u8, Variant), u64> {
+pub(crate) fn index_sequences(sequences: &[(u64, Variant)]) -> HashMap<(u8, Variant), u64> {
     sequences
         .iter()
         .map(|(k, v)| ((key_position(*k).0, v.clone()), *k))
@@ -327,7 +327,7 @@ impl Block {
     }
 }
 
-fn write_sequences(sequences: &[(u64, Variant)], out: &mut impl Write) -> std::io::Result<()> {
+pub(crate) fn write_sequences(sequences: &[(u64, Variant)], out: &mut impl Write) -> std::io::Result<()> {
     out.write_all(&(sequences.len() as u64).to_le_bytes())?;
     for (key, v) in sequences {
         out.write_all(&key.to_le_bytes())?;
@@ -340,7 +340,7 @@ fn write_sequences(sequences: &[(u64, Variant)], out: &mut impl Write) -> std::i
     Ok(())
 }
 
-fn read_sequences(bytes: &[u8], upgrade: impl Fn(u64) -> u64) -> Option<Vec<(u64, Variant)>> {
+pub(crate) fn read_sequences(bytes: &[u8], upgrade: impl Fn(u64) -> u64) -> Option<Vec<(u64, Variant)>> {
     let mut at = 0usize;
     let mut take = |n: usize| -> Option<&[u8]> {
         let s = bytes.get(at..at.checked_add(n)?)?;
@@ -363,12 +363,12 @@ fn read_sequences(bytes: &[u8], upgrade: impl Fn(u64) -> u64) -> Option<Vec<(u64
     Some(sequences)
 }
 
-fn sha256(bytes: &[u8]) -> String {
+pub(crate) fn sha256(bytes: &[u8]) -> String {
     format!("sha256:{}", hex(&Sha256::digest(bytes)))
 }
 
 /// `body_sha256` of a v4 table: the digest of its frame digests, one per line.
-fn digest_of_frames<'a>(digests: impl Iterator<Item = &'a str>) -> String {
+pub(crate) fn digest_of_frames<'a>(digests: impl Iterator<Item = &'a str>) -> String {
     let mut h = Sha256::new();
     for d in digests {
         h.update(d.as_bytes());

@@ -92,6 +92,33 @@ impl Decimal {
     }
 
     /// Exponent of the leading digit.
+    /// The same value written with `exponent`: trailing zeros removed or appended. Removing digits that are
+    /// not zeros would change the value, so they are kept (the exponent then stays finer).
+    pub fn rescaled(&self, exponent: i64) -> Decimal {
+        if self.coefficient == "0" {
+            return Decimal {
+                negative: false,
+                coefficient: "0".into(),
+                exponent,
+            };
+        }
+        let mut coefficient = self.coefficient.clone();
+        let mut e = self.exponent;
+        while e < exponent && coefficient.ends_with('0') && coefficient.len() > 1 {
+            coefficient.pop();
+            e += 1;
+        }
+        while e > exponent {
+            coefficient.push('0');
+            e -= 1;
+        }
+        Decimal {
+            negative: self.negative,
+            coefficient,
+            exponent: e,
+        }
+    }
+
     pub fn adjusted(&self) -> i64 {
         self.exponent + self.coefficient.len() as i64 - 1
     }
@@ -142,6 +169,16 @@ impl Decimal {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rescaling_keeps_the_value() {
+        let d = |t: &str| Decimal::parse(t).unwrap();
+        assert_eq!(d("1.2000").rescaled(-1).to_python_string(), "1.2");
+        assert_eq!(d("1.2").rescaled(-4).to_python_string(), "1.2000");
+        assert_eq!(d("0E-23").rescaled(0).to_python_string(), "0");
+        // Digits that are not zeros stay.
+        assert_eq!(d("1.25").rescaled(-1).to_python_string(), "1.25");
+    }
 
     fn s(text: &str) -> String {
         Decimal::parse(text).unwrap().to_python_string()
