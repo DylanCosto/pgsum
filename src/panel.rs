@@ -174,6 +174,9 @@ pub struct Placement {
     pub matched_terms: u64,
     pub matched_term_fraction: f64,
     pub matched_weight_fraction: f64,
+    /// Whether the matched terms reach `score::COVERAGE_GUIDELINE` of both terms and weight. Below it the
+    /// comparison rests on a subset of the score and the percentile should not be read as the score's.
+    pub meets_coverage_guideline: bool,
     /// The sample's exact sum over the matched terms.
     pub score: String,
     /// Absent when no term is scorable in both the sample and every panel sample.
@@ -280,6 +283,7 @@ pub fn place(
             matched_terms: 0,
             matched_term_fraction: 0.0,
             matched_weight_fraction: 0.0,
+            meets_coverage_guideline: false,
             score: ours_text,
             percentile_all: None,
             groups: Vec::new(),
@@ -313,24 +317,39 @@ pub fn place(
         .as_ref()
         .and_then(|g| placements.iter().find(|p| &p.group == g))
         .map(|p| p.percentile);
+    let term_fraction = if total == 0 { 0.0 } else { matched as f64 / total as f64 };
+    let weight_fraction = if effect_all == 0.0 {
+        0.0
+    } else {
+        effect_matched / effect_all
+    };
+    let meets =
+        term_fraction >= crate::score::COVERAGE_GUIDELINE && weight_fraction >= crate::score::COVERAGE_GUIDELINE;
+    let mut note = String::from(
+        "Percentiles compare the sample's sum with each panel sample's sum over the same terms (those scorable in \
+         the sample and in every panel sample). They are uncalibrated: no ancestry adjustment beyond choosing the \
+         group, and no absolute risk.",
+    );
+    if !meets {
+        note.push_str(&format!(
+            " The matched terms hold only {:.1}% of the terms and {:.1}% of the weight, below the 99% guideline: \
+             this places a subset of the score, not the score.",
+            100.0 * term_fraction,
+            100.0 * weight_fraction
+        ));
+    }
     Ok(Placement {
         panel: panel_name.to_owned(),
         panel_samples: n as u64,
         matched_terms: matched,
-        matched_term_fraction: if total == 0 { 0.0 } else { matched as f64 / total as f64 },
-        matched_weight_fraction: if effect_all == 0.0 {
-            0.0
-        } else {
-            effect_matched / effect_all
-        },
+        matched_term_fraction: term_fraction,
+        matched_weight_fraction: weight_fraction,
+        meets_coverage_guideline: meets,
         score: ours_text,
         percentile_all: Some(percentile(v, &scores)),
         groups: placements,
         nearest_group: nearest,
         nearest_group_percentile: nearest_percentile,
-        note: "Percentiles compare the sample's sum with each panel sample's sum over the same terms (those scorable \
-               in the sample and in every panel sample). They are uncalibrated: no ancestry adjustment beyond \
-               choosing the group, and no absolute risk."
-            .into(),
+        note,
     })
 }

@@ -131,7 +131,11 @@ A partial score is only comparable with scores over the same terms. With `--refe
 --reference-groups labels.tsv`, each score is placed among the panel's scores computed over exactly the terms
 scorable in the sample and in every panel sample: `reference.matched_terms` and their share of terms and
 weight, the sample's exact sum over them, its mid-rank percentile among all panel samples, and per group the
-mean, SD, percentile and z-score. The panel must be extracted with the same packs.
+mean, SD, percentile and z-score. `reference.meets_coverage_guideline` applies the 99% rule to the matched
+terms (terms and weight); below it the note says the percentile places a subset of the score. The panel must be
+extracted with the same packs. Panel sums are accumulated in floating point, so two panel samples with
+identical exact sums could fall either side of the sample's value in the tie count; the effect on a mid-rank
+percentile is at most half a sample.
 
 The sample is assigned the nearest group (`ancestry.nearest_group`, e.g. a 1000 Genomes superpopulation) by
 the likelihood of its genotypes under each group's allele frequencies (Hardy–Weinberg, frequencies clamped to

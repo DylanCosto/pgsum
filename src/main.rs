@@ -832,12 +832,13 @@ fn score(
     results.sort_by(|a, b| a.pgs_id.cmp(&b.pgs_id));
     let mut summary = String::from(
         "pgs_id\tstatus\traw_score\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\t\
-         meets_coverage_guideline\tchrx_terms\treference_group\treference_percentile\tmatched_term_coverage\n",
+         meets_coverage_guideline\tchrx_terms\treference_group\treference_percentile\tmatched_term_coverage\t\
+         matched_weight_coverage\treference_meets_coverage_guideline\n",
     );
     for r in &results {
         let c = &r.partial.coverage;
         summary.push_str(&format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{}\t{}\t{}\t{}\t{}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n",
             r.pgs_id,
             r.status,
             r.raw_score.as_deref().unwrap_or(""),
@@ -860,6 +861,14 @@ fn score(
             r.reference
                 .as_ref()
                 .map(|p| format!("{:.6}", p.matched_term_fraction))
+                .unwrap_or_default(),
+            r.reference
+                .as_ref()
+                .map(|p| format!("{:.6}", p.matched_weight_fraction))
+                .unwrap_or_default(),
+            r.reference
+                .as_ref()
+                .map(|p| (p.meets_coverage_guideline as u8).to_string())
                 .unwrap_or_default()
         ));
         eprintln!(

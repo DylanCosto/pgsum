@@ -149,6 +149,11 @@ fn cohort_matches_single_samples() {
     let pack = Pack::open(&packs[0]).unwrap();
     let placed = pgsum::panel::place(&pack, &table_a, &panel, "two", &groups, None, &Default::default()).unwrap();
     assert!(placed.matched_terms > 0);
+    assert_eq!(
+        placed.meets_coverage_guideline,
+        placed.matched_term_fraction >= 0.99 && placed.matched_weight_fraction >= 0.99
+    );
+    assert!(placed.meets_coverage_guideline || placed.note.contains("below the 99% guideline"));
     let panel_scores = score_cohort(&pack, &panel, &Default::default()).unwrap();
     let (va, vb): (f64, f64) = (placed.score.parse().unwrap(), panel_scores.text(1).parse().unwrap());
     assert_ne!(va, vb);

@@ -2,8 +2,8 @@
 
 Polygenic score calculation from gVCFs, exact and without imputation.
 
-**Status: v0.3, early development.** The full pipeline works; genotype calls are validated against the seven
-GIAB truth sets (see [Validation](#validation)).
+**Status: v0.3, early development.** The full pipeline works; genotype calls are validated against GIAB truth
+sets on seven genomes, reference blocks on four of them (see [Validation](#validation)).
 
 ## What's different
 
@@ -115,7 +115,8 @@ pgsum score --genotypes sample.pgsg --pack packs/ --out results/ \
 
 Each result then has `reference` (matched terms and coverage, percentile among all panel samples and within
 each group, group mean, SD and z-score) and `ancestry` (the nearest group), and `scores.tsv` gains the
-percentile in the nearest group. For HG002 against 1000 Genomes this takes 33 s for 100 scores and assigns
+percentile in the nearest group. Read a percentile only when `reference.meets_coverage_guideline` is set (the
+matched terms hold at least 99% of the terms and of the weight); below that it places a subset of the score. For HG002 against 1000 Genomes this takes 33 s for 100 scores and assigns
 EUR. Percentiles are uncalibrated: no ancestry adjustment beyond the choice of group, and no absolute risk.
 
 ### Inputs
