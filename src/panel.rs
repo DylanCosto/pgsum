@@ -1,7 +1,7 @@
 //! Reference distributions: a sample's score placed among a panel's scores over the same terms.
 //!
 //! A partial score is only comparable with scores computed over the same terms. For each score, the terms used
-//! are those scorable in the sample and scorable in every panel sample; the panel is a cohort file from
+//! are those scorable in the sample and called in the panel (missing panel calls filled; see `place`); the panel is a cohort file from
 //! `extract --all-samples` (for example 1000 Genomes) extracted with the same packs. The sample's sum over
 //! those terms and every panel sample's sum over them are exact; percentiles and moments are computed from
 //! them. Panel samples belong to groups (for 1000 Genomes, superpopulations), and the sample is assigned the
@@ -182,7 +182,8 @@ pub struct GroupPlacement {
 pub struct Placement {
     pub panel: String,
     pub panel_samples: u64,
-    /// Terms scorable both in the sample and in every panel sample, and their share of all terms and weight.
+    /// Terms scorable in the sample and called in at least one panel sample, and their share of all terms and
+    /// weight (panel calls missing at them are filled; see `fills`).
     pub matched_terms: u64,
     pub matched_term_fraction: f64,
     pub matched_weight_fraction: f64,
@@ -200,7 +201,27 @@ pub struct Placement {
     pub nearest_group: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nearest_group_percentile: Option<f64>,
+    /// Panel calls filled in for the comparison (the sample's own calls never are).
+    pub fills: PanelFills,
     pub note: String,
+}
+
+/// A matched term needs a passing call in this share of panel samples; the rest are filled (see `place`).
+pub const PANEL_CALL_RATE: f64 = 0.99;
+
+/// Panel genotypes filled in for one score.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct PanelFills {
+    /// Terms called in at least `PANEL_CALL_RATE` of panel samples where some were missing, and the missing
+    /// sample-term pairs, each filled with its group's expected contribution.
+    pub terms_filled: u64,
+    pub genotypes_filled: u64,
+    /// Terms called in fewer panel samples: every panel sample given its group's expected contribution.
+    pub terms_constant: u64,
+    pub max_per_sample: u32,
+    pub samples_filled: u64,
+    /// Filled terms per panel sample, in the order of the groups file's listed samples in the panel.
+    pub per_sample: Vec<u32>,
 }
 
 fn percentile(value: f64, others: &[f64]) -> f64 {
@@ -240,9 +261,11 @@ pub fn place(
     // The sample's sum is exact; the panel's sums only place it, so they are accumulated in floating point
     // (always in the same order, so reproducibly). `sums[i]` is for panel sample `members[i]`.
     let mut ours = ExactSum::default();
-    let mut baseline = 0f64;
     let mut sums = vec![0f64; n];
     let as_f64 = |c: &crate::score::Contribution| c.to_f64();
+    let k = groups.names.len();
+    let (mut terms_filled, mut genotypes_filled, mut terms_constant) = (0u64, 0u64, 0u64);
+    let mut filled = vec![0u32; n];
     let (mut matched, mut total, mut effect_all, mut effect_matched) = (0u64, 0u64, 0f64, 0f64);
     for term in pack.terms_from(0) {
         let term = term?;
@@ -260,33 +283,81 @@ pub fn place(
         let Some(row) = key.map(|k| cohort.row(k)).transpose()?.flatten() else {
             continue;
         };
-        let at = |c: u8| term_contribution(&term, if effect_is_alt { c } else { 2 - c });
-        let contributions = [at(0), at(1), at(2)];
-        // Usable only if every panel sample has a passing call with a weight.
-        let usable = members.iter().all(|&s| {
+        // The contribution at each effect-allele dosage; a term whose model leaves one undefined is not used.
+        let Some(by_dosage) = [0u8, 1, 2]
+            .map(|d| term_contribution(&term, d).as_ref().map(as_f64))
+            .into_iter()
+            .collect::<Option<Vec<f64>>>()
+        else {
+            continue;
+        };
+        let effect_dosage = |c: u8| if effect_is_alt { c } else { 2 - c };
+        // Called panel samples and their effect-allele count, overall and per group.
+        let mut called = 0usize;
+        let (mut effect_alleles, mut group_called) = (vec![0u64; k], vec![0u64; k]);
+        for &s in members {
             let c = code(row, s);
-            c != MISSING && contributions[c as usize].is_some()
-        });
-        if !usable {
+            if c != MISSING {
+                let g = groups.of_sample[s].expect("members are listed");
+                called += 1;
+                group_called[g] += 1;
+                effect_alleles[g] += effect_dosage(c) as u64;
+            }
+        }
+        if called == 0 {
             continue;
         }
+        let all_frequency = effect_alleles.iter().sum::<u64>() as f64 / (2 * called) as f64;
+        // Expected contribution in each group under Hardy-Weinberg at the group's effect-allele frequency among
+        // its called samples (the whole panel's, for a group with none called).
+        let expected: Vec<f64> = (0..k)
+            .map(|g| {
+                let f = if group_called[g] > 0 {
+                    effect_alleles[g] as f64 / (2 * group_called[g]) as f64
+                } else {
+                    all_frequency
+                };
+                (1.0 - f) * (1.0 - f) * by_dosage[0] + 2.0 * f * (1.0 - f) * by_dosage[1] + f * f * by_dosage[2]
+            })
+            .collect();
         matched += 1;
         effect_matched += effect.unwrap_or(0.0);
         ours.add(&c);
-        let values = [
-            contributions[0].as_ref().map_or(0.0, as_f64),
-            contributions[1].as_ref().map_or(0.0, as_f64),
-            contributions[2].as_ref().map_or(0.0, as_f64),
-        ];
-        baseline += values[0];
-        for (&s, sum) in members.iter().zip(sums.iter_mut()) {
+        let well_called = called as f64 >= PANEL_CALL_RATE * n as f64;
+        if !well_called {
+            // Too few panel calls: the group's expected contribution for everyone, so the term cannot move
+            // anyone within a group.
+            terms_constant += 1;
+            for ((&s, sum), _) in members.iter().zip(sums.iter_mut()).zip(0..) {
+                *sum += expected[groups.of_sample[s].expect("members are listed")];
+            }
+            continue;
+        }
+        let mut filled_here = 0u64;
+        for (i, (&s, sum)) in members.iter().zip(sums.iter_mut()).enumerate() {
             let c = code(row, s);
-            if c != 0 {
-                *sum += values[c as usize] - values[0];
+            if c == MISSING {
+                *sum += expected[groups.of_sample[s].expect("members are listed")];
+                filled[i] += 1;
+                filled_here += 1;
+            } else {
+                *sum += by_dosage[effect_dosage(c) as usize];
             }
         }
+        if filled_here > 0 {
+            terms_filled += 1;
+            genotypes_filled += filled_here;
+        }
     }
-    let scores: Vec<f64> = sums.into_iter().map(|s| s + baseline).collect();
+    let scores = sums;
+    let fills = PanelFills {
+        terms_filled,
+        genotypes_filled,
+        terms_constant,
+        max_per_sample: filled.iter().copied().max().unwrap_or(0),
+        samples_filled: filled.iter().filter(|&&f| f > 0).count() as u64,
+        per_sample: filled,
+    };
     let ours_text = ours.finish().to_python_string();
     let v = ours_text.parse::<f64>().unwrap_or(f64::NAN);
     if matched == 0 {
@@ -302,8 +373,8 @@ pub fn place(
             groups: Vec::new(),
             nearest_group: ancestry.map(|a| a.nearest_group.clone()),
             nearest_group_percentile: None,
-            note: "No term is scorable in both the sample and every panel sample, so the score cannot be placed."
-                .into(),
+            fills,
+            note: "No term is scorable in the sample and called in the panel, so the score cannot be placed.".into(),
         });
     }
     let mut placements = Vec::new();
@@ -343,6 +414,15 @@ pub fn place(
          the sample and in every panel sample). They are uncalibrated: no ancestry adjustment beyond choosing the \
          group, and no absolute risk.",
     );
+    if fills.terms_filled > 0 || fills.terms_constant > 0 {
+        note.push_str(&format!(
+            " Panel calls were filled for the comparison only: {} genotypes at {} terms took their group's expected \
+             contribution (2 × the effect-allele frequency among called samples, Hardy–Weinberg), and {} terms \
+             called in under 99% of the panel gave every panel sample that expectation; at most {} terms were \
+             filled for one panel sample.",
+            fills.genotypes_filled, fills.terms_filled, fills.terms_constant, fills.max_per_sample
+        ));
+    }
     if !meets {
         note.push_str(&format!(
             " The matched terms hold only {:.1}% of the terms and {:.1}% of the weight, below the 99% guideline: \
@@ -363,6 +443,7 @@ pub fn place(
         groups: placements,
         nearest_group: nearest,
         nearest_group_percentile: nearest_percentile,
+        fills,
         note,
     })
 }

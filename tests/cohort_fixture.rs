@@ -160,6 +160,98 @@ fn cohort_matches_single_samples() {
     assert_eq!(placed.percentile_all, Some(if va < vb { 25.0 } else { 75.0 }));
     assert!((placed.groups[0].mean - (va + vb) / 2.0).abs() < 1e-9);
 
+    assert_eq!(
+        (placed.fills.terms_filled, placed.fills.terms_constant),
+        (0, 0),
+        "A and B are called everywhere"
+    );
+
+    // Panel calls missing for some samples are filled for the comparison. 101 samples: 100 copies of A and
+    // one sample (Z) missing at the first record overlapping a target; 100/101 are called (at least 99%), so
+    // Z's call there is filled and every other sample keeps its own.
+    let mut filled_vcf = String::new();
+    let mut first_record = true;
+    for line in text.lines() {
+        if line.starts_with("##") {
+            filled_vcf.push_str(line);
+            filled_vcf.push('\n');
+            continue;
+        }
+        let (base, field) = line.rsplit_once('\t').unwrap();
+        if line.starts_with("#CHROM") {
+            let names: Vec<String> = (0..100).map(|i| format!("A{i}")).chain(["Z".into()]).collect();
+            filled_vcf.push_str(&format!("{base}\t{}\n", names.join("\t")));
+            continue;
+        }
+        let z = if first_record && !field.starts_with("0/0") {
+            "./."
+        } else {
+            field
+        };
+        if z == "./." {
+            first_record = false;
+        }
+        filled_vcf.push_str(&format!("{base}\t{}\t{z}\n", vec![field; 100].join("\t")));
+    }
+    let filled_path = out.join("filled.vcf");
+    std::fs::write(&filled_path, filled_vcf).unwrap();
+    let filled_panel_path = out.join("filled.pgsc");
+    extract_cohort(
+        &filled_path,
+        &reference,
+        &identity,
+        &packs,
+        &options,
+        &filled_panel_path,
+    )
+    .unwrap();
+    let filled_panel = CohortTable::open(&filled_panel_path).unwrap();
+    let labels = out.join("labels101.tsv");
+    let rows: String = (0..100).map(|i| format!("A{i}\tX\n")).collect();
+    std::fs::write(&labels, format!("sample\tsuper_pop\n{rows}Z\tX\n")).unwrap();
+    let groups101 = pgsum::panel::read_groups(&labels, &filled_panel, "super_pop").unwrap();
+    let with_fill = pgsum::panel::place(
+        &pack,
+        &table_a,
+        &filled_panel,
+        "filled",
+        &groups101,
+        None,
+        &Default::default(),
+    )
+    .unwrap();
+    let f = &with_fill.fills;
+    assert!(f.terms_filled >= 1 && f.genotypes_filled == f.terms_filled, "{f:?}");
+    assert_eq!(
+        (f.per_sample[100] as u64, f.max_per_sample as u64, f.samples_filled),
+        (f.genotypes_filled, f.genotypes_filled, 1)
+    );
+    assert!(with_fill.note.contains("filled for the comparison only"));
+
+    // With only 2 samples one missing call is under 99%: the term gives both the group's expectation.
+    let one_missing: String = filled_path_two(&text);
+    let two_missing_path = out.join("two_missing.vcf");
+    std::fs::write(&two_missing_path, one_missing).unwrap();
+    let two_missing_panel = out.join("two_missing.pgsc");
+    extract_cohort(
+        &two_missing_path,
+        &reference,
+        &identity,
+        &packs,
+        &options,
+        &two_missing_panel,
+    )
+    .unwrap();
+    let tm = CohortTable::open(&two_missing_panel).unwrap();
+    std::fs::write(out.join("labels_az.tsv"), "sample\tsuper_pop\nA\tX\nZ\tX\n").unwrap();
+    let groups_az = pgsum::panel::read_groups(&out.join("labels_az.tsv"), &tm, "super_pop").unwrap();
+    let constant = pgsum::panel::place(&pack, &table_a, &tm, "two", &groups_az, None, &Default::default()).unwrap();
+    assert!(
+        constant.fills.terms_constant >= 1 && constant.fills.terms_filled == 0,
+        "{:?}",
+        constant.fills
+    );
+
     // A panel sample the groups file does not list is left out.
     let only_a = out.join("only_a.tsv");
     std::fs::write(&only_a, "sample\tsuper_pop\nA\tX\n").unwrap();
@@ -172,4 +264,33 @@ fn cohort_matches_single_samples() {
     assert_ne!(scores[0].text(0), scores[0].text(1));
     assert_eq!(scores[0].scorable[2], 0);
     std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// A two-sample VCF (A and Z) from the fixture's text: Z copies A except for a no-call at the first record that
+/// is not a hom-ref block.
+fn filled_path_two(text: &str) -> String {
+    let mut out = String::new();
+    let mut first = true;
+    for line in text.lines() {
+        if line.starts_with("##") {
+            out.push_str(line);
+            out.push('\n');
+            continue;
+        }
+        let (base, field) = line.rsplit_once('\t').unwrap();
+        if line.starts_with("#CHROM") {
+            out.push_str(&format!("{base}\tA\tZ\n"));
+            continue;
+        }
+        let z = if first && !field.starts_with("0/0") {
+            "./."
+        } else {
+            field
+        };
+        if z == "./." {
+            first = false;
+        }
+        out.push_str(&format!("{base}\t{field}\t{z}\n"));
+    }
+    out
 }

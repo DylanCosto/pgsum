@@ -129,7 +129,13 @@ extracting and scoring that sample alone.
 
 A partial score is only comparable with scores over the same terms. With `--reference-panel panel.pgsc
 --reference-groups labels.tsv`, each score is placed among the panel's scores computed over exactly the terms
-scorable in the sample and in every panel sample: `reference.matched_terms` and their share of terms and
+scorable in the sample and called in the panel. Panel calls are filled where missing, for the comparison
+only (the sample's own calls never are): at a term called in at least 99% of the listed panel samples, a
+missing call takes the expected contribution under Hardy–Weinberg at the effect-allele frequency among its
+group's called samples (for additive terms 2 × f × w); a term called in fewer gives every panel sample that
+group expectation, so it cannot move anyone within a group; a term with no panel call is left out on both
+sides. `reference.fills` records the terms filled, the genotypes filled, the constant terms and every panel
+sample's filled count, and the note says so. The results show: `reference.matched_terms` and their share of terms and
 weight, the sample's exact sum over them, its mid-rank percentile among all panel samples, and per group the
 mean, SD, percentile and z-score. `reference.meets_coverage_guideline` applies the 99% rule to the matched
 terms (terms and weight); below it the note says the percentile places a subset of the score. The panel must be

@@ -115,10 +115,10 @@ pgsum score --genotypes sample.pgsg --pack packs/ --out results/ \
     --reference-panel 1kgp.pgsc --reference-groups integrated_call_samples_v3.20130502.ALL.panel
 ```
 
-Which panel: 1000 Genomes phase 3 lifted to GRCh38 currently gives the fuller comparison. The 30× release
-calls sites more like a modern WGS genome, but it carries structural variants (pass
-`--skip-structural-alleles` when extracting it) and splits multi-allelic sites, which pgsum's rules treat as
-ambiguous, so fewer terms match (`bench/README.md`, "Reference panels").
+Which panel: 1000 Genomes phase 3 lifted to GRCh38 and the NYGC 30× release (native GRCh38, called like a
+modern WGS genome) place scores about equally well, and their percentiles agree closely (`bench/README.md`,
+"Reference panels"). Extract the 30× release with `--skip-structural-alleles --merge-split-records`, since it
+carries structural variants and splits multi-allelic sites.
 
 Each result then has `reference` (matched terms and coverage, percentile among all panel samples and within
 each group, group mean, SD and z-score) and `ancestry` (the nearest group), and `scores.tsv` gains the
