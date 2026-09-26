@@ -1,12 +1,17 @@
 # Benchmarks
 
-Summary (12-core Mac, 26 GB RAM, GIAB HG002 DeepVariant gVCF, 2026-09-25):
+Summary (12-core Mac, 26 GB RAM, GIAB HG002 DeepVariant gVCF; pgsc_calc and plink2 measured 2026-09-25,
+pgsum re-measured 2026-09-26 at commit `d6999ad`):
 
 | Per sample | pgsum | pgsc_calc v2.3.0 steps | plink2 `--score` alone |
 |---|---|---|---|
-| 8 scores (11.7M terms) | 10.1 s | 432 s | 5.4 s |
-| 100 random scores (56.1M terms) | 11.8 s | 2,224 s (29.5 GB peak) | 11.1 s |
-| Whole Catalog (6,990 scores, 4.50B terms) | about 3 min | not run (see below) | not run |
+| 8 scores (11.7M terms) | 4.4–6.3 s | 432 s | 5.4 s |
+| 100 random scores (56.1M terms) | 6.9–7.3 s (3.4 GB peak) | 2,224 s (29.5 GB peak) | 11.1 s |
+| Whole Catalog (6,990 scores, 4.50B terms) | about 2.5 min | not run (see below) | not run |
+
+pgsum ranges are a first and a second run (the second with the gVCF in the file cache). On 2026-09-25 the
+same runs took 10.1 s and 11.8 s; the difference is the parallel gVCF scan, reuse of parsed records and
+cached input digests (see DESIGN.md).
 
 pgsum's times start from the gVCF (`pgsum run`: extract + score). pgsc_calc and plink2 start from a VCF of
 genotypes at the score sites that pgsum produced for them; turning a gVCF into that is not counted for them.
@@ -26,16 +31,17 @@ plink2's printed precision (max relative difference 6.4e-6).
 plink2 v2.0.0-a.6.39 M1 (19 Sep 2026, macOS arm64), `--threads 12`. HG002 needs `--psam` (sex 2, so chrX
 calls stay diploid as pgsum scores them) and `--split-par hg38`.
 
-| Scores | Terms | Sites | plink2: import + score | pgsum `score` |
-|---|---|---|---|---|
-| 8 development | 11.7M | 6.8M | 2.1 s + 3.3 s = 5.4 s | 3.7 s |
-| 100 random | 56.1M | 7.2M | 3.9 s + 7.2 s = 11.1 s | 5.5 s |
+| Scores | Terms | Sites | plink2: import + score | pgsum `score` (2026-09-25) | pgsum `score` (2026-09-26) |
+|---|---|---|---|---|---|
+| 8 development | 11.7M | 6.8M | 2.1 s + 3.3 s = 5.4 s | 3.7 s | 1.9 s |
+| 100 random | 56.1M | 7.2M | 3.9 s + 7.2 s = 11.1 s | 5.5 s | 3.0 s |
 
-pgsum times include loading a genotype table for the whole Catalog (39.3M targets, about 2.9 s).
+pgsum times are against a genotype table for the whole Catalog (39.3M targets then, 43.3M now). Since
+2026-09-26 tables are stored in blocks and `score` decompresses only those its packs need.
 
 Not included on the plink2 side: building its dense weight tables (`plink2-export` took 13 s and 30 s; in
 pgsc_calc this is the combine and match steps), and turning a gVCF into genotypes at the score sites (pgsum
-`extract`: 17 s for the whole Catalog with a target index). At the whole Catalog (39M sites x 6,990 scores)
+`extract`: 12–15 s for the whole Catalog with a target index). At the whole Catalog (39M sites x 6,990 scores)
 a single dense table is impractical, so plink2 has to run in batches.
 
 To reproduce:
@@ -68,7 +74,8 @@ Java.) Target: the same genotype VCF as for plink2 (chromosomes renamed `1`, `2`
 | plink2 `--score` | 4.0 s | 24.2 s |
 | `pgscatalog-aggregate` | 9.0 s | 29.8 s |
 | **Total** | **431.8 s** | **2,224 s** (peak 29.5 GB, above this Mac's RAM) |
-| pgsum `run` from the gVCF | 10.1 s | 11.8 s (peak 4.6 GB) |
+| pgsum `run` from the gVCF (2026-09-25) | 10.1 s | 11.8 s (peak 4.6 GB) |
+| pgsum `run` from the gVCF (2026-09-26) | 4.4–6.3 s | 6.9–7.3 s (peak 3.4 GB) |
 
 pgsum's format-and-match equivalent (`compile`) runs once per Catalog release (5.3 s for the 8 scores), not
 per sample. For the whole Catalog, pgsc_calc's per-term cost here (about 10 µs to format, 26 µs to
