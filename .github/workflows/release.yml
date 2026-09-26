@@ -53,9 +53,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" pgsum-*.tar.gz* --repo "$GITHUB_REPOSITORY" \
-            --title "pgsum $GITHUB_REF_NAME" --notes-file - <<'NOTES'
-          First public release (early development). See the README for what pgsum does, what has been validated
-          and its limitations.
+            --title "pgsum $GITHUB_REF_NAME" --notes-file - <<NOTES
+          pgsum $GITHUB_REF_NAME (early development). See the README for what pgsum does, what has been
+          validated and its limitations, and the commit history for what changed.
 
           Each archive holds the `pgsum` binary, README, DESIGN and licences; check it against its `.sha256`.
           Scoring files are not included: download them from the PGS Catalog (`pgsum fetch`).

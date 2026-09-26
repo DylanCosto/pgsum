@@ -2,7 +2,7 @@
 
 Polygenic score calculation from gVCFs, exact and without imputation.
 
-**Status: v0.2, early development.** The full pipeline works; genotype calls are validated against the seven
+**Status: v0.3, early development.** The full pipeline works; genotype calls are validated against the seven
 GIAB truth sets (see [Validation](#validation)).
 
 ## What's different
