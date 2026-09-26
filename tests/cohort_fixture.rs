@@ -160,6 +160,14 @@ fn cohort_matches_single_samples() {
     assert_eq!(placed.percentile_all, Some(if va < vb { 25.0 } else { 75.0 }));
     assert!((placed.groups[0].mean - (va + vb) / 2.0).abs() < 1e-9);
 
+    // A panel sample the groups file does not list is left out.
+    let only_a = out.join("only_a.tsv");
+    std::fs::write(&only_a, "sample\tsuper_pop\nA\tX\n").unwrap();
+    let groups_a = pgsum::panel::read_groups(&only_a, &panel, "super_pop").unwrap();
+    assert_eq!(groups_a.members, [0]);
+    let alone = pgsum::panel::place(&pack, &table_a, &panel, "two", &groups_a, None, &Default::default()).unwrap();
+    assert_eq!((alone.panel_samples, alone.percentile_all), (1, Some(50.0)));
+
     // The samples differ, so the comparison above is not vacuous.
     assert_ne!(scores[0].text(0), scores[0].text(1));
     assert_eq!(scores[0].scorable[2], 0);

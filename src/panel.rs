@@ -21,11 +21,15 @@ use crate::score::{ExactSum, Options, Plan, outcome, plan, term_contribution, te
 use crate::{Error, Result, invalid};
 
 /// Panel samples' groups, read from a TSV with a header naming a `sample` column and the group column.
+/// Panel samples the file does not list (for example relatives of other panel samples) are left out of every
+/// comparison.
 pub struct Groups {
     pub column: String,
     pub names: Vec<String>,
-    /// Per panel sample (in the cohort file's order): the index of its group in `names`.
-    pub of_sample: Vec<usize>,
+    /// Per panel sample (in the cohort file's order): the index of its group in `names`, if it is listed.
+    pub of_sample: Vec<Option<usize>>,
+    /// The panel samples that are listed, in the cohort file's order.
+    pub members: Vec<usize>,
 }
 
 pub fn read_groups(path: &Path, cohort: &CohortTable, column: &str) -> Result<Groups> {
@@ -50,9 +54,11 @@ pub fn read_groups(path: &Path, cohort: &CohortTable, column: &str) -> Result<Gr
     }
     let mut names: Vec<String> = Vec::new();
     let mut of_sample = Vec::with_capacity(cohort.header.samples.len());
-    for sample in &cohort.header.samples {
+    let mut members = Vec::new();
+    for (index, sample) in cohort.header.samples.iter().enumerate() {
         let Some(group) = group_of.get(sample) else {
-            return invalid!("{}: no {column} for panel sample {sample}", path.display());
+            of_sample.push(None);
+            continue;
         };
         let i = match names.iter().position(|n| n == group) {
             Some(i) => i,
@@ -61,12 +67,17 @@ pub fn read_groups(path: &Path, cohort: &CohortTable, column: &str) -> Result<Gr
                 names.len() - 1
             }
         };
-        of_sample.push(i);
+        of_sample.push(Some(i));
+        members.push(index);
+    }
+    if members.is_empty() {
+        return invalid!("{}: lists none of the panel's samples", path.display());
     }
     Ok(Groups {
         column: column.to_owned(),
         names,
         of_sample,
+        members,
     })
 }
 
@@ -104,7 +115,8 @@ pub fn nearest_group(table: &GenotypeTable, cohort: &CohortTable, groups: &Group
                 };
                 let row = &rows[i * width..(i + 1) * width];
                 let (mut alt, mut n) = (vec![0u32; k], vec![0u32; k]);
-                for (s, &g) in groups.of_sample.iter().enumerate() {
+                for &s in &groups.members {
+                    let g = groups.of_sample[s].expect("members are listed");
                     let c = code(row, s);
                     if c != MISSING {
                         alt[g] += c as u32;
@@ -223,9 +235,10 @@ pub fn place(
     {
         return invalid!("the reference panel was not extracted with this {} pack", h.pgs_id);
     }
-    let n = cohort.header.samples.len();
+    let members = &groups.members;
+    let n = members.len();
     // The sample's sum is exact; the panel's sums only place it, so they are accumulated in floating point
-    // (always in the same order, so reproducibly).
+    // (always in the same order, so reproducibly). `sums[i]` is for panel sample `members[i]`.
     let mut ours = ExactSum::default();
     let mut baseline = 0f64;
     let mut sums = vec![0f64; n];
@@ -250,7 +263,7 @@ pub fn place(
         let at = |c: u8| term_contribution(&term, if effect_is_alt { c } else { 2 - c });
         let contributions = [at(0), at(1), at(2)];
         // Usable only if every panel sample has a passing call with a weight.
-        let usable = (0..n).all(|s| {
+        let usable = members.iter().all(|&s| {
             let c = code(row, s);
             c != MISSING && contributions[c as usize].is_some()
         });
@@ -266,7 +279,7 @@ pub fn place(
             contributions[2].as_ref().map_or(0.0, as_f64),
         ];
         baseline += values[0];
-        for (s, sum) in sums.iter_mut().enumerate() {
+        for (&s, sum) in members.iter().zip(sums.iter_mut()) {
             let c = code(row, s);
             if c != 0 {
                 *sum += values[c as usize] - values[0];
@@ -295,19 +308,19 @@ pub fn place(
     }
     let mut placements = Vec::new();
     for (g, name) in groups.names.iter().enumerate() {
-        let members: Vec<f64> = scores
+        let in_group: Vec<f64> = scores
             .iter()
-            .zip(&groups.of_sample)
-            .filter(|(_, gi)| **gi == g)
-            .map(|(s, _)| *s)
+            .zip(members)
+            .filter(|(_, s)| groups.of_sample[**s] == Some(g))
+            .map(|(v, _)| *v)
             .collect();
-        let (mean, sd) = moments(&members);
+        let (mean, sd) = moments(&in_group);
         placements.push(GroupPlacement {
             group: name.clone(),
-            samples: members.len() as u64,
+            samples: in_group.len() as u64,
             mean,
             sd,
-            percentile: percentile(v, &members),
+            percentile: percentile(v, &in_group),
             z: if sd > 0.0 { (v - mean) / sd } else { 0.0 },
         });
     }
