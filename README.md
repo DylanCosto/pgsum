@@ -2,7 +2,7 @@
 
 Polygenic score calculation from gVCFs, exact and without imputation.
 
-**Status: v0.1, early development.** The full pipeline works and has been validated on one genome, GIAB
+**Status: v0.2, early development.** The full pipeline works and has been validated on one genome, GIAB
 HG002 (see [Validation](#validation)); broader validation is under way.
 
 ## What's different
