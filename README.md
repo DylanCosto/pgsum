@@ -2,8 +2,8 @@
 
 Polygenic score calculation from gVCFs, exact and without imputation.
 
-**Status: v0.1, early development.** The full pipeline works. On GIAB HG002 it matches a reference
-implementation of the same rules term for term, and sum for sum, on 11.7 million Catalog terms.
+**Status: v0.1, early development.** The full pipeline works and has been validated on one genome, GIAB
+HG002 (see [Validation](#validation)); broader validation is under way.
 
 ## What's different
 
@@ -104,6 +104,44 @@ On a 12-core Mac with the packs on a USB SSD and a 36-million-record HG002 gVCF:
 | `score`, three scores against a saved whole-Catalog genotype table | 0.8 s |
 
 Without an index, `extract` reads the whole file on all cores: 5 s for a 154-million-record GATK gVCF.
+
+## Validation
+
+What has been checked, and against what:
+
+- **Genotype calls against a truth set.** At every score site on chr1–22 inside the GIAB v4.2.1 HG002
+  benchmark regions (40.6 million sites; `bench/giab_concordance.py`):
+
+  | HG002 input | Sites called | SNV agreement | Indel agreement | Wrong hom-ref calls |
+  |---|---|---|---|---|
+  | DeepVariant, PacBio Revio | 98.9% | 99.9989% | 99.958% | 390 of 34.0M |
+  | DeepVariant, Illumina | 99.0% | 99.9966% | 99.986% | 1,050 of 34.1M |
+  | DRAGEN 3.7.6, Illumina | 98.7% | 99.9974% | 99.994% | 498 of 34.0M |
+
+  "Wrong hom-ref calls" are sites read as homozygous reference (mostly from gVCF reference blocks) where
+  GIAB has a variant. For the long-read gVCF, 886 of the 887 disagreements are the genotype the caller wrote
+  in the gVCF; the other is a rule noted in DESIGN.md (Open questions).
+- **Arithmetic against plink2.** On the same HG002 genotypes, pgsum's sums match plink2 `--score` for 108
+  scores to plink2's printed precision (`bench/README.md`). This does not test genotype calling: plink2 was
+  given pgsum's calls.
+- **Against pgsc_calc.** Where both score the same variants the sums agree (7 of 8 development scores; the
+  rest differ in which variants each includes, by design).
+- **Against the reference implementation of the same rules.** pgsum was written to reproduce the PGS scorer
+  in an existing Python implementation by the same author, which is not public. Compile output is identical
+  for 52 scores, and every term's call, dosage and contribution, and every sum, for 8 scores (11.7 million
+  terms) on HG002. This is a check that the two implementations agree, not an independent check that either
+  is right.
+- **Across technologies.** HG002 scores complete from both the long-read and an Illumina gVCF are identical
+  for 258 of 259 scores (213 of 215 against DRAGEN); each difference is one genotype call.
+
+## Limitations
+
+- GRCh38 only; VCFs on another assembly are refused.
+- One sample per run. Many-sample performance has not been benchmarked.
+- Raw scores only: no ancestry adjustment, percentiles or absolute risk.
+- A plain VCF (no reference blocks) scores poorly: pgsum does not assume the reference where a VCF is silent.
+- Validated end to end on one genome (HG002); calls from other callers and samples follow the same rules
+  but have not been checked against a truth set beyond it.
 
 ## Scoring files and licences
 

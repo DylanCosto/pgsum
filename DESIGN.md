@@ -460,6 +460,22 @@ strand-inconsistent scores, and indels that fit both ways with no public record)
 HG002 carries a different allele from both of the term's, and 13.3M fail genotype rules (low quality, no
 call, overlapping records, unsupported representations).
 
+**GIAB concordance, 2026-09-26:** `bench/giab_concordance.py` compares every target of a genotype table with
+the GIAB v4.2.1 HG002 benchmark (chr1–22, `noinconsistent` BED; absent truth records inside it are hom-ref).
+Of 40.9M targets inside the regions, 40.6M are comparable (330k have a truth indel or MNP overlapping the
+target and are not compared).
+
+| HG002 input | Called | SNV | Indel | Any-allele | Hom-ref calls with a truth variant |
+|---|---|---|---|---|---|
+| DeepVariant, Revio | 98.85% | 99.9989% | 99.958% | 99.998% | 390 / 34,009,231 |
+| DeepVariant, Illumina | 99.02% | 99.9966% | 99.986% | 99.997% | 1,050 / 34,090,497 |
+| DRAGEN 3.7.6 | 98.74% | 99.9974% | 99.994% | 99.996% | 498 / 33,959,874 |
+
+Non-reference concordance (sites where GIAB or pgsum has a variant): SNV 99.989%, 99.966%, 99.974%; indel
+99.71%, 99.90%, 99.96%. For the long-read table, 886 of the 887 discordant sites carry the gVCF's own
+genotype; the remaining one is the open question on `0/0` records for another allele. Of 279,948 targets
+withheld as `other_called_allele`, GIAB has no copy of the target's ALT at 274,829.
+
 **M3 (score), 2026-09-25:** on HG002, every term's status, effect dosage and contribution text, and every
 score's exact partial sum, are identical to the reference implementation for all 8 development scores
 (checked by `tests/parity_hg002.rs` with `PGSUM_PARITY_DIR`). For the small scores and the synthetic fixtures
@@ -532,6 +548,11 @@ DeepTrio on Illumina WGS of HG002 (Google `deepvariant` case study). MD5s matche
 - Compile memory: the resident size peaks near 3.8 GB for the development set, most of it pages of the
   memory-mapped reference touched during orientation (reclaimable file cache). Terms are held as columns
   while a file is compiled.
-- chrX/chrY ploidy for male samples: v0 requires diploid calls, which withholds scores with X terms for
-  those samples.
+- chrX/chrY ploidy for male samples: by default calls must be diploid (DeepVariant writes male chrX as
+  `1/1`); `--haploid-xy-as-homozygous` reads haploid calls (DRAGEN) as homozygous. pgsum does not infer sex.
+- A passing `0/0` record evaluated for a different allele at the target's position counts as reference for
+  the target (the reference implementation's rule). Against GIAB v4.2.1 this is wrong at one HG002 site: a
+  DeepVariant `RefCall` for the deletion `TAC>T` at chr10:105096103 is read as reference for the insertion
+  `T>TAC` there, which GIAB calls heterozygous. Requiring the record to have been evaluated for the target's
+  own allele would fix it, at the cost of parity.
 - Whether to add frequency-supported orientation for palindromic SNVs, and from which reference panel.

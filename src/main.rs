@@ -147,9 +147,9 @@ enum Command {
     Fetch(FetchArgs),
     /// Print a pack's terms as TSV, or its header as JSON.
     Inspect {
-        /// A pack, or a genotype table with `--header`.
+        /// A pack (prints its terms) or a genotype table (prints its targets and calls).
         path: PathBuf,
-        /// Print the header instead of the terms.
+        /// Print the header instead of the terms or targets.
         #[arg(long)]
         header: bool,
         /// Add each term's status, call state and effect dosage from this genotype table.
@@ -385,6 +385,8 @@ fn main() -> ExitCode {
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
+        // The reader of stdout went away (e.g. `pgsum inspect … | head`): not an error.
+        Err(Error::Io { source, .. }) if source.kind() == std::io::ErrorKind::BrokenPipe => ExitCode::SUCCESS,
         Err(e) => {
             eprintln!("pgsum: {e}");
             ExitCode::FAILURE
@@ -692,6 +694,34 @@ fn write_bundle(path: &Path, results: &[pgsum::score::ScoreResult]) -> Result<()
     })
 }
 
+/// One line per target of a genotype table: position, alleles (a sequence target's normalized alleles; `*` for
+/// a target counting any non-reference allele), call state and ALT dosage.
+fn write_targets_tsv(table: &GenotypeTable, out: &mut impl Write) -> Result<()> {
+    let io = |e| Error::io("<stdout>")(e);
+    writeln!(out, "contig\tpos\tref\talt\tstate\talt_dosage\trefcall_adapted\tphased").map_err(io)?;
+    for e in table.entries()? {
+        let (code, pos) = pgsum::genotypes::key_position(e.key);
+        let contig = pgsum::term::CONTIGS[code as usize - 1];
+        let (pos, r, a) = match table.sequence(e.key) {
+            Some(v) => (v.pos, v.ref_allele.clone(), v.alt.clone()),
+            None => {
+                let (_, _, r, a) = pgsum::genotypes::unpack_key(e.key);
+                (pos as u64, (r as char).to_string(), (a as char).to_string())
+            }
+        };
+        writeln!(
+            out,
+            "{contig}\t{pos}\t{r}\t{a}\t{}\t{}\t{}\t{}",
+            e.state.as_str(),
+            e.alt_dosage.map_or(String::new(), |d| d.to_string()),
+            e.refcall_adapted as u8,
+            e.phased as u8
+        )
+        .map_err(io)?;
+    }
+    Ok(())
+}
+
 fn inspect(path: &Path, header: bool, genotypes: Option<&Path>, options: &pgsum::score::Options) -> Result<()> {
     let mut out = BufWriter::new(std::io::stdout().lock());
     let json = |out: &mut BufWriter<_>, value: &dyn erased::Json| value.write(out);
@@ -703,7 +733,11 @@ fn inspect(path: &Path, header: bool, genotypes: Option<&Path>, options: &pgsum:
         .map_err(Error::io(path))?;
     if is_table {
         let table = GenotypeTable::open(path)?;
-        json(&mut out, &table.header)?;
+        if header {
+            json(&mut out, &table.header)?;
+        } else {
+            write_targets_tsv(&table, &mut out)?;
+        }
     } else {
         let pack = Pack::open(path)?;
         if header {

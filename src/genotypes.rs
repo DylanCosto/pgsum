@@ -720,6 +720,12 @@ impl GenotypeTable {
             .collect())
     }
 
+    /// Every entry in key order, decompressing any blocks not yet loaded.
+    pub fn entries(&self) -> Result<impl Iterator<Item = &Entry>> {
+        self.preload()?;
+        Ok(self.loaded_blocks()?.into_iter().flat_map(|b| b.entries.iter()))
+    }
+
     /// Number of blocks decompressed so far.
     pub fn blocks_loaded(&self) -> usize {
         self.blocks.iter().filter(|b| b.get().is_some()).count()
