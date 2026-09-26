@@ -1,0 +1,8 @@
+#pgs_id=INDELS
+#genome_build=GRCh38
+chr_name	chr_position	effect_allele	other_allele	effect_weight
+1	33	G	GT	0.5
+1	43	GT	G	0.25
+1	51	A	ACG	2
+1	56	GA	G	1.5
+1	36	G	GC	3

@@ -138,6 +138,9 @@ pub struct Target<'a> {
     pub pos: u64,
     pub ref_allele: &'a str,
     pub alt: Option<&'a str>,
+    /// A normalized indel or multi-base target: records' alleles are compared after normalization, and
+    /// several passing reference blocks may together cover it.
+    pub sequence: bool,
 }
 
 /// An assessed call.
@@ -209,6 +212,14 @@ fn assess_site(
     let (record, filters) = match records {
         [] => return Call::state(State::UnknownNoRecord),
         [record] => (record, filters[0]),
+        _ if target.sequence && blocks_cover(records, filters, target, policy) => {
+            return Call {
+                state: State::ObservedReference,
+                alt_dosage: Some(0),
+                phase_set: None,
+                refcall_adapted: false,
+            };
+        }
         _ => return Call::state(State::AmbiguousOverlappingRecords),
     };
     if record.gt.len() != 2 {
@@ -241,10 +252,16 @@ fn assess_site(
         if indices.iter().any(|&i| i != 0) {
             return Call::state(State::UnsupportedSymbolicGenotype);
         }
-        if record.end < target.pos + target.ref_allele.len() as u64 - 1 {
+        // A sequence target spans several bases, so the block must also start at or before it.
+        if record.end < target.pos + target.ref_allele.len() as u64 - 1 || record.pos > target.pos {
             return Call::state(State::IncompleteReferenceSpan);
         }
         0
+    } else if target.sequence {
+        match sequence_dosage(record, &indices, target, reference) {
+            Ok(d) => d,
+            Err(state) => return Call::state(state),
+        }
     } else {
         if record.pos != target.pos || record.ref_allele != target.ref_allele {
             return Call::state(State::UnsupportedAlleleRepresentation);
@@ -276,6 +293,58 @@ fn assess_site(
         phase_set: if phased { record.phase_set.clone() } else { None },
         refcall_adapted: false,
     }
+}
+
+/// Several reference blocks overlapping a sequence target count as homozygous reference only if every one is
+/// a passing diploid `0/0` block and together they cover the target's REF span without a gap.
+fn blocks_cover(records: &[Record], filters: &[&[String]], target: &Target<'_>, policy: &Policy) -> bool {
+    let end = target.pos + target.ref_allele.len() as u64 - 1;
+    let mut covered = target.pos;
+    for (record, filters) in records.iter().zip(filters) {
+        let passing = record.is_reference_block()
+            && record.gt == [Some(0), Some(0)]
+            && filters.iter().all(|f| f == "PASS" || f == ".")
+            && record.ft.as_deref().is_none_or(|ft| ft == "PASS" || ft == ".")
+            && number(&record.min_dp).is_some_and(|d| d >= policy.min_depth)
+            && number(&record.gq).is_some_and(|q| q >= policy.min_gq);
+        if !passing || record.pos > covered {
+            return false;
+        }
+        covered = covered.max(record.end + 1);
+    }
+    covered > end
+}
+
+/// The target ALT dosage from one variant record, comparing each called allele with the target after
+/// normalization. A REF call must span the whole target; any other called allele is not the target's.
+fn sequence_dosage(
+    record: &Record,
+    indices: &[u32],
+    target: &Target<'_>,
+    reference: &impl Fn(u64, usize) -> Option<String>,
+) -> Result<u8, State> {
+    let base = |p: u64| reference(p, 1).and_then(|b| b.bytes().next());
+    let wanted = crate::alleles::Variant {
+        pos: target.pos,
+        ref_allele: target.ref_allele.to_owned(),
+        alt: target.alt.unwrap_or_default().to_owned(),
+    };
+    let end = target.pos + target.ref_allele.len() as u64 - 1;
+    let mut dosage = 0u8;
+    for &i in indices {
+        if i == 0 {
+            if record.pos > target.pos || record.end < end {
+                return Err(State::UnsupportedAlleleRepresentation);
+            }
+            continue;
+        }
+        let alt = record.alts.get(i as usize - 1).ok_or(State::OtherCalledAllele)?;
+        match crate::alleles::normalize(record.pos, &record.ref_allele, alt, base) {
+            Some(v) if v == wanted => dosage += 1,
+            _ => return Err(State::OtherCalledAllele),
+        }
+    }
+    Ok(dosage)
 }
 
 /// A finite, non-negative number, else `None`.
@@ -336,6 +405,7 @@ mod tests {
         pos: 3,
         ref_allele: "G",
         alt: Some("T"),
+        sequence: false,
     };
 
     fn state(records: &[Record]) -> State {
@@ -385,6 +455,7 @@ mod tests {
             pos: 3,
             ref_allele: "A",
             alt: Some("T"),
+            sequence: false,
         };
         assert_eq!(
             assess(&[block(1, 8)], &target, &Policy::default(), reference).state,
@@ -451,6 +522,7 @@ mod tests {
             pos: 3,
             ref_allele: "GTA",
             alt: Some("G"),
+            sequence: false,
         };
         let call = assess(&[block(1, 4)], &target, &Policy::default(), reference);
         assert_eq!(call.state, State::IncompleteReferenceSpan);
@@ -473,6 +545,7 @@ mod tests {
             pos: 3,
             ref_allele: "G",
             alt: None,
+            sequence: false,
         };
         let mut r = variant([Some(1), Some(2)]);
         r.alts = vec!["T".into(), "C".into()];
@@ -480,6 +553,29 @@ mod tests {
         assert_eq!((call.state, call.alt_dosage), (State::ObservedVariant, Some(2)));
         let call = assess(&[block(1, 8)], &any, &Policy::default(), reference);
         assert_eq!((call.state, call.alt_dosage), (State::ObservedReference, Some(0)));
+    }
+
+    #[test]
+    fn sequence_targets_need_gapless_passing_blocks() {
+        let target = Target {
+            pos: 1,
+            ref_allele: "ACG",
+            alt: Some("A"),
+            sequence: true,
+        };
+        let covered = assess(&[block(1, 1), block(2, 5)], &target, &Policy::default(), reference);
+        assert_eq!((covered.state, covered.alt_dosage), (State::ObservedReference, Some(0)));
+        let gap = assess(&[block(1, 1), block(3, 5)], &target, &Policy::default(), reference);
+        assert_eq!(gap.state, State::AmbiguousOverlappingRecords);
+        let mut low = block(2, 5);
+        low.gq = Some("5".into());
+        let failing = assess(&[block(1, 1), low], &target, &Policy::default(), reference);
+        assert_eq!(failing.state, State::AmbiguousOverlappingRecords);
+        // A single block must also start at or before the target.
+        assert_eq!(
+            assess(&[block(2, 5)], &target, &Policy::default(), reference).state,
+            State::IncompleteReferenceSpan
+        );
     }
 
     #[test]

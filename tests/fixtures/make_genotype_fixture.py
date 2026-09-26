@@ -155,3 +155,34 @@ effect_only("PGS999995", "synthetic effect is REF", [
 effect_only("PGS999994", "synthetic Catalog-inferred", [
     (4, "C", "0.2", "T"), (5, "T", "0.3", "G"), (2, "C", "0.4", "A/T"), (1, "A", "0.5", "T"), (24, "G", "0.6", "")],
     infer_column=True)
+
+
+# Indels: a second gVCF over chr1:31-60 (ACGTTGCAAC ×3), a public variant set and a custom score.
+def indel_block(pos, end):
+    return ["chr1", pos, seq(pos), "<*>", "0", ".", f"END={end}", "GT:GQ:MIN_DP:PL", "0/0:50:30:0,60,900"]
+
+
+indel_records = [
+    indel_block(31, 32),
+    variant(33, "GT", "G,<*>", "0/1"),          # 33-34: deletion of T, left-aligned
+    indel_block(35, 42),
+    variant(43, "GTT", "GT,<*>", "0/1"),        # 43-45: the same kind of deletion, written with extra context
+    indel_block(46, 50),
+    indel_block(51, 52),                        # 51-55: two adjacent blocks cover the 3-base deletion at 51
+    indel_block(53, 55),
+    indel_block(56, 60),
+]
+body = ["\t".join([r[0], str(r[1]), "."] + [str(x) for x in r[2:]]) for r in indel_records]
+with open("synthetic_indel.g.vcf", "w") as f:
+    f.write("\n".join(vcf_header + body) + "\n")
+subprocess.run(["bgzip", "-f", "synthetic_indel.g.vcf"], check=True)
+with open("public_variants.tsv", "w") as f:
+    f.write("#synthetic public variant set\nchr1\t33\tGT\tG\nchr1\t43\tGT\tG\nchr1\t51\tACG\tA\n")
+with open("INDELS.tsv", "w") as f:
+    f.write("#pgs_id=INDELS\n#genome_build=GRCh38\n"
+            "chr_name\tchr_position\teffect_allele\tother_allele\teffect_weight\n"
+            "1\t33\tG\tGT\t0.5\n"      # public pair GT>G; effect is ALT; heterozygous
+            "1\t43\tGT\tG\t0.25\n"     # public pair GT>G; effect is REF; heterozygous via GTT>GT
+            "1\t51\tA\tACG\t2\n"       # public pair ACG>A; homozygous reference over two blocks
+            "1\t56\tGA\tG\t1.5\n"      # only G fits the reference (GC): insertion G>GA; homozygous reference
+            "1\t36\tG\tGC\t3\n")       # both fit (GC), no public record: stays unresolved

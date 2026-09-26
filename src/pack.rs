@@ -31,6 +31,7 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+use crate::alleles::Variant;
 use crate::decimal::Decimal;
 use crate::digest::hex;
 use crate::orient::{Method, Orientation, Status};
@@ -41,7 +42,7 @@ pub const MAGIC: &[u8; 8] = b"PGSUMPK2";
 pub const SCHEMA: &str = "pgsum-pack-v3";
 /// Version of the compile-time rules (term description, orientation, inference, informational
 /// descriptions). A pack compiled under other rules is recompiled by `fetch`.
-pub const COMPILE_RULES: &str = "2026-09-25.strand-consistent-palindromes";
+pub const COMPILE_RULES: &str = "2026-09-25.inferred-indels";
 /// Earlier schema still read: v2 has no inferred-orientation columns.
 pub const SCHEMA_V2: &str = "pgsum-pack-v2";
 pub const EXTENSION: &str = "pgsp";
@@ -122,6 +123,12 @@ pub struct Header {
     /// Strand evidence for reading palindromic SNVs on the forward strand.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub palindromes: Option<PalindromeSummary>,
+    /// How indels and multi-base terms were oriented.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sequences: Option<SequenceSummary>,
+    /// The public variant set used to orient indels, if any.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub public_variants: Option<SourceFile>,
     /// SHA-256 of the uncompressed record bytes.
     pub records_sha256: String,
 }
@@ -184,23 +191,49 @@ pub struct TermRecord {
     /// Its `variant_description` is informational (see `term::informational_description`). Used only when
     /// scoring is asked to accept informational descriptions.
     pub informational_description: bool,
+    /// For an indel or multi-base term with a sequence inference: its normalized variant.
+    pub inferred_sequence: Option<Variant>,
+}
+
+/// Sequence targets: contig code and normalized variant.
+pub type SequenceTargets = Vec<(u8, Variant)>;
+
+/// How a term is compared with genotypes: one oriented SNV, or a normalized sequence variant.
+#[derive(Clone, Debug, PartialEq)]
+pub enum Oriented {
+    Snv(Orientation),
+    Sequence { variant: Variant, effect_is_alt: bool },
+}
+
+/// The opt-ins that waive review reasons or supply orientations (see `score::Options`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Waivers {
+    pub informational_descriptions: bool,
+    pub inferred_other_allele: bool,
+    pub inferred_palindromes: bool,
+    pub inferred_indels: bool,
+}
+
+impl Waivers {
+    pub const ALL: Waivers = Waivers {
+        informational_descriptions: true,
+        inferred_other_allele: true,
+        inferred_palindromes: true,
+        inferred_indels: true,
+    };
 }
 
 impl TermRecord {
-    /// The orientation to score this term with, and the inference used for it, once the review reasons the
-    /// options waive are removed; `None` if other review reasons remain.
-    pub fn waived(
-        &self,
-        accept_informational: bool,
-        allow_inferred: bool,
-        allow_palindromes: bool,
-    ) -> Option<(Orientation, Option<Inference>)> {
+    /// How to score this term, and the inference used, once the review reasons `waivers` allow are removed;
+    /// `None` if other review reasons remain.
+    pub fn waived(&self, waivers: Waivers) -> Option<(Oriented, Option<Inference>)> {
         waived(
             self.reasons.0,
             self.informational_description,
             self.orientation,
             self.inferred,
-            [accept_informational, allow_inferred, allow_palindromes],
+            self.inferred_sequence.as_ref(),
+            waivers,
         )
     }
 }
@@ -211,27 +244,49 @@ fn waived(
     informational: bool,
     orientation: Orientation,
     inferred: Option<(Inference, Orientation)>,
-    [accept_informational, allow_inferred, allow_palindromes]: [bool; 3],
-) -> Option<(Orientation, Option<Inference>)> {
+    sequence: Option<&Variant>,
+    waivers: Waivers,
+) -> Option<(Oriented, Option<Inference>)> {
     use crate::term::Reason;
     let mut rest = reasons;
-    if accept_informational && informational {
+    if waivers.informational_descriptions && informational {
         rest &= !(Reason::VariantDescription as u32);
     }
     match inferred {
         Some((kind @ Inference::StrandConsistentPalindrome, o))
-            if rest == 0 && allow_palindromes && orientation.status == Status::PalindromicOrientationUnresolved =>
+            if rest == 0
+                && waivers.inferred_palindromes
+                && orientation.status == Status::PalindromicOrientationUnresolved =>
         {
-            Some((o, Some(kind)))
+            Some((Oriented::Snv(o), Some(kind)))
         }
         Some((kind, o))
-            if kind != Inference::StrandConsistentPalindrome
-                && rest == Reason::OtherAlleleMissing as u32
-                && allow_inferred =>
+            if kind.is_sequence()
+                && rest == 0
+                && waivers.inferred_indels
+                && orientation.status == Status::SequenceReferenceEvidenceRequired =>
         {
-            Some((o, Some(kind)))
+            let variant = sequence?.clone();
+            Some((
+                Oriented::Sequence {
+                    variant,
+                    effect_is_alt: o.effect_is_alt,
+                },
+                Some(kind),
+            ))
         }
-        _ => (rest == 0).then_some((orientation, None)),
+        Some((kind, o))
+            if matches!(
+                kind,
+                Inference::ReferenceAnchoredEffectIsAlt
+                    | Inference::ReferenceAnchoredEffectIsRef
+                    | Inference::CatalogInferredOtherAllele
+            ) && rest == Reason::OtherAlleleMissing as u32
+                && waivers.inferred_other_allele =>
+        {
+            Some((Oriented::Snv(o), Some(kind)))
+        }
+        _ => (rest == 0).then_some((Oriented::Snv(orientation), None)),
     }
 }
 
@@ -250,15 +305,28 @@ pub enum Inference {
     /// A palindromic SNV (A/T or C/G) read on the forward strand, because at least 99.9% of the score's
     /// other SNVs orient on the forward strand (see `compile::PALINDROME_FORWARD_SHARE`).
     StrandConsistentPalindrome = 4,
+    /// An indel or multi-base term whose two readings (effect allele as REF, or other allele as REF) fit the
+    /// reference in exactly one way.
+    ReferenceFitSequence = 5,
+    /// An indel or multi-base term oriented by the one PASS record in a public variant set (e.g. 1000
+    /// Genomes) at its position with exactly its two alleles.
+    PublicSequencePair = 6,
 }
 
 impl Inference {
-    pub const ALL: [Inference; 4] = [
+    pub const ALL: [Inference; 6] = [
         Inference::ReferenceAnchoredEffectIsAlt,
         Inference::ReferenceAnchoredEffectIsRef,
         Inference::CatalogInferredOtherAllele,
         Inference::StrandConsistentPalindrome,
+        Inference::ReferenceFitSequence,
+        Inference::PublicSequencePair,
     ];
+
+    /// Indel inferences carry a normalized variant rather than single bases.
+    pub fn is_sequence(self) -> bool {
+        matches!(self, Inference::ReferenceFitSequence | Inference::PublicSequencePair)
+    }
 
     pub fn as_str(self) -> &'static str {
         match self {
@@ -266,12 +334,29 @@ impl Inference {
             Inference::ReferenceAnchoredEffectIsRef => "reference_anchored_effect_is_ref",
             Inference::CatalogInferredOtherAllele => "catalog_inferred_other_allele",
             Inference::StrandConsistentPalindrome => "strand_consistent_palindrome",
+            Inference::ReferenceFitSequence => "reference_fit_sequence",
+            Inference::PublicSequencePair => "public_sequence_pair",
         }
     }
 
     fn from_code(code: u8) -> Option<Inference> {
         Inference::ALL.into_iter().find(|i| *i as u8 == code)
     }
+}
+
+/// How a pack's indels and multi-base terms were oriented.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct SequenceSummary {
+    /// Positioned terms with two literal alleles, at least one longer than a base.
+    pub terms: u64,
+    /// Exactly one reading fitted the reference.
+    pub reference_fit: u64,
+    /// Both readings fitted, or neither, and exactly one public record had the pair.
+    pub public_pair: u64,
+    /// Both readings fitted the reference and no unique public record decided.
+    pub unresolved_both_fit: u64,
+    /// Neither reading fitted the reference and no unique public record decided.
+    pub unresolved_neither_fit: u64,
 }
 
 /// A pack's strand evidence for its palindromic SNVs.
@@ -309,11 +394,53 @@ fn bad_body(what: &str) -> Error {
 
 const SECTIONS_V2: usize = 15;
 const SECTIONS_V3: usize = 19;
+const SECTIONS_V4: usize = 20;
+
+/// The sparse sequence section: entry count, then per entry the term index, position and REF/ALT (each a
+/// `u16` length and bytes), little-endian.
+fn encode_sequences(sequences: &BTreeMap<u32, Variant>) -> Vec<u8> {
+    let mut out = Vec::new();
+    out.extend_from_slice(&(sequences.len() as u32).to_le_bytes());
+    for (i, v) in sequences {
+        out.extend_from_slice(&i.to_le_bytes());
+        out.extend_from_slice(&(v.pos as u32).to_le_bytes());
+        for a in [&v.ref_allele, &v.alt] {
+            out.extend_from_slice(&(a.len() as u16).to_le_bytes());
+            out.extend_from_slice(a.as_bytes());
+        }
+    }
+    out
+}
+
+fn decode_sequences(bytes: &[u8]) -> Result<BTreeMap<u32, Variant>> {
+    let bad = || bad_body("sequences");
+    let mut at = 0usize;
+    let mut take = |n: usize| -> Result<&[u8]> {
+        let s = bytes.get(at..at + n).ok_or_else(bad)?;
+        at += n;
+        Ok(s)
+    };
+    let u32_at = |b: &[u8]| u32::from_le_bytes(b.try_into().expect("4 bytes"));
+    let n = u32_at(take(4)?);
+    let mut out = BTreeMap::new();
+    for _ in 0..n {
+        let i = u32_at(take(4)?);
+        let pos = u32_at(take(4)?) as u64;
+        let mut alleles = [String::new(), String::new()];
+        for a in &mut alleles {
+            let len = u16::from_le_bytes(take(2)?.try_into().expect("2 bytes")) as usize;
+            *a = String::from_utf8(take(len)?.to_vec()).map_err(|_| bad())?;
+        }
+        let [ref_allele, alt] = alleles;
+        out.insert(i, Variant { pos, ref_allele, alt });
+    }
+    Ok(out)
+}
 
 /// The length-prefixed column sections of a pack body: 15 in v2, 19 in v3.
 fn split_sections(body: &[u8]) -> Result<Vec<&[u8]>> {
     let mut at = 0usize;
-    let mut sections = Vec::with_capacity(SECTIONS_V3);
+    let mut sections = Vec::with_capacity(SECTIONS_V4);
     while at < body.len() {
         let len = body.get(at..at + 8).ok_or_else(|| bad_body("truncated"))?;
         let len = u64::from_le_bytes(len.try_into().expect("8 bytes")) as usize;
@@ -321,7 +448,7 @@ fn split_sections(body: &[u8]) -> Result<Vec<&[u8]>> {
         sections.push(body.get(at..at + len).ok_or_else(|| bad_body("truncated"))?);
         at += len;
     }
-    if sections.len() != SECTIONS_V2 && sections.len() != SECTIONS_V3 {
+    if ![SECTIONS_V2, SECTIONS_V3, SECTIONS_V4].contains(&sections.len()) {
         return Err(bad_body("unexpected number of columns"));
     }
     Ok(sections)
@@ -387,6 +514,8 @@ pub struct Columns {
     pub inferred_method: Vec<u8>,
     pub inferred_ref: Vec<u8>,
     pub inferred_alt: Vec<u8>,
+    /// Normalized variants of terms with a sequence inference, by term index (v4).
+    pub sequences: BTreeMap<u32, Variant>,
 }
 
 impl Columns {
@@ -432,6 +561,9 @@ impl Columns {
         self.ref_base.push(t.orientation.ref_base);
         self.alt_base.push(t.orientation.alt_base);
         self.reasons.push(t.reasons.0);
+        if let Some(v) = &t.inferred_sequence {
+            self.sequences.insert(self.reasons.len() as u32 - 1, v.clone());
+        }
         self.weights.extend(t.weights.iter().cloned());
         self.weight_start.push(self.weights.len() as u32);
     }
@@ -469,6 +601,7 @@ impl Columns {
                 )),
             },
             informational_description: self.flags[i] & 8 != 0,
+            inferred_sequence: self.sequences.get(&(i as u32)).cloned(),
         })
     }
 
@@ -526,6 +659,7 @@ impl Columns {
             self.inferred_method.clone(),
             self.inferred_ref.clone(),
             self.inferred_alt.clone(),
+            encode_sequences(&self.sequences),
         ]);
         let mut out = Vec::with_capacity(sections.iter().map(|s| s.len() + 8).sum());
         for section in sections {
@@ -544,9 +678,9 @@ impl Columns {
         v
     }
 
-    /// Sorted, distinct target keys of the terms that need a genotype (no review reasons, resolved
-    /// orientation), decoding only the columns that identify them.
-    pub fn target_keys(body: &[u8]) -> Result<Vec<u64>> {
+    /// The SNV target keys (sorted, distinct) and sequence targets (sorted, distinct) of the terms that could
+    /// need a genotype with every opt-in on, decoding only the columns that identify them.
+    pub fn target_keys(body: &[u8]) -> Result<(Vec<u64>, SequenceTargets)> {
         let sections = split_sections(body)?;
         let n = sections[0].len();
         let (contig, status, ref_base, alt_base) = (sections[0], sections[5], sections[7], sections[8]);
@@ -554,7 +688,13 @@ impl Columns {
         if [status, ref_base, alt_base, flags, method].iter().any(|c| c.len() != n) {
             return Err(bad_body("column lengths differ"));
         }
-        let inferred = (sections.len() == SECTIONS_V3).then(|| (sections[15], sections[17], sections[18]));
+        let inferred = (sections.len() >= SECTIONS_V3).then(|| (sections[15], sections[17], sections[18]));
+        let sequences = if sections.len() == SECTIONS_V4 {
+            decode_sequences(sections[19])?
+        } else {
+            BTreeMap::new()
+        };
+        let mut sequence_targets = Vec::new();
         if let Some((kind, r, a)) = inferred
             && [kind, r, a].iter().any(|c| c.len() != n)
         {
@@ -589,15 +729,27 @@ impl Columns {
                 ))
             });
             let reasons = u32::try_from(r).map_err(|_| bad_body("reasons"))?;
-            if let Some((o, _)) = waived(reasons, flags[i] & 8 != 0, author, inferred_orientation, [true; 3])
-                && o.status == Status::Resolved
-            {
-                keys.push(crate::genotypes::target_key(contig[i], pos()?, o.ref_base, o.alt_base));
+            let sequence = sequences.get(&(i as u32));
+            match waived(
+                reasons,
+                flags[i] & 8 != 0,
+                author,
+                inferred_orientation,
+                sequence,
+                Waivers::ALL,
+            ) {
+                Some((Oriented::Snv(o), _)) if o.status == Status::Resolved => {
+                    keys.push(crate::genotypes::target_key(contig[i], pos()?, o.ref_base, o.alt_base));
+                }
+                Some((Oriented::Sequence { variant, .. }, _)) => sequence_targets.push((contig[i], variant)),
+                _ => {}
             }
         }
         keys.sort_unstable();
         keys.dedup();
-        Ok(keys)
+        sequence_targets.sort();
+        sequence_targets.dedup();
+        Ok((keys, sequence_targets))
     }
 
     /// Decode a pack body.
@@ -647,7 +799,7 @@ impl Columns {
                 _ => return Err(bad("weight tag")),
             });
         }
-        let v3 = sections.len() == SECTIONS_V3;
+        let v3 = sections.len() >= SECTIONS_V3;
         let inferred = |k: usize| if v3 { sections[k].to_vec() } else { vec![0; n] };
         let fixed: &[usize] = if v3 {
             &[2, 3, 4, 5, 6, 7, 8, 15, 16, 17, 18]
@@ -677,6 +829,11 @@ impl Columns {
             inferred_method: inferred(16),
             inferred_ref: inferred(17),
             inferred_alt: inferred(18),
+            sequences: if sections.len() == SECTIONS_V4 {
+                decode_sequences(sections[19])?
+            } else {
+                BTreeMap::new()
+            },
         })
     }
 }
@@ -735,11 +892,12 @@ impl Pack {
         Ok((header, body))
     }
 
-    /// A pack's header and its sorted, distinct target keys, without decoding weights.
-    pub fn open_target_keys(path: &Path) -> Result<(Header, Vec<u64>)> {
+    /// A pack's header, SNV target keys and sequence targets, without decoding weights.
+    pub fn open_target_keys(path: &Path) -> Result<(Header, Vec<u64>, SequenceTargets)> {
         let (header, body) = Self::read_body(path)?;
-        let keys = Columns::target_keys(&body).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
-        Ok((header, keys))
+        let (keys, sequences) =
+            Columns::target_keys(&body).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
+        Ok((header, keys, sequences))
     }
 
     pub fn open(path: &Path) -> Result<Pack> {

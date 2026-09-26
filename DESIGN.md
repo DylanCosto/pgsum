@@ -241,6 +241,39 @@ are outside 0.35–0.65, the forward-strand reading puts the effect allele on th
 author in 99.90% of 238,518 sites across the 19 scores that meet the rule, and in 88.45% of 1,403 sites in
 the 11 that do not (three of those are at 50–60%, i.e. genuinely mixed strands).
 
+## Inferred indels (opt-in)
+
+Indels and multi-base terms are 0.74% of Catalog terms, in 1,738 scores. Their alleles do not say which is
+the reference: with anchored notation (`AT`/`A`) the shorter allele is a prefix of the longer, so "insertion"
+and "deletion" readings both fit whenever the next reference base matches. In 12 indel-rich scores (392,866
+indel terms), 79% fitted both readings, 14% neither, and only 7% exactly one.
+
+Compile orients such a term (inference kind in the pack, variant in a sparse `sequences` column; pack v4):
+
+1. `reference_fit_sequence`: exactly one reading (effect allele as REF, or other allele as REF) matches the
+   reference at `hm_pos`;
+2. `public_sequence_pair`: otherwise, exactly one record in a public variant set (`--public-variants`) at that
+   position has exactly the term's two alleles; its REF is the reference allele. This is the reference
+   implementation's "exact public sequence pair" rule.
+
+The chosen `(pos, REF, ALT)` is normalized (left-aligned and trimmed, `src/alleles.rs`). `extract` finds every
+record overlapping the target's span; variant records match when one of their ALT alleles normalizes to the
+same triple (so `GTT→GT` matches `GT→G`); a REF call must span the target; several passing `0/0` blocks that
+cover the span without a gap count as homozygous reference. SNV rules are unchanged. `score
+--allow-inferred-indels` uses these orientations; results report `inferred_indels` by method.
+
+Public variant set used here: 1000 Genomes phase 3 on GRCh38 (a CrossMap lift-over),
+FILTER=PASS non-SNV records, 3,245,341 records (`CHROM POS REF ALT`, 18 MB gzipped).
+
+Evidence:
+
+- Of the 12 scores' indel terms, public pairs orient 74.1% (and 1000 Genomes decides 273,950 of the "both
+  fit" cases: effect allele is REF in 28%, other allele in 72%). Where both methods apply they never
+  disagree (17,132 terms).
+- On HG002, 78.0% of public-pair terms and 92.5% of reference-fit terms are scorable; unmatched allele
+  representations are about 0%. The rest: overlapping records in repeats (13.4% of public-pair terms), a
+  different called allele (5%), no-calls and low quality.
+
 ## Completeness
 
 Two sums are reported for every score.
@@ -299,7 +332,7 @@ The v0 bar: on GIAB HG002 (GRCh38, public data), for a fixed set of scores, ever
 and every score's value match an existing reference implementation of these rules. See
 `tests/parity_hg002.rs`.
 
-## Pack format (`pgsum-pack-v3`)
+## Pack format (`pgsum-pack-v3`, v4 with indel orientations)
 
 One file per score, `<pgs_id>.pgsp`: magic bytes, a JSON header, then one zstd frame (level 3) holding the
 terms in source order as columns (layout in `src/pack.rs`): contig, delta-encoded position, model, allele

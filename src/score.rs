@@ -17,10 +17,9 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::decimal::Decimal;
-use crate::genotypes::{GenotypeTable, target_key};
-use crate::orient::Orientation;
+use crate::genotypes::{Entry, GenotypeTable, target_key};
 use crate::orient::Status;
-use crate::pack::{Inference, Pack, TermRecord, Weight};
+use crate::pack::{Inference, Oriented, Pack, TermRecord, Waivers, Weight};
 use crate::term::{CONTIGS, Model, Reason};
 use crate::{Result, invalid};
 
@@ -131,29 +130,44 @@ pub struct Options {
     /// Score palindromic SNVs on the forward strand when the score's other SNVs are (almost) all there (see
     /// `pack::Inference::StrandConsistentPalindrome`).
     pub allow_inferred_palindromes: bool,
+    /// Score indels and multi-base terms with the orientation their pack inferred (reference fit, or a public
+    /// variant set); see `pack::Inference::ReferenceFitSequence` and `PublicSequencePair`.
+    pub allow_inferred_indels: bool,
+}
+
+impl Options {
+    fn waivers(&self) -> Waivers {
+        Waivers {
+            informational_descriptions: self.accept_informational_descriptions,
+            inferred_other_allele: self.allow_inferred_other_allele,
+            inferred_palindromes: self.allow_inferred_palindromes,
+            inferred_indels: self.allow_inferred_indels,
+        }
+    }
 }
 
 /// Classify one term against the genotype table.
 pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable, options: &Options) -> Result<Outcome> {
-    let Some((o, inferred)) = t.waived(
-        options.accept_informational_descriptions,
-        options.allow_inferred_other_allele,
-        options.allow_inferred_palindromes,
-    ) else {
+    let Some((oriented, inferred)) = t.waived(options.waivers()) else {
         return Ok(Outcome::without_call("model_term_requires_review"));
     };
-    if o.status != Status::Resolved {
-        return Ok(Outcome::without_call("unresolved_orientation"));
-    }
-    let mut outcome = called(t, o, genotypes, inferred)?;
+    let mut outcome = match oriented {
+        Oriented::Snv(o) if o.status != Status::Resolved => return Ok(Outcome::without_call("unresolved_orientation")),
+        Oriented::Snv(o) => {
+            let key = target_key(t.contig, t.pos, o.ref_base, o.alt_base);
+            called(t, genotypes.get(key), o.effect_is_alt, inferred)?
+        }
+        Oriented::Sequence { variant, effect_is_alt } => {
+            called(t, genotypes.get_sequence(t.contig, &variant), effect_is_alt, inferred)?
+        }
+    };
     outcome.informational_description_accepted = t.reasons.0 & Reason::VariantDescription as u32 != 0;
     Ok(outcome)
 }
 
-/// The outcome of a term oriented by `o` (the author's orientation, or an inferred one).
-fn called(t: &TermRecord, o: Orientation, genotypes: &GenotypeTable, inferred: Option<Inference>) -> Result<Outcome> {
-    let key = target_key(t.contig, t.pos, o.ref_base, o.alt_base);
-    let Some(entry) = genotypes.get(key) else {
+/// The outcome of a term from its target's entry in the genotype table.
+fn called(t: &TermRecord, entry: Option<&Entry>, effect_is_alt: bool, inferred: Option<Inference>) -> Result<Outcome> {
+    let Some(entry) = entry else {
         return invalid!(
             "the genotype table has no call for {}:{}; extract with this pack",
             CONTIGS[t.contig as usize - 1],
@@ -171,7 +185,7 @@ fn called(t: &TermRecord, o: Orientation, genotypes: &GenotypeTable, inferred: O
     };
     match entry.alt_dosage {
         Some(alt) if entry.state.is_passing() => {
-            let dosage = if o.effect_is_alt { alt } else { 2 - alt };
+            let dosage = if effect_is_alt { alt } else { 2 - alt };
             match contribution(t.model, &t.weights, dosage) {
                 Some(c) => Ok(outcome("scorable_observation", Some(dosage), Some(c))),
                 None => Ok(outcome("model_term_requires_review", None, None)),
@@ -314,7 +328,16 @@ pub struct ScoreResult {
     pub informational_descriptions: InformationalUse,
     /// Whether palindromic SNVs could be read on the forward strand, and how many scorable terms were.
     pub inferred_palindromes: PalindromeUse,
+    /// Whether indels and multi-base terms could be scored with inferred orientations, and how many were, by
+    /// method.
+    pub inferred_indels: IndelUse,
     pub inputs: Inputs,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct IndelUse {
+    pub allowed: bool,
+    pub scorable_terms: BTreeMap<String, u64>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -528,6 +551,10 @@ pub fn score(
     let palindrome_terms = inferred
         .remove(Inference::StrandConsistentPalindrome.as_str())
         .unwrap_or(0);
+    let indel_terms: BTreeMap<String, u64> = [Inference::ReferenceFitSequence, Inference::PublicSequencePair]
+        .into_iter()
+        .filter_map(|k| inferred.remove(k.as_str()).map(|n| (k.as_str().to_owned(), n)))
+        .collect();
     Ok(ScoreResult {
         schema: SCHEMA.into(),
         pgsum_version: env!("CARGO_PKG_VERSION").into(),
@@ -578,6 +605,10 @@ pub fn score(
             allowed: options.allow_inferred_other_allele,
             scorable_terms: inferred,
             reference_convention: h.inference.as_ref().and_then(|i| i.reference_convention.clone()),
+        },
+        inferred_indels: IndelUse {
+            allowed: options.allow_inferred_indels,
+            scorable_terms: indel_terms,
         },
         inferred_palindromes: PalindromeUse {
             allowed: options.allow_inferred_palindromes,

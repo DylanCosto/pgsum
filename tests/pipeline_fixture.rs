@@ -25,6 +25,7 @@ fn synthetic_gvcf_matches_reference_implementation() {
         Some(&fixtures.join("PGS999998.metadata.json")),
         &reference,
         &identity,
+        None,
         &out,
     )
     .unwrap();
@@ -81,6 +82,7 @@ fn synthetic_scores_match_reference_implementation() {
             Some(&fixtures.join(format!("{id}.metadata.json"))),
             &reference,
             &identity,
+            None,
             &out,
         )
         .unwrap();
@@ -138,6 +140,7 @@ fn target_index_is_reused_only_for_the_same_packs() {
             Some(&fixtures.join(format!("{id}.metadata.json"))),
             &reference,
             &identity,
+            None,
             &out,
         )
         .unwrap();
@@ -175,6 +178,7 @@ fn inferred_other_alleles_are_opt_in() {
             Some(&fixtures.join(format!("{id}.metadata.json"))),
             &reference,
             &identity,
+            None,
             &out,
         )
         .unwrap();
@@ -278,7 +282,7 @@ fn custom_scoring_file() {
     std::fs::create_dir_all(&out).unwrap();
     let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
     let identity = reference_identity(&reference).unwrap();
-    let header = compile_file(&fixtures.join("MY_SCORE.tsv"), None, &reference, &identity, &out).unwrap();
+    let header = compile_file(&fixtures.join("MY_SCORE.tsv"), None, &reference, &identity, None, &out).unwrap();
     assert_eq!(header.origin, pgsum::scoring_file::Origin::Custom);
     assert_eq!(header.license.as_deref(), Some("CC0 1.0 (synthetic test fixture)"));
     assert!(header.inventory.consistent);
@@ -316,7 +320,7 @@ fn custom_scoring_file() {
             format!("{text}chr_name\tchr_position\teffect_allele\teffect_weight\n1\t4\tC\t0.5\n"),
         )
         .unwrap();
-        let err = compile_file(&file, None, &reference, &identity, &out)
+        let err = compile_file(&file, None, &reference, &identity, None, &out)
             .expect_err("rejected")
             .to_string();
         assert!(err.contains(expected), "{name}: {err}");
@@ -333,7 +337,7 @@ fn informational_descriptions_are_opt_in() {
     std::fs::create_dir_all(&out).unwrap();
     let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
     let identity = reference_identity(&reference).unwrap();
-    compile_file(&fixtures.join("ANNOTATED.tsv"), None, &reference, &identity, &out).unwrap();
+    compile_file(&fixtures.join("ANNOTATED.tsv"), None, &reference, &identity, None, &out).unwrap();
     let path = out.join("ANNOTATED.pgsp");
     let (table, _) = extract(
         &fixtures.join("synthetic.g.vcf.gz"),
@@ -399,7 +403,15 @@ fn inferred_palindromes_need_a_forward_strand_score() {
     let identity = reference_identity(&reference).unwrap();
     let mut paths = Vec::new();
     for id in ["PAL_OK", "PAL_MIXED"] {
-        let h = compile_file(&fixtures.join(format!("{id}.tsv")), None, &reference, &identity, &out).unwrap();
+        let h = compile_file(
+            &fixtures.join(format!("{id}.tsv")),
+            None,
+            &reference,
+            &identity,
+            None,
+            &out,
+        )
+        .unwrap();
         let p = h.palindromes.expect("palindromes summarised");
         assert_eq!(p.applied, id == "PAL_OK", "{id}: {p:?}");
         paths.push(out.join(format!("{id}.pgsp")));
@@ -437,5 +449,81 @@ fn inferred_palindromes_need_a_forward_strand_score() {
     assert_eq!(mixed.inferred_palindromes.strand_consistent, Some(false));
     assert_eq!(mixed.inferred_palindromes.scorable_terms, 0);
     assert_eq!(mixed.states.get("unresolved_orientation"), Some(&1));
+    std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// Indels are scored only with `allow_inferred_indels`: oriented by reference fit or a public pair, matched to
+/// gVCF records after normalization (including a record written with extra context), and called homozygous
+/// reference when passing blocks cover the whole span. A both-fit indel without a public record stays
+/// unresolved.
+#[test]
+fn inferred_indels() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-indel-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    let public = pgsum::public::PublicVariants::open(&fixtures.join("public_variants.tsv")).unwrap();
+    let header = compile_file(
+        &fixtures.join("INDELS.tsv"),
+        None,
+        &reference,
+        &identity,
+        Some(&public),
+        &out,
+    )
+    .unwrap();
+    let s = header.sequences.expect("sequences summarised");
+    assert_eq!(
+        (s.terms, s.reference_fit, s.public_pair, s.unresolved_both_fit),
+        (5, 1, 3, 1)
+    );
+    let path = out.join("INDELS.pgsp");
+    let (table, _) = extract(
+        &fixtures.join("synthetic_indel.g.vcf.gz"),
+        &reference,
+        &identity,
+        std::slice::from_ref(&path),
+        None,
+        2,
+    )
+    .unwrap();
+    let pack = Pack::open(&path).unwrap();
+    let rows = |options: &pgsum::score::Options| {
+        let mut tsv = Vec::new();
+        let r = pgsum::score::score(&pack, &table, options, Some(&mut tsv)).unwrap();
+        let rows: Vec<String> = String::from_utf8(tsv)
+            .unwrap()
+            .lines()
+            .skip(1)
+            .map(|l| {
+                let f: Vec<&str> = l.split('\t').collect();
+                [f[13], f[14], f[15], f[16], f[17]].join(" ")
+            })
+            .collect();
+        (r, rows)
+    };
+    let (default, _) = rows(&Default::default());
+    assert_eq!(default.scorable_terms, 0);
+    let allow = pgsum::score::Options {
+        allow_inferred_indels: true,
+        ..Default::default()
+    };
+    let (result, rows) = rows(&allow);
+    assert_eq!(
+        rows,
+        [
+            "scorable_observation observed_variant 1 0.5 public_sequence_pair",
+            "scorable_observation observed_variant 1 0.25 public_sequence_pair",
+            "scorable_observation observed_reference 0 0 public_sequence_pair",
+            "scorable_observation observed_reference 0 0.0 reference_fit_sequence",
+            "unresolved_orientation    ",
+        ]
+    );
+    assert_eq!(result.partial.raw_score, "0.75");
+    assert_eq!(
+        result.inferred_indels.scorable_terms.get("public_sequence_pair"),
+        Some(&3)
+    );
     std::fs::remove_dir_all(&out).unwrap();
 }

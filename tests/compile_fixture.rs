@@ -22,6 +22,7 @@ fn synthetic_scoring_file_matches_reference_implementation() {
         Some(&fixtures.join("PGS999999.metadata.json")),
         &reference,
         &identity,
+        None,
         &out,
     )
     .unwrap();

@@ -10,13 +10,14 @@
 //! 3. record end offsets `u64` into the text;
 //! 4. record text: each kept gVCF line verbatim, without its line ending, concatenated.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
+use crate::alleles::Variant;
 use crate::digest::hex;
 use crate::extract::Extracted;
 use crate::genotype::{Call, Policy, State};
@@ -26,7 +27,27 @@ use crate::{Error, Result, invalid};
 use sha2::{Digest, Sha256};
 
 pub const MAGIC: &[u8; 8] = b"PGSUMGT1";
-pub const SCHEMA: &str = "pgsum-genotypes-v1";
+pub const SCHEMA: &str = "pgsum-genotypes-v2";
+/// Earlier schema still read: v1 has no sequence targets.
+pub const SCHEMA_V1: &str = "pgsum-genotypes-v1";
+
+/// Bit set in the key of a sequence (indel or multi-base) target; SNV keys never set it.
+pub const SEQUENCE_FLAG: u64 = 0x80;
+
+/// Key of the `index`-th distinct sequence target at a position (at most 128 per position).
+pub fn sequence_key(contig: u8, pos: u32, index: u8) -> u64 {
+    debug_assert!(index < 0x80);
+    (contig as u64) << 40 | (pos as u64) << 8 | SEQUENCE_FLAG | index as u64
+}
+
+pub fn is_sequence_key(key: u64) -> bool {
+    key & SEQUENCE_FLAG != 0
+}
+
+/// Contig code and position of any target key.
+pub fn key_position(key: u64) -> (u8, u32) {
+    ((key >> 40) as u8, (key >> 8) as u32)
+}
 
 const BASES: [u8; 4] = *b"ACGT";
 
@@ -57,6 +78,13 @@ pub fn unpack_key(key: u64) -> (u8, u32, u8, u8) {
         BASES[(key >> 4 & 3) as usize],
         alt,
     )
+}
+
+fn index_sequences(sequences: &[(u64, Variant)]) -> HashMap<(u8, Variant), u64> {
+    sequences
+        .iter()
+        .map(|(k, v)| ((key_position(*k).0, v.clone()), *k))
+        .collect()
 }
 
 /// An assessed call, as stored.
@@ -140,6 +168,9 @@ pub struct GenotypeTable {
     refs: Vec<u32>,
     offsets: Vec<u64>,
     text: Vec<u8>,
+    /// Sequence targets: key and normalized variant, sorted by key.
+    sequences: Vec<(u64, Variant)>,
+    sequence_index: HashMap<(u8, Variant), u64>,
 }
 
 impl GenotypeTable {
@@ -149,6 +180,7 @@ impl GenotypeTable {
         reference: &ReferenceIdentity,
         packs: Vec<PackRef>,
         keys: Vec<u64>,
+        sequences: Vec<(u64, Variant)>,
         scanned: Extracted,
         calls: Vec<CompactCall>,
     ) -> GenotypeTable {
@@ -207,6 +239,8 @@ impl GenotypeTable {
             refs,
             offsets: scanned.offsets,
             text: scanned.arena,
+            sequence_index: index_sequences(&sequences),
+            sequences,
         };
         let mut hasher = std::io::BufWriter::with_capacity(1 << 20, HashingWriter(Sha256::new()));
         table.write_body(&mut hasher).expect("hashing cannot fail");
@@ -240,7 +274,17 @@ impl GenotypeTable {
             out.write_all(&o.to_le_bytes())?;
         }
         out.write_all(&(self.text.len() as u64).to_le_bytes())?;
-        out.write_all(&self.text)
+        out.write_all(&self.text)?;
+        out.write_all(&(self.sequences.len() as u64).to_le_bytes())?;
+        for (key, v) in &self.sequences {
+            out.write_all(&key.to_le_bytes())?;
+            out.write_all(&(v.pos as u32).to_le_bytes())?;
+            for a in [&v.ref_allele, &v.alt] {
+                out.write_all(&(a.len() as u16).to_le_bytes())?;
+                out.write_all(a.as_bytes())?;
+            }
+        }
+        Ok(())
     }
 
     pub fn write(&self, path: &Path) -> Result<()> {
@@ -291,7 +335,7 @@ impl GenotypeTable {
         input.read_exact(&mut json).map_err(Error::io(path))?;
         let header: Header =
             serde_json::from_slice(&json).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
-        if header.schema != SCHEMA {
+        if header.schema != SCHEMA && header.schema != SCHEMA_V1 {
             return invalid!("{}: schema {} is not {SCHEMA}", path.display(), header.schema);
         }
         let mut body = Vec::new();
@@ -334,13 +378,45 @@ impl GenotypeTable {
             .collect();
         let n = count(take(8)?);
         let text = take(n)?.to_vec();
+        let mut sequences = Vec::new();
+        if header.schema == SCHEMA {
+            let n = count(take(8)?);
+            for _ in 0..n {
+                let key = u64::from_le_bytes(take(8)?.try_into().expect("8"));
+                let pos = u32::from_le_bytes(take(4)?.try_into().expect("4")) as u64;
+                let mut alleles = [String::new(), String::new()];
+                for a in &mut alleles {
+                    let len = u16::from_le_bytes(take(2)?.try_into().expect("2")) as usize;
+                    *a = String::from_utf8(take(len)?.to_vec()).map_err(|_| bad())?;
+                }
+                let [ref_allele, alt] = alleles;
+                sequences.push((key, Variant { pos, ref_allele, alt }));
+            }
+        }
         Ok(GenotypeTable {
             header,
             entries,
             refs,
             offsets,
             text,
+            sequence_index: index_sequences(&sequences),
+            sequences,
         })
+    }
+
+    /// The entry for a sequence target, if the table has it.
+    pub fn get_sequence(&self, contig: u8, variant: &Variant) -> Option<&Entry> {
+        self.sequence_index
+            .get(&(contig, variant.clone()))
+            .and_then(|&key| self.get(key))
+    }
+
+    /// The normalized variant of a sequence target key.
+    pub fn sequence(&self, key: u64) -> Option<&Variant> {
+        self.sequences
+            .binary_search_by_key(&key, |(k, _)| *k)
+            .ok()
+            .map(|i| &self.sequences[i].1)
     }
 
     /// The entry for a target, if the table has it.

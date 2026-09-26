@@ -13,6 +13,7 @@ use rayon::prelude::*;
 
 use crate::compile::compile_file;
 use crate::pack::{self, Pack, ReferenceIdentity};
+use crate::public::PublicVariants;
 use crate::reference::Reference;
 use crate::scoring_file::is_pgs_id;
 use crate::{Error, Result, invalid};
@@ -127,6 +128,8 @@ pub struct Options<'a> {
     pub downloads: &'a Path,
     pub keep_downloads: bool,
     pub max_variants: Option<u64>,
+    /// Public variant set for orienting indels (see `public`).
+    pub public: Option<&'a PublicVariants>,
 }
 
 /// Fetch and compile one score.
@@ -138,6 +141,7 @@ pub fn fetch_one(agent: &ureq::Agent, record: &serde_json::Value, o: &Options<'_
     if let Ok(existing) = Pack::open_header(&pack_path)
         && existing.schema == pack::SCHEMA
         && existing.compile_rules == pack::COMPILE_RULES
+        && existing.public_variants.as_ref().map(|p| &p.sha256) == o.public.map(|p| &p.identity.sha256)
         && &existing.catalog_metadata == record
         && &existing.reference == o.identity
     {
@@ -157,7 +161,7 @@ pub fn fetch_one(agent: &ureq::Agent, record: &serde_json::Value, o: &Options<'_
         let json = serde_json::to_vec_pretty(record).map_err(|e| Error::Invalid(e.to_string()))?;
         std::fs::write(&metadata, json).map_err(Error::io(&metadata))?;
         download(agent, url, &scoring)?;
-        let header = compile_file(&scoring, Some(&metadata), o.reference, o.identity, o.out)?;
+        let header = compile_file(&scoring, Some(&metadata), o.reference, o.identity, o.public, o.out)?;
         Ok(Outcome::Compiled {
             terms: header.inventory.actual_terms,
             source_bytes: header.source.bytes,

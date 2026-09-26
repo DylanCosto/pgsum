@@ -5,13 +5,15 @@ use std::path::Path;
 
 use sha2::{Digest, Sha256};
 
+use crate::alleles::{Variant, normalize};
 use crate::digest::file_sha256;
 use crate::genotypes::ANY_ALT;
 use crate::orient::{Method, Orientation, Status, orient};
 use crate::pack::{
     self, Columns, Counts, Header, Inference, InferenceSummary, Inventory, PalindromeSummary, ReferenceIdentity,
-    SourceFile, TermRecord, Weight, WeightType,
+    SequenceSummary, SourceFile, TermRecord, Weight, WeightType,
 };
+use crate::public::PublicVariants;
 use crate::reference::Reference;
 use crate::scoring_file::{Origin, ScoringFile};
 use crate::term::{AlleleKind, CONTIGS, Description, Reason, describe};
@@ -80,6 +82,48 @@ fn inference_candidate(d: &Description<'_>, catalog_other: &str, reference: &Ref
         reference: (base != b'N').then_some(base),
         catalog,
     }))
+}
+
+/// Orient an indel or multi-base term: by the one reading (effect allele as REF, or other allele as REF) that
+/// fits the reference, else by the one public record with exactly its alleles. Returns the inference, the
+/// normalized variant and whether the effect allele is its ALT.
+fn infer_sequence(
+    d: &Description<'_>,
+    reference: &Reference,
+    public: Option<&PublicVariants>,
+    summary: &mut SequenceSummary,
+) -> Option<(Inference, Variant, bool)> {
+    let contig = CONTIGS[d.contig as usize - 1];
+    let pos = d.pos as u64;
+    let (effect, other) = (d.effect_allele, d.other_allele);
+    let fits = |a: &str| {
+        reference
+            .fetch(contig, pos - 1, pos - 1 + a.len() as u64)
+            .is_ok_and(|s| s == a)
+    };
+    summary.terms += 1;
+    let (fe, fo) = (fits(effect), fits(other));
+    let chosen = if fe != fo {
+        summary.reference_fit += 1;
+        Some((
+            Inference::ReferenceFitSequence,
+            if fe { (effect, other) } else { (other, effect) },
+        ))
+    } else if let Some((r, a)) = public.and_then(|p| p.exact_pair(d.contig, d.pos, effect, other)) {
+        summary.public_pair += 1;
+        Some((Inference::PublicSequencePair, (r, a)))
+    } else {
+        if fe {
+            summary.unresolved_both_fit += 1;
+        } else {
+            summary.unresolved_neither_fit += 1;
+        }
+        None
+    };
+    let (kind, (ref_allele, alt)) = chosen?;
+    let base = |p: u64| reference.fetch(contig, p - 1, p).ok().and_then(|b| b.bytes().next());
+    let variant = normalize(pos, ref_allele, alt, base)?;
+    Some((kind, variant, effect == alt))
 }
 
 /// A palindromic SNV read on the forward strand: the reference base is one of its alleles.
@@ -211,6 +255,7 @@ pub fn compile_file(
     metadata_path: Option<&Path>,
     reference: &Reference,
     reference_identity: &ReferenceIdentity,
+    public: Option<&PublicVariants>,
     out_dir: &Path,
 ) -> Result<Header> {
     let mut file = ScoringFile::open(scoring_path)?;
@@ -257,6 +302,7 @@ pub fn compile_file(
     // Strand evidence, and each palindromic SNV's forward-strand reading.
     let (mut forward, mut complement) = (0u64, 0u64);
     let mut palindromes: Vec<(u32, Orientation)> = Vec::new();
+    let mut sequences = SequenceSummary::default();
     let mut ordinal: u32 = 0;
     while let Some(row) = file.next_row(&mut fields)? {
         let d = describe(&row, &columns);
@@ -283,6 +329,11 @@ pub fn compile_file(
             .zip(texts)
             .map(|(w, t)| Weight::from_decimal(w.as_ref(), t))
             .collect();
+        let sequence = if orientation.status == Status::SequenceReferenceEvidenceRequired {
+            infer_sequence(&d, reference, public, &mut sequences)
+        } else {
+            None
+        };
         let hash: [u8; 32] = Sha256::digest(row.line.as_bytes()).into();
         line_hashes.push((hash[..16].try_into().expect("16 bytes"), ordinal));
         terms.push(&TermRecord {
@@ -294,8 +345,20 @@ pub fn compile_file(
             orientation,
             reasons: d.reasons,
             weights,
-            inferred: None,
+            inferred: sequence.as_ref().map(|(kind, _, effect_is_alt)| {
+                (
+                    *kind,
+                    Orientation {
+                        status: Status::Resolved,
+                        method: Method::Direct,
+                        ref_base: 0,
+                        alt_base: 0,
+                        effect_is_alt: *effect_is_alt,
+                    },
+                )
+            }),
             informational_description: d.informational_description,
+            inferred_sequence: sequence.map(|(_, v, _)| v),
         });
         match orientation.status {
             Status::Resolved if d.allele_kind == AlleleKind::LiteralSnv => match orientation.method {
@@ -401,6 +464,8 @@ pub fn compile_file(
         counts,
         inference,
         palindromes,
+        sequences: (sequences.terms > 0).then_some(sequences),
+        public_variants: public.map(|p| p.identity.clone()),
         records_sha256: pack::records_sha256(&records),
     };
     pack::write(

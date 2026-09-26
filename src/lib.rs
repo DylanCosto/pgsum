@@ -3,6 +3,7 @@
 //! The pipeline is `compile` (scoring file → pack), `extract` (gVCF → genotype table at the pack sites)
 //! and `score` (packs × genotypes → one result per score). See `DESIGN.md` for the rules.
 
+pub mod alleles;
 pub mod compile;
 pub mod decimal;
 pub mod digest;
@@ -13,6 +14,7 @@ pub mod genotypes;
 pub mod gvcf;
 pub mod orient;
 pub mod pack;
+pub mod public;
 pub mod reference;
 pub mod score;
 pub mod scoring_file;

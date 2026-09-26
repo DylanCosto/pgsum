@@ -20,6 +20,37 @@ struct Cli {
     command: Command,
 }
 
+#[derive(Args)]
+struct FetchArgs {
+    /// These PGS IDs (comma-separated or repeated).
+    #[arg(long, value_delimiter = ',', required_unless_present = "all", conflicts_with = "all")]
+    ids: Vec<String>,
+    /// Every score in the Catalog.
+    #[arg(long)]
+    all: bool,
+    /// GRCh38 reference FASTA (with `.fai`).
+    #[arg(long)]
+    reference: PathBuf,
+    /// Directory to write packs into.
+    #[arg(long)]
+    out: PathBuf,
+    /// Where downloads go while they are compiled (default: `<out>/downloads`).
+    #[arg(long)]
+    downloads: Option<PathBuf>,
+    /// Keep scoring files and Catalog records after compiling.
+    #[arg(long)]
+    keep_downloads: bool,
+    /// Skip scores with more variants than this.
+    #[arg(long)]
+    max_variants: Option<u64>,
+    /// Scores downloaded and compiled at once.
+    #[arg(long, default_value_t = 4)]
+    jobs: usize,
+    /// Public variant set (CHROM POS REF ALT) used to orient indels; see DESIGN.md.
+    #[arg(long)]
+    public_variants: Option<PathBuf>,
+}
+
 /// Which packs to use. `--pack` takes files or directories (every `*.pgsp` inside) and can be repeated;
 /// `--pack-list` adds paths from a file; `--ids` keeps only the listed scores.
 #[derive(Args, Clone)]
@@ -104,37 +135,15 @@ enum Command {
         /// Directory to write packs into.
         #[arg(long)]
         out: PathBuf,
+        /// Public variant set (CHROM POS REF ALT) used to orient indels; see DESIGN.md.
+        #[arg(long)]
+        public_variants: Option<PathBuf>,
     },
     /// Download PGS Catalog scores and compile each into a pack, deleting downloads as it goes.
     ///
     /// Scores whose pack already exists with an identical Catalog record are skipped, so an interrupted
     /// run can be restarted. A log of every score is written to `<out>/fetch.tsv`.
-    Fetch {
-        /// These PGS IDs (comma-separated or repeated).
-        #[arg(long, value_delimiter = ',', required_unless_present = "all", conflicts_with = "all")]
-        ids: Vec<String>,
-        /// Every score in the Catalog.
-        #[arg(long)]
-        all: bool,
-        /// GRCh38 reference FASTA (with `.fai`).
-        #[arg(long)]
-        reference: PathBuf,
-        /// Directory to write packs into.
-        #[arg(long)]
-        out: PathBuf,
-        /// Where downloads go while they are compiled (default: `<out>/downloads`).
-        #[arg(long)]
-        downloads: Option<PathBuf>,
-        /// Keep scoring files and Catalog records after compiling.
-        #[arg(long)]
-        keep_downloads: bool,
-        /// Skip scores with more variants than this.
-        #[arg(long)]
-        max_variants: Option<u64>,
-        /// Scores downloaded and compiled at once.
-        #[arg(long, default_value_t = 4)]
-        jobs: usize,
-    },
+    Fetch(FetchArgs),
     /// Print a pack's terms as TSV, or its header as JSON.
     Inspect {
         /// A pack, or a genotype table with `--header`.
@@ -154,6 +163,9 @@ enum Command {
         /// With `--genotypes`: allow inferred palindromes, as `score` does.
         #[arg(long)]
         allow_inferred_palindromes: bool,
+        /// With `--genotypes`: allow inferred indels, as `score` does.
+        #[arg(long)]
+        allow_inferred_indels: bool,
     },
     /// Read genotypes from a gVCF at every site the packs need.
     Extract {
@@ -194,6 +206,9 @@ enum Command {
         /// Also score palindromic SNVs on the forward strand when the score's other SNVs are all there.
         #[arg(long)]
         allow_inferred_palindromes: bool,
+        /// Also score indels and multi-base terms oriented by reference fit or a public variant set.
+        #[arg(long)]
+        allow_inferred_indels: bool,
     },
     /// Extract then score in one step.
     Run {
@@ -219,6 +234,9 @@ enum Command {
         /// Also score palindromic SNVs on the forward strand when the score's other SNVs are all there.
         #[arg(long)]
         allow_inferred_palindromes: bool,
+        /// Also score indels and multi-base terms oriented by reference fit or a public variant set.
+        #[arg(long)]
+        allow_inferred_indels: bool,
     },
 }
 
@@ -234,7 +252,8 @@ fn main() -> ExitCode {
             scoring_files,
             reference,
             out,
-        } => compile(&scoring_files, &reference, &out),
+            public_variants,
+        } => compile(&scoring_files, &reference, &out, public_variants.as_deref()),
         Command::Inspect {
             path,
             header,
@@ -242,6 +261,7 @@ fn main() -> ExitCode {
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
+            allow_inferred_indels,
         } => inspect(
             &path,
             header,
@@ -250,18 +270,10 @@ fn main() -> ExitCode {
                 allow_inferred_other_allele,
                 accept_informational_descriptions,
                 allow_inferred_palindromes,
+                allow_inferred_indels,
             },
         ),
-        Command::Fetch {
-            ids,
-            all: _,
-            reference,
-            out,
-            downloads,
-            keep_downloads,
-            max_variants,
-            jobs,
-        } => fetch(&ids, &reference, &out, downloads, keep_downloads, max_variants, jobs),
+        Command::Fetch(args) => fetch(&args),
         Command::Extract {
             gvcf,
             reference,
@@ -279,11 +291,13 @@ fn main() -> ExitCode {
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
+            allow_inferred_indels,
         } => packs.resolve().and_then(|packs| {
             let options = pgsum::score::Options {
                 allow_inferred_other_allele,
                 accept_informational_descriptions,
                 allow_inferred_palindromes,
+                allow_inferred_indels,
             };
             score(&GenotypeTable::open(&genotypes)?, &packs, &out, terms, &options)
         }),
@@ -297,11 +311,13 @@ fn main() -> ExitCode {
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
+            allow_inferred_indels,
         } => packs.resolve().and_then(|packs| {
             let options = pgsum::score::Options {
                 allow_inferred_other_allele,
                 accept_informational_descriptions,
                 allow_inferred_palindromes,
+                allow_inferred_indels,
             };
             std::fs::create_dir_all(&out).map_err(Error::io(&out))?;
             let table_path = out.join("genotypes.pgsg");
@@ -358,7 +374,16 @@ fn scoring_file_paths(inputs: &[PathBuf]) -> Result<Vec<PathBuf>> {
     Ok(paths)
 }
 
-fn compile(inputs: &[PathBuf], reference: &Path, out: &Path) -> Result<()> {
+/// Load a public variant set, reporting its size.
+fn public_variants(path: Option<&Path>) -> Result<Option<pgsum::public::PublicVariants>> {
+    let Some(path) = path else { return Ok(None) };
+    let p = pgsum::public::PublicVariants::open(path)?;
+    eprintln!("{}: {} public variant records", path.display(), p.len());
+    Ok(Some(p))
+}
+
+fn compile(inputs: &[PathBuf], reference: &Path, out: &Path, public: Option<&Path>) -> Result<()> {
+    let public = public_variants(public)?;
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
     let scoring_files = scoring_file_paths(inputs)?;
     let reference = Reference::open(reference)?;
@@ -367,7 +392,7 @@ fn compile(inputs: &[PathBuf], reference: &Path, out: &Path) -> Result<()> {
         .par_iter()
         .filter_map(|path| {
             let started = std::time::Instant::now();
-            let result = compile_file(path, None, &reference, &identity, out);
+            let result = compile_file(path, None, &reference, &identity, public.as_ref(), out);
             match result {
                 Ok(h) => {
                     eprintln!(
@@ -395,31 +420,26 @@ fn compile(inputs: &[PathBuf], reference: &Path, out: &Path) -> Result<()> {
     }
 }
 
-fn fetch(
-    ids: &[String],
-    reference: &Path,
-    out: &Path,
-    downloads: Option<PathBuf>,
-    keep_downloads: bool,
-    max_variants: Option<u64>,
-    jobs: usize,
-) -> Result<()> {
+fn fetch(args: &FetchArgs) -> Result<()> {
+    let public = public_variants(args.public_variants.as_deref())?;
     use pgsum::fetch::Outcome;
     let started = std::time::Instant::now();
-    let reference = Reference::open(reference)?;
+    let reference = Reference::open(&args.reference)?;
     let identity = reference_identity(&reference)?;
     let agent = pgsum::fetch::agent();
-    let records = pgsum::fetch::catalog_records(&agent, ids)?;
+    let records = pgsum::fetch::catalog_records(&agent, &args.ids)?;
     let variants: u64 = records.iter().filter_map(|r| r["variants_number"].as_u64()).sum();
     eprintln!("{} scores, {variants} variants in the Catalog records", records.len());
-    let downloads = downloads.unwrap_or_else(|| out.join("downloads"));
+    let out = args.out.as_path();
+    let downloads = args.downloads.clone().unwrap_or_else(|| out.join("downloads"));
     let options = pgsum::fetch::Options {
         reference: &reference,
         identity: &identity,
         out,
         downloads: &downloads,
-        keep_downloads,
-        max_variants,
+        keep_downloads: args.keep_downloads,
+        max_variants: args.max_variants,
+        public: public.as_ref(),
     };
     let done = std::sync::atomic::AtomicUsize::new(0);
     let total = records.len();
@@ -433,7 +453,7 @@ fn fetch(
         };
         eprintln!("[{n}/{total}] {}: {what} ({:.1}s)", l.id, l.seconds);
     };
-    let mut log = pgsum::fetch::fetch_all(&agent, &records, &options, jobs, &report)?;
+    let mut log = pgsum::fetch::fetch_all(&agent, &records, &options, args.jobs, &report)?;
     log.sort_by(|a, b| a.id.cmp(&b.id));
     let mut tsv = String::from("pgs_id\toutcome\tterms\tsource_bytes\tseconds\tdetail\n");
     let mut failed = 0;
