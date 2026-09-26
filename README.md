@@ -62,7 +62,13 @@ pgsum run --gvcf sample.g.vcf.gz --reference GRCh38.fa --pack packs/ --ids PGS00
 ```
 
 `results/` gets `<PGS_ID>.score.json` per score, `scores.tsv` across scores, and with `--terms` a per-term
-TSV.
+TSV. With `--bundle`, every result goes into one `results.jsonl.zst` (one JSON object per line) instead of a
+file per score: for the whole Catalog that is 4 MB rather than 6,990 small files, which on an exFAT drive with
+1 MB allocation blocks take 14 GB.
+
+pgsum reads gVCFs from DeepVariant (long- and short-read), DRAGEN and GATK HaplotypeCaller, and plain VCFs.
+A plain VCF has no reference blocks, so sites without a record are `unknown_no_record` rather than assumed
+reference. DRAGEN writes male chrX and chrY as haploid; pass `--haploid-xy-as-homozygous` to `extract` or `run`.
 
 The whole Catalog: `pgsum fetch --all --reference GRCh38.fa --out packs/` downloads and compiles all 6,990
 scores (4.5 billion terms, 31.6 GB of packs); an interrupted run resumes. For many samples against the same

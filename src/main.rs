@@ -200,6 +200,10 @@ enum Command {
         /// Also write a per-term TSV for each score.
         #[arg(long)]
         terms: bool,
+        /// Write every result to one `results.jsonl.zst` (one JSON object per line, sorted by score ID) instead
+        /// of one file per score. Much smaller on drives with large allocation blocks (e.g. exFAT).
+        #[arg(long)]
+        bundle: bool,
         /// Also score terms without an author other allele, using the orientation their pack inferred.
         #[arg(long)]
         allow_inferred_other_allele: bool,
@@ -225,6 +229,10 @@ enum Command {
         out: PathBuf,
         #[arg(long)]
         terms: bool,
+        /// Write every result to one `results.jsonl.zst` (one JSON object per line, sorted by score ID) instead
+        /// of one file per score. Much smaller on drives with large allocation blocks (e.g. exFAT).
+        #[arg(long)]
+        bundle: bool,
         /// Target index to reuse when it matches the selected packs, or to create (`.pgst`).
         #[arg(long)]
         targets_cache: Option<PathBuf>,
@@ -303,6 +311,7 @@ fn main() -> ExitCode {
             packs,
             out,
             terms,
+            bundle,
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
@@ -314,7 +323,7 @@ fn main() -> ExitCode {
                 allow_inferred_palindromes,
                 allow_inferred_indels,
             };
-            score(&GenotypeTable::open(&genotypes)?, &packs, &out, terms, &options)
+            score(&GenotypeTable::open(&genotypes)?, &packs, &out, terms, bundle, &options)
         }),
         Command::Run {
             gvcf,
@@ -322,6 +331,7 @@ fn main() -> ExitCode {
             packs,
             out,
             terms,
+            bundle,
             targets_cache,
             haploid_xy_as_homozygous,
             allow_inferred_other_allele,
@@ -346,7 +356,14 @@ fn main() -> ExitCode {
                 haploid_xy_as_homozygous,
                 threads,
             )?;
-            score(&GenotypeTable::open(&table_path)?, &packs, &out, terms, &options)
+            score(
+                &GenotypeTable::open(&table_path)?,
+                &packs,
+                &out,
+                terms,
+                bundle,
+                &options,
+            )
         }),
     };
     match result {
@@ -565,6 +582,7 @@ fn score(
     packs: &[PathBuf],
     out: &Path,
     terms: bool,
+    bundle: bool,
     options: &pgsum::score::Options,
 ) -> Result<()> {
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
@@ -584,10 +602,12 @@ fn score(
                 } else {
                     pgsum::score::score(&pack, table, options, None)?
                 };
-                let json_path = out.join(format!("{id}.score.json"));
-                let mut json = serde_json::to_vec_pretty(&result).map_err(|e| Error::Invalid(e.to_string()))?;
-                json.push(b'\n');
-                std::fs::write(&json_path, json).map_err(Error::io(&json_path))?;
+                if !bundle {
+                    let json_path = out.join(format!("{id}.score.json"));
+                    let mut json = serde_json::to_vec_pretty(&result).map_err(|e| Error::Invalid(e.to_string()))?;
+                    json.push(b'\n');
+                    std::fs::write(&json_path, json).map_err(Error::io(&json_path))?;
+                }
                 Ok(result)
             })();
             (path, result)
@@ -627,6 +647,9 @@ fn score(
             100.0 * c.weight_fraction
         );
     }
+    if bundle {
+        write_bundle(&out.join("results.jsonl.zst"), &results)?;
+    }
     let summary_path = out.join("scores.tsv");
     std::fs::write(&summary_path, summary).map_err(Error::io(&summary_path))?;
     let terms_scored: u64 = results.iter().map(|r| r.required_terms).sum();
@@ -641,6 +664,24 @@ fn score(
     } else {
         Err(Error::Invalid(failures.join("\n")))
     }
+}
+
+/// Every result as one compact JSON line, zstd-compressed, written to a temporary file and renamed into place.
+fn write_bundle(path: &Path, results: &[pgsum::score::ScoreResult]) -> Result<()> {
+    let tmp = path.with_extension("zst.tmp");
+    let written = (|| -> std::io::Result<()> {
+        let mut w = zstd::Encoder::new(BufWriter::new(std::fs::File::create(&tmp)?), 3)?;
+        for r in results {
+            serde_json::to_writer(&mut w, r)?;
+            w.write_all(b"\n")?;
+        }
+        w.finish()?.flush()?;
+        std::fs::rename(&tmp, path)
+    })();
+    written.map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        Error::io(path)(e)
+    })
 }
 
 fn inspect(path: &Path, header: bool, genotypes: Option<&Path>, options: &pgsum::score::Options) -> Result<()> {

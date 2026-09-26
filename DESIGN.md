@@ -333,6 +333,9 @@ One JSON object per score (`src/score.rs`, `ScoreResult`):
 
 Per-term TSV (`--terms`): the `inspect` columns, then status, call state, effect dosage and contribution.
 
+With `--bundle`, the results are written as one zstd-compressed JSON-lines file, `results.jsonl.zst`, sorted by
+score ID, instead of one file per score; each line is the same object as the per-score file.
+
 ## Provenance
 
 Every output records the digests of all inputs and the pgsum version and policy ID. The same inputs always
@@ -470,6 +473,39 @@ Known differences from the reference implementation, none of which occur in curr
   line is kept in the pack's `scoring_file_header` and the key is listed in `duplicate_header_keys`. The
   reference implementation rejects any repeated key; pgsum still rejects repeats of `format_version`,
   `pgs_id`, `variants_number`, `weight_type`, `genome_build` and `HmPOS_build`.
+
+## Other callers
+
+Checked 2026-09-26 against all 6,990 packs, with no change to the genotype rules. Public GRCh38 inputs:
+DRAGEN 3.7.6 HG002 gVCF and hard-filtered VCF (Illumina `1000genomes-dragen` bucket, precisionFDA v2 run),
+GATK 4 HaplotypeCaller NA12878 gVCF (Broad `gatk-test-data`, Platinum Genomes hg38), and DeepVariant 1.10
+DeepTrio on Illumina WGS of HG002 (Google `deepvariant` case study). MD5s matched the published values.
+
+| Input | Records | `extract` | Complete (default / all opt-ins) | ≥ 99% of terms (default / all) | Terms scorable (all) |
+|---|---|---|---|---|---|
+| HG002, DeepVariant, PacBio Revio | 36.0M | 243 s¹ | 189 / 329 | 1,973 / 4,175 | 96.82% |
+| HG002, DeepVariant, Illumina | 92.1M | 36 s | 170 / 317 | 1,937 / 4,048 | 96.82% |
+| HG002, DRAGEN gVCF | 191.6M | 64 s | 144 / 249 | 1,826 / 3,805 | 96.50% |
+| HG002, DRAGEN gVCF, `--haploid-xy-as-homozygous` | 191.6M | 56 s | 144 / 250 | 1,826 / 3,806 | — |
+| HG002, DRAGEN plain VCF | 5.2M | 14 s | 0 / 4 | 0 / 4 | 41.13% |
+| NA12878, GATK HaplotypeCaller gVCF | 154.2M | 46 s | 178 / 338 | 1,908 / 4,130 | 96.82% |
+
+¹ Including the one-off 196 s target-index rebuild; later runs reuse the index.
+
+- **DRAGEN** writes male chrX/chrY calls and blocks as haploid (`0`, `1`): 51,021 targets are
+  `unsupported_ploidy` by default and none with `--haploid-xy-as-homozygous`. Its hom-ref blocks carry
+  `FILTER=PASS` and variant records use `<NON_REF>`, both already handled.
+- **GATK** leaves only 34 targets without a record; its banded GQ blocks make 360k targets `low_quality`.
+- **Plain VCF**: 35.9M of the 43.3M targets have no record and stay `unknown_no_record`; pgsum does not
+  assume the reference where a VCF is silent. Only 4 scores are complete, all scored through opt-in terms
+  that happen to be variant sites.
+- **Agreement across HG002 inputs** (all opt-ins): of the scores complete for both the long-read and the
+  Illumina DeepVariant runs, 258 of 259 have identical raw scores; for long-read and DRAGEN, 213 of 215. Each
+  difference is one genotype. PGS004114/PGS004115 differ at chr1:155231399 (GBA1, next to its pseudogene):
+  GIAB v4.2.1 calls it heterozygous inside its benchmark regions, as the long-read gVCF does, while DRAGEN
+  gives a hom-ref block (GQ 42). PGS004261 differs at chr14:22504000 (T-cell receptor alpha locus, outside
+  the benchmark regions): short reads call a heterozygote at low allele fraction (4 of 18 reads in DRAGEN),
+  long reads a hom-ref block.
 
 ## Open questions
 

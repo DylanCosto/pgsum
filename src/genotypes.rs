@@ -63,7 +63,11 @@ pub fn key_position(key: u64) -> (u8, u32) {
 /// A key from a v1 or v2 genotype table in the current layout.
 fn upgrade_v2_key(key: u64) -> u64 {
     let (contig, pos, low) = ((key >> 40) as u8, (key >> 8) as u32, key & 0xff);
-    let low = if low & 0x80 != 0 { SEQUENCE_FLAG | (low & 0x7f) } else { low };
+    let low = if low & 0x80 != 0 {
+        SEQUENCE_FLAG | (low & 0x7f)
+    } else {
+        low
+    };
     (contig as u64) << CONTIG_SHIFT | (pos as u64) << POS_SHIFT | low
 }
 
