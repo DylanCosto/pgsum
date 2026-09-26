@@ -36,6 +36,7 @@ fn synthetic_gvcf_matches_reference_implementation() {
         &identity,
         std::slice::from_ref(&pack_path),
         None,
+        false,
         2,
     )
     .unwrap();
@@ -94,6 +95,7 @@ fn synthetic_scores_match_reference_implementation() {
         &identity,
         &paths,
         None,
+        false,
         2,
     )
     .unwrap();
@@ -148,12 +150,12 @@ fn target_index_is_reused_only_for_the_same_packs() {
     }
     let gvcf = fixtures.join("synthetic.g.vcf.gz");
     let cache = out.join("targets.pgst");
-    let (first, t1) = extract(&gvcf, &reference, &identity, &paths, Some(&cache), 2).unwrap();
+    let (first, t1) = extract(&gvcf, &reference, &identity, &paths, Some(&cache), false, 2).unwrap();
     assert!(!t1.targets_from_cache && cache.exists());
-    let (second, t2) = extract(&gvcf, &reference, &identity, &paths, Some(&cache), 2).unwrap();
+    let (second, t2) = extract(&gvcf, &reference, &identity, &paths, Some(&cache), false, 2).unwrap();
     assert!(t2.targets_from_cache);
     assert_eq!(first.header, second.header);
-    let (third, t3) = extract(&gvcf, &reference, &identity, &paths[..1], Some(&cache), 2).unwrap();
+    let (third, t3) = extract(&gvcf, &reference, &identity, &paths[..1], Some(&cache), false, 2).unwrap();
     assert!(!t3.targets_from_cache);
     assert_eq!(third.header.packs.len(), 1);
     std::fs::remove_dir_all(&out).unwrap();
@@ -190,6 +192,7 @@ fn inferred_other_alleles_are_opt_in() {
         &identity,
         &paths,
         None,
+        false,
         2,
     )
     .unwrap();
@@ -293,6 +296,7 @@ fn custom_scoring_file() {
         &identity,
         std::slice::from_ref(&path),
         None,
+        false,
         2,
     )
     .unwrap();
@@ -345,6 +349,7 @@ fn informational_descriptions_are_opt_in() {
         &identity,
         std::slice::from_ref(&path),
         None,
+        false,
         2,
     )
     .unwrap();
@@ -422,6 +427,7 @@ fn inferred_palindromes_need_a_forward_strand_score() {
         &identity,
         &paths,
         None,
+        false,
         2,
     )
     .unwrap();
@@ -485,6 +491,7 @@ fn inferred_indels() {
         &identity,
         std::slice::from_ref(&path),
         None,
+        false,
         2,
     )
     .unwrap();
@@ -524,6 +531,63 @@ fn inferred_indels() {
     assert_eq!(
         result.inferred_indels.scorable_terms.get("public_sequence_pair"),
         Some(&3)
+    );
+    std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// The synthetic gVCF's haploid chrX call (`1` at chrX:2) is unsupported by default and read as `1/1` with
+/// `haploid_xy_as_homozygous`, which also changes the policy ID in the table.
+#[test]
+fn haploid_sex_chromosome_calls() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-haploid-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    compile_file(
+        &fixtures.join("PGS999998_hmPOS_GRCh38.txt.gz"),
+        Some(&fixtures.join("PGS999998.metadata.json")),
+        &reference,
+        &identity,
+        None,
+        &out,
+    )
+    .unwrap();
+    let path = out.join("PGS999998.pgsp");
+    let pack = Pack::open(&path).unwrap();
+    let last_row = |haploid: bool| {
+        let (table, _) = extract(
+            &fixtures.join("synthetic.g.vcf.gz"),
+            &reference,
+            &identity,
+            std::slice::from_ref(&path),
+            None,
+            haploid,
+            2,
+        )
+        .unwrap();
+        let mut tsv = Vec::new();
+        pgsum::score::score(&pack, &table, &Default::default(), Some(&mut tsv)).unwrap();
+        let text = String::from_utf8(tsv).unwrap();
+        let f: Vec<String> = text.lines().last().unwrap().split('\t').map(str::to_owned).collect();
+        (
+            table.header.policy.id.clone(),
+            [f[1].clone(), f[13].clone(), f[15].clone()].join(" "),
+        )
+    };
+    assert_eq!(
+        last_row(false),
+        (
+            "pgsum-diploid-dp10-gq20-pass-v1".into(),
+            "chrX unsupported_ploidy ".into()
+        )
+    );
+    assert_eq!(
+        last_row(true),
+        (
+            "pgsum-dp10-gq20-pass-haploid-xy-homozygous-v1".into(),
+            "chrX scorable_observation 2".into()
+        )
     );
     std::fs::remove_dir_all(&out).unwrap();
 }

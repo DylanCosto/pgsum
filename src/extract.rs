@@ -184,12 +184,9 @@ pub fn assess(
     sequences: &[(u64, Variant)],
     scanned: &Extracted,
     reference: &Reference,
+    policy: &Policy,
     threads: usize,
 ) -> Result<Vec<CompactCall>> {
-    let policy = Policy {
-        refcall_is_reference: scanned.header.refcall_defined,
-        ..Policy::default()
-    };
     let record = |id: u32| -> &str {
         let (a, b) = (
             scanned.offsets[id as usize] as usize,
@@ -204,7 +201,6 @@ pub fn assess(
             .map(|start| {
                 let end = (start + chunk).min(keys.len());
                 let record = &record;
-                let policy = &policy;
                 scope.spawn(move || {
                     let mut out = Vec::with_capacity(end - start);
                     for (i, &key) in keys.iter().enumerate().take(end).skip(start) {
@@ -236,6 +232,7 @@ pub fn assess(
                                 ref_allele: &sequence.ref_allele,
                                 alt: Some(&sequence.alt),
                                 sequence: true,
+                                sex_chromosome: matches!(contig, "chrX" | "chrY"),
                             }
                         } else {
                             let (_, _, ref_base, alt_base) = unpack_key(key);
@@ -245,6 +242,7 @@ pub fn assess(
                                 ref_allele: &r,
                                 alt: (alt_base != crate::genotypes::ANY_ALT).then_some(a.as_str()),
                                 sequence: false,
+                                sex_chromosome: matches!(contig, "chrX" | "chrY"),
                             }
                         };
                         let call = genotype::assess(&records, &target, policy, |p, len| {
@@ -275,6 +273,7 @@ pub fn extract(
     reference_identity: &ReferenceIdentity,
     packs: &[PathBuf],
     targets_cache: Option<&Path>,
+    haploid_xy_as_homozygous: bool,
     threads: usize,
 ) -> Result<(GenotypeTable, Timings)> {
     let mut timings = Timings::default();
@@ -297,18 +296,11 @@ pub fn extract(
     let scanned = scan(gvcf, &set.keys, &ends, threads)?;
     timings.scan_s = t.elapsed().as_secs_f64();
     let t = Instant::now();
-    let calls = assess(&set.keys, &set.sequences, &scanned, reference, threads)?;
+    let policy = Policy::for_gvcf(scanned.header.refcall_defined, haploid_xy_as_homozygous);
+    let calls = assess(&set.keys, &set.sequences, &scanned, reference, &policy, threads)?;
     timings.assess_s = t.elapsed().as_secs_f64();
     let t = Instant::now();
-    let table = GenotypeTable::new(
-        gvcf,
-        reference_identity,
-        set.packs,
-        set.keys,
-        set.sequences,
-        scanned,
-        calls,
-    );
+    let table = GenotypeTable::new(gvcf, reference_identity, &policy, set, scanned, calls);
     timings.table_s = t.elapsed().as_secs_f64();
     Ok((table, timings))
 }

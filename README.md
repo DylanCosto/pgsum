@@ -20,9 +20,16 @@ Every score gets two answers:
 
 Weights are summed exactly (no floating point), and every output records the digests of its inputs.
 
-About a third of Catalog scores publish only an effect allele. They are unscorable by default; with
-`--allow-inferred-other-allele`, pgsum infers the other allele from the score's own reference convention (or
-the Catalog's inferred allele) and labels every result that used it. See DESIGN.md.
+By default pgsum follows a conservative reference implementation exactly. Opt-ins widen what can be scored,
+each validated on real data and labelled in every result that uses it (see DESIGN.md):
+
+| Option | Scores terms that… |
+|---|---|
+| `--allow-inferred-other-allele` | publish only an effect allele (about 30% of Catalog terms) |
+| `--allow-inferred-palindromes` | are A/T or C/G SNVs, in scores whose other SNVs are on the forward strand |
+| `--allow-inferred-indels` | are indels or multi-base variants (needs `compile --public-variants`) |
+| `--accept-informational-descriptions` | carry a `variant_description` that is only an annotation |
+| `extract --haploid-xy-as-homozygous` | sit on haploid chrX/chrY calls from callers that write them |
 
 ## Usage
 

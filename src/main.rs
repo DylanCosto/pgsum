@@ -183,6 +183,9 @@ enum Command {
         /// Target index to reuse when it matches the selected packs, or to create (`.pgst`).
         #[arg(long)]
         targets_cache: Option<PathBuf>,
+        /// Read haploid chrX/chrY calls (`1`) as homozygous (`1/1`), as DeepVariant writes male chrX.
+        #[arg(long)]
+        haploid_xy_as_homozygous: bool,
     },
     /// Score packs against an extracted genotype table.
     Score {
@@ -225,6 +228,9 @@ enum Command {
         /// Target index to reuse when it matches the selected packs, or to create (`.pgst`).
         #[arg(long)]
         targets_cache: Option<PathBuf>,
+        /// Read haploid chrX/chrY calls (`1`) as homozygous (`1/1`), as DeepVariant writes male chrX.
+        #[arg(long)]
+        haploid_xy_as_homozygous: bool,
         /// Also score terms without an author other allele, using the orientation their pack inferred.
         #[arg(long)]
         allow_inferred_other_allele: bool,
@@ -280,9 +286,18 @@ fn main() -> ExitCode {
             packs,
             out,
             targets_cache,
-        } => packs
-            .resolve()
-            .and_then(|packs| extract(&gvcf, &reference, &packs, &out, targets_cache.as_deref(), threads)),
+            haploid_xy_as_homozygous,
+        } => packs.resolve().and_then(|packs| {
+            extract(
+                &gvcf,
+                &reference,
+                &packs,
+                &out,
+                targets_cache.as_deref(),
+                haploid_xy_as_homozygous,
+                threads,
+            )
+        }),
         Command::Score {
             genotypes,
             packs,
@@ -308,6 +323,7 @@ fn main() -> ExitCode {
             out,
             terms,
             targets_cache,
+            haploid_xy_as_homozygous,
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
@@ -327,6 +343,7 @@ fn main() -> ExitCode {
                 &packs,
                 &table_path,
                 targets_cache.as_deref(),
+                haploid_xy_as_homozygous,
                 threads,
             )?;
             score(&GenotypeTable::open(&table_path)?, &packs, &out, terms, &options)
@@ -496,13 +513,22 @@ fn extract(
     packs: &[PathBuf],
     out: &Path,
     targets_cache: Option<&Path>,
+    haploid_xy_as_homozygous: bool,
     threads: usize,
 ) -> Result<()> {
     let started = std::time::Instant::now();
     let reference = Reference::open(reference)?;
     let identity = reference_identity(&reference)?;
     let loaded = started.elapsed().as_secs_f64();
-    let (table, timings) = pgsum::extract::extract(gvcf, &reference, &identity, packs, targets_cache, threads)?;
+    let (table, timings) = pgsum::extract::extract(
+        gvcf,
+        &reference,
+        &identity,
+        packs,
+        targets_cache,
+        haploid_xy_as_homozygous,
+        threads,
+    )?;
     let t = std::time::Instant::now();
     table.write(out)?;
     eprintln!(

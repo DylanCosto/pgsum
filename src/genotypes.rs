@@ -23,6 +23,7 @@ use crate::extract::Extracted;
 use crate::genotype::{Call, Policy, State};
 use crate::gvcf::HeaderFacts;
 use crate::pack::{ReferenceIdentity, SourceFile, records_sha256};
+use crate::targets::TargetSet;
 use crate::{Error, Result, invalid};
 use sha2::{Digest, Sha256};
 
@@ -126,6 +127,8 @@ pub struct PolicyInfo {
     pub min_depth: f64,
     pub min_gq: f64,
     pub refcall_is_reference: bool,
+    #[serde(default)]
+    pub haploid_xy_as_homozygous: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -174,20 +177,16 @@ pub struct GenotypeTable {
 }
 
 impl GenotypeTable {
-    /// Build a table from the scan and one call per key (`calls[i]` is for `keys[i]`).
+    /// Build a table from the scan and one call per target key (`calls[i]` is for `targets.keys[i]`).
     pub fn new(
         gvcf: &Path,
         reference: &ReferenceIdentity,
-        packs: Vec<PackRef>,
-        keys: Vec<u64>,
-        sequences: Vec<(u64, Variant)>,
+        policy: &Policy,
+        targets: TargetSet,
         scanned: Extracted,
         calls: Vec<CompactCall>,
     ) -> GenotypeTable {
-        let policy = Policy {
-            refcall_is_reference: scanned.header.refcall_defined,
-            ..Policy::default()
-        };
+        let TargetSet { keys, sequences, packs } = targets;
         let mut states = BTreeMap::new();
         let mut refs = Vec::with_capacity(keys.len());
         let mut entries = Vec::with_capacity(keys.len());
@@ -217,6 +216,7 @@ impl GenotypeTable {
                     min_depth: policy.min_depth,
                     min_gq: policy.min_gq,
                     refcall_is_reference: policy.refcall_is_reference,
+                    haploid_xy_as_homozygous: policy.haploid_xy_as_homozygous,
                 },
                 sample: scanned.header,
                 gvcf: SourceFile {

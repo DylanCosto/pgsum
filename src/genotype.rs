@@ -42,6 +42,8 @@ pub struct Policy {
     /// Treat DeepVariant `FILTER=RefCall` on a `0/0` record as passing. Set only when the gVCF header
     /// defines the `RefCall` filter.
     pub refcall_is_reference: bool,
+    /// Read a haploid call on chrX or chrY (`1`) as homozygous (`1/1`), as DeepVariant writes male chrX.
+    pub haploid_xy_as_homozygous: bool,
 }
 
 impl Default for Policy {
@@ -51,6 +53,24 @@ impl Default for Policy {
             min_depth: 10.0,
             min_gq: 20.0,
             refcall_is_reference: false,
+            haploid_xy_as_homozygous: false,
+        }
+    }
+}
+
+impl Policy {
+    /// The default policy, with DeepVariant's `RefCall` convention when the gVCF defines it and, optionally,
+    /// haploid chrX/chrY calls read as homozygous (which changes the policy ID).
+    pub fn for_gvcf(refcall_is_reference: bool, haploid_xy_as_homozygous: bool) -> Policy {
+        Policy {
+            id: if haploid_xy_as_homozygous {
+                "pgsum-dp10-gq20-pass-haploid-xy-homozygous-v1"
+            } else {
+                Policy::default().id
+            },
+            refcall_is_reference,
+            haploid_xy_as_homozygous,
+            ..Policy::default()
         }
     }
 }
@@ -141,6 +161,8 @@ pub struct Target<'a> {
     /// A normalized indel or multi-base target: records' alleles are compared after normalization, and
     /// several passing reference blocks may together cover it.
     pub sequence: bool,
+    /// The target is on chrX or chrY, where `Policy::haploid_xy_as_homozygous` applies.
+    pub sex_chromosome: bool,
 }
 
 /// An assessed call.
@@ -176,6 +198,23 @@ pub fn assess(
     policy: &Policy,
     reference: impl Fn(u64, usize) -> Option<String>,
 ) -> Call {
+    let doubled: Vec<Record>;
+    let records = if policy.haploid_xy_as_homozygous && target.sex_chromosome && records.iter().any(|r| r.gt.len() == 1)
+    {
+        doubled = records
+            .iter()
+            .map(|r| {
+                let mut r = r.clone();
+                if r.gt.len() == 1 {
+                    r.gt.push(r.gt[0]);
+                }
+                r
+            })
+            .collect();
+        &doubled[..]
+    } else {
+        records
+    };
     let mut refcall_adapted = false;
     let mut filters: Vec<&[String]> = Vec::with_capacity(records.len());
     for record in records {
@@ -406,6 +445,7 @@ mod tests {
         ref_allele: "G",
         alt: Some("T"),
         sequence: false,
+        sex_chromosome: false,
     };
 
     fn state(records: &[Record]) -> State {
@@ -456,6 +496,7 @@ mod tests {
             ref_allele: "A",
             alt: Some("T"),
             sequence: false,
+            sex_chromosome: false,
         };
         assert_eq!(
             assess(&[block(1, 8)], &target, &Policy::default(), reference).state,
@@ -468,6 +509,28 @@ mod tests {
         let mut r = block(1, 8);
         r.ref_allele = "T".into();
         assert_eq!(state(&[r]), State::ReferenceAnchorMismatch);
+    }
+
+    #[test]
+    fn haploid_sex_chromosome_calls_only_with_the_policy() {
+        let mut haploid = variant([Some(1), None]);
+        haploid.gt = vec![Some(1)];
+        let x = Target {
+            sex_chromosome: true,
+            ..TARGET
+        };
+        assert_eq!(
+            assess(&[haploid.clone()], &x, &Policy::default(), reference).state,
+            State::UnsupportedPloidy
+        );
+        let policy = Policy::for_gvcf(false, true);
+        let call = assess(&[haploid.clone()], &x, &policy, reference);
+        assert_eq!((call.state, call.alt_dosage), (State::ObservedVariant, Some(2)));
+        // Autosomes stay diploid-only.
+        assert_eq!(
+            assess(&[haploid], &TARGET, &policy, reference).state,
+            State::UnsupportedPloidy
+        );
     }
 
     #[test]
@@ -523,6 +586,7 @@ mod tests {
             ref_allele: "GTA",
             alt: Some("G"),
             sequence: false,
+            sex_chromosome: false,
         };
         let call = assess(&[block(1, 4)], &target, &Policy::default(), reference);
         assert_eq!(call.state, State::IncompleteReferenceSpan);
@@ -546,6 +610,7 @@ mod tests {
             ref_allele: "G",
             alt: None,
             sequence: false,
+            sex_chromosome: false,
         };
         let mut r = variant([Some(1), Some(2)]);
         r.alts = vec!["T".into(), "C".into()];
@@ -562,6 +627,7 @@ mod tests {
             ref_allele: "ACG",
             alt: Some("A"),
             sequence: true,
+            sex_chromosome: false,
         };
         let covered = assess(&[block(1, 1), block(2, 5)], &target, &Policy::default(), reference);
         assert_eq!((covered.state, covered.alt_dosage), (State::ObservedReference, Some(0)));

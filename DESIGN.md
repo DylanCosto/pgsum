@@ -177,6 +177,13 @@ A record is a reference block when every ALT is `<NON_REF>`, `<*>` or `.`.
 
 Phase (`|` with a numeric `PS`) is preserved in the output but does not affect additive scoring.
 
+**Sex chromosomes.** DeepVariant writes a male's chrX and chrY as diploid calls (`1/1` for a hemizygous ALT,
+`0/0` for the reference; HG002 has 122,899 `1/1` and 4,846,880 `0/0` block calls outside the X
+pseudoautosomal regions), so these are scored like autosomes: a hemizygous ALT counts as two copies
+("dosage compensation"). Callers that write haploid calls (`1`) are rejected as `unsupported_ploidy` by
+default; `extract --haploid-xy-as-homozygous` reads a haploid chrX/chrY call as homozygous, and the genotype
+table's policy ID becomes `pgsum-dp10-gq20-pass-haploid-xy-homozygous-v1`. pgsum does not infer sex.
+
 ## Inferred other alleles (opt-in)
 
 2,214 of the 6,990 Catalog scores (September 2026) give only an effect allele. Their terms carry the review
