@@ -216,6 +216,30 @@ pub fn informational_description(description: &str) -> bool {
         || description.starts_with("Beta, estimated per allele log odds ratio adjusted for winner")
 }
 
+/// A `variant_description` that only names the variant with its FinnGen identifier
+/// (`FinnGen_VariantID=chr<C>_<POS>_<A>_<B>`, as in the Mars 2022 scores PGS002761 and PGS002768) is not a
+/// review reason when it restates the row: C and POS equal the author's `chr_name` (without `chr`) and
+/// `chr_position`, and {A, B} equals the effect and other allele pair. As in the reference implementation.
+pub fn finngen_identifier(description: &str, chr_name: &str, chr_position: &str, effect: &str, other: &str) -> bool {
+    let Some(rest) = description.strip_prefix("FinnGen_VariantID=chr") else {
+        return false;
+    };
+    let parts: Vec<&str> = rest.split('_').collect();
+    let [c, pos, a, b] = parts[..] else {
+        return false;
+    };
+    let digits = |t: &str| !t.is_empty() && t.bytes().all(|x| x.is_ascii_digit());
+    let bases = |t: &str| !t.is_empty() && t.bytes().all(|x| matches!(x, b'A' | b'C' | b'G' | b'T'));
+    let chrom_ok = (digits(c) && c.len() <= 2) || c == "X" || c == "Y";
+    if !(chrom_ok && digits(pos) && bases(a) && bases(b)) {
+        return false;
+    }
+    let chr = chr_name.trim();
+    let named: std::collections::BTreeSet<&str> = [a, b].into();
+    let row: std::collections::BTreeSet<&str> = [effect.trim(), other.trim()].into();
+    c == chr.strip_prefix("chr").unwrap_or(chr) && pos == chr_position.trim() && named == row
+}
+
 fn centred(description: &str) -> Option<Centred> {
     let rest = description.strip_prefix("weight_type=")?;
     let (weight_type, centre) = rest.split_once(";centre=")?;
@@ -274,9 +298,18 @@ pub fn describe<'a>(row: &Row<'a>, columns: &Columns) -> Description<'a> {
     } else {
         centred(description)
     };
+    let identifier = !description.is_empty()
+        && centred.is_none()
+        && finngen_identifier(
+            description,
+            row.opt(columns.chr_name),
+            row.opt(columns.chr_position),
+            row.get(columns.effect_allele),
+            row.opt(columns.other_allele),
+        );
     let informational_description =
-        !description.is_empty() && centred.is_none() && informational_description(description);
-    if !description.is_empty() && centred.is_none() {
+        !description.is_empty() && centred.is_none() && !identifier && informational_description(description);
+    if !description.is_empty() && centred.is_none() && !identifier {
         reasons.insert(Reason::VariantDescription);
     }
     if !row.opt(columns.imputation_method).trim().is_empty() {
@@ -411,6 +444,34 @@ mod tests {
         for bad in ["", "0", "23", "01", "+1", "chr1", "x"] {
             assert_eq!(contig_code(bad), 0, "{bad:?}");
         }
+    }
+
+    #[test]
+    fn finngen_identifiers() {
+        let f = |d: &str, c: &str, p: &str, e: &str, o: &str| finngen_identifier(d, c, p, e, o);
+        assert!(f("FinnGen_VariantID=chr1_1234_A_G", "1", "1234", "G", "A"));
+        assert!(f("FinnGen_VariantID=chrX_99_CT_C", "chrX", " 99 ", "CT", "C"));
+        assert!(
+            !f("FinnGen_VariantID=chr1_1234_A_G", "2", "1234", "G", "A"),
+            "another chromosome"
+        );
+        assert!(
+            !f("FinnGen_VariantID=chr1_1234_A_G", "1", "1235", "G", "A"),
+            "another position"
+        );
+        assert!(
+            !f("FinnGen_VariantID=chr1_1234_A_T", "1", "1234", "G", "A"),
+            "another allele"
+        );
+        assert!(
+            !f("FinnGen_VariantID=chr1_1234_A_G;x=1", "1", "1234", "G", "A"),
+            "more text"
+        );
+        assert!(
+            !f("FinnGen_VariantID=chr123_1_A_G", "123", "1", "G", "A"),
+            "three-digit chromosome"
+        );
+        assert!(!f("rs123", "1", "1", "A", "G"));
     }
 
     #[test]

@@ -66,6 +66,9 @@ pub struct Columns {
     pub inclusion_criteria: Option<usize>,
     pub variant_description: Option<usize>,
     pub imputation_method: Option<usize>,
+    /// The author's `chr_name` and `chr_position` (read by `term::finngen_identifier`).
+    pub chr_name: Option<usize>,
+    pub chr_position: Option<usize>,
     /// Accept `chr1` as well as `1` in the position columns (custom files).
     pub strip_chr_prefix: bool,
 }
@@ -123,6 +126,8 @@ impl Columns {
             inclusion_criteria: find("inclusion_criteria"),
             variant_description: find("variant_description"),
             imputation_method: find("imputation_method"),
+            chr_name: find("chr_name"),
+            chr_position: find("chr_position"),
             names,
         })
     }

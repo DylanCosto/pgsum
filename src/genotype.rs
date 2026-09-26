@@ -47,6 +47,9 @@ pub struct Policy {
     /// Accept a variant-record call that reports neither depth nor GQ (a genotype-only VCF: imputed,
     /// array or joint-called data) on its GT and FILTER alone. A record reporting either is still checked.
     pub accept_missing_quality: bool,
+    /// Read several records starting at the target's position as one multi-allelic record (see
+    /// `merge_split`), as when a panel splits multi-allelic sites into one record per ALT.
+    pub merge_split_records: bool,
 }
 
 impl Default for Policy {
@@ -58,6 +61,7 @@ impl Default for Policy {
             refcall_is_reference: false,
             haploid_xy_as_homozygous: false,
             accept_missing_quality: false,
+            merge_split_records: false,
         }
     }
 }
@@ -83,6 +87,148 @@ impl Policy {
             ..Policy::default()
         }
     }
+}
+
+impl Policy {
+    /// The same policy, reading split multi-allelic records as one (`merge_split_records`).
+    pub fn with_merge_split(mut self, on: bool) -> Policy {
+        self.merge_split_records = on;
+        self
+    }
+}
+
+/// Whether every ALT of a record is an indel that keeps its first base, so the record says nothing about the
+/// base at its position (an insertion or deletion anchored there).
+fn after_its_first_base(r: &Record) -> bool {
+    let first = r.ref_allele.as_bytes().first();
+    !r.alts.is_empty()
+        && r.alts
+            .iter()
+            .all(|a| a.len() != r.ref_allele.len() && !a.starts_with('<') && a.as_bytes().first() == first)
+}
+
+/// The smallest of a quality field across records, when every record reports it.
+fn least(values: impl Iterator<Item = Option<String>>) -> Option<String> {
+    let mut best: Option<(f64, String)> = None;
+    for v in values {
+        let v = v?;
+        let x = v.parse::<f64>().ok()?;
+        if best.as_ref().is_none_or(|(b, _)| x < *b) {
+            best = Some((x, v));
+        }
+    }
+    best.map(|(_, v)| v)
+}
+
+/// Records split from one multi-allelic site, read as that site: the records starting at the target's
+/// position are merged into one record (REF the longest of their REFs, each ALT extended to it, as
+/// `bcftools norm -m+` does), and for an SNV target the records there that are only indels after its base are
+/// set aside. A haplotype with ALT alleles in two records becomes a no-call; FILTER and FT keep any failure,
+/// and DP, MIN_DP and GQ the smallest value. Records starting elsewhere are kept as they are, so a deletion
+/// spanning the target still makes it ambiguous. Nothing is merged when the records don't fit together
+/// (different ploidy, a reference block or a symbolic ALT, REFs that are not prefixes of one another).
+pub fn merge_split(records: &[Record], target: &Target<'_>) -> Vec<Record> {
+    let (here, elsewhere): (Vec<&Record>, Vec<&Record>) = records.iter().partition(|r| r.pos == target.pos);
+    let here: Vec<&Record> = if target.sequence {
+        here
+    } else {
+        here.into_iter().filter(|r| !after_its_first_base(r)).collect()
+    };
+    let keep = |here: &[&Record]| elsewhere.iter().chain(here).map(|r| (*r).clone()).collect::<Vec<_>>();
+    if here.len() < 2 {
+        return keep(&here);
+    }
+    let longest = here
+        .iter()
+        .map(|r| &r.ref_allele)
+        .max_by_key(|r| r.len())
+        .expect("two records")
+        .clone();
+    let ploidy = here[0].gt.len();
+    let fits = here.iter().all(|r| {
+        longest.starts_with(r.ref_allele.as_str())
+            && r.gt.len() == ploidy
+            && !r.is_reference_block()
+            && r.alts.iter().all(|a| !a.starts_with('<'))
+    });
+    if !fits {
+        return keep(&here);
+    }
+    let mut alts: Vec<String> = Vec::new();
+    let index: Vec<Vec<u32>> = here
+        .iter()
+        .map(|r| {
+            let suffix = &longest[r.ref_allele.len()..];
+            r.alts
+                .iter()
+                .map(|a| {
+                    let extended = format!("{a}{suffix}");
+                    let i = match alts.iter().position(|x| *x == extended) {
+                        Some(i) => i,
+                        None => {
+                            alts.push(extended);
+                            alts.len() - 1
+                        }
+                    };
+                    i as u32 + 1
+                })
+                .collect()
+        })
+        .collect();
+    let gt = (0..ploidy)
+        .map(|h| {
+            let mut allele = Some(0u32);
+            for (r, map) in here.iter().zip(&index) {
+                match r.gt[h] {
+                    None => return None,
+                    Some(0) => {}
+                    Some(k) => {
+                        let combined = *map.get(k as usize - 1)?;
+                        allele = match allele {
+                            Some(0) => Some(combined),
+                            Some(prev) if prev == combined => Some(prev),
+                            _ => return None,
+                        };
+                    }
+                }
+            }
+            allele
+        })
+        .collect();
+    let failing: Vec<String> = here
+        .iter()
+        .flat_map(|r| r.filters.iter())
+        .filter(|f| *f != "PASS" && *f != ".")
+        .cloned()
+        .collect();
+    let merged = Record {
+        pos: target.pos,
+        end: target.pos + longest.len() as u64 - 1,
+        ref_allele: longest,
+        alts,
+        filters: if failing.is_empty() {
+            here[0].filters.clone()
+        } else {
+            failing
+        },
+        gt,
+        gt_phased: here.iter().all(|r| r.gt_phased),
+        phase_set: here
+            .iter()
+            .all(|r| r.phase_set == here[0].phase_set)
+            .then(|| here[0].phase_set.clone())
+            .flatten(),
+        ft: here
+            .iter()
+            .find_map(|r| r.ft.clone().filter(|f| f != "PASS" && f != "."))
+            .or_else(|| here[0].ft.clone()),
+        dp: least(here.iter().map(|r| r.dp.clone())),
+        min_dp: least(here.iter().map(|r| r.min_dp.clone())),
+        gq: least(here.iter().map(|r| r.gq.clone())),
+    };
+    let mut out: Vec<Record> = elsewhere.into_iter().cloned().collect();
+    out.push(merged);
+    out
 }
 
 /// The outcome for one target site.
@@ -222,6 +368,13 @@ pub fn assess(
             })
             .collect();
         &doubled[..]
+    } else {
+        records
+    };
+    let merged: Vec<Record>;
+    let records = if policy.merge_split_records && records.len() > 1 {
+        merged = merge_split(records, target);
+        &merged[..]
     } else {
         records
     };
@@ -505,6 +658,76 @@ mod tests {
             assess(&[b], &TARGET, &accepting, reference).state,
             State::QualityMissing
         );
+    }
+
+    fn split(pos: u64, r: &str, alt: &str, gt: [u32; 2]) -> Record {
+        Record {
+            pos,
+            end: pos + r.len() as u64 - 1,
+            ref_allele: r.into(),
+            alts: vec![alt.into()],
+            filters: vec!["PASS".into()],
+            gt: gt.iter().map(|&a| Some(a)).collect(),
+            gt_phased: true,
+            phase_set: None,
+            ft: None,
+            dp: Some("30".into()),
+            min_dp: None,
+            gq: Some("40".into()),
+        }
+    }
+
+    /// A multi-allelic site split into one record per ALT reads, with `merge_split_records`, as the site
+    /// itself: the same call as the native multi-allelic record.
+    #[test]
+    fn split_records_read_as_one_site() {
+        let merging = Policy::default().with_merge_split(true);
+        let call = |records: &[Record], target: &Target<'_>, policy: &Policy| {
+            let c = assess(records, target, policy, reference);
+            (c.state, c.alt_dosage)
+        };
+        // G>T carried on one haplotype, G>A on neither.
+        let site = [split(3, "G", "T", [0, 1]), split(3, "G", "A", [0, 0])];
+        assert_eq!(
+            call(&site, &TARGET, &Policy::default()).0,
+            State::AmbiguousOverlappingRecords
+        );
+        assert_eq!(call(&site, &TARGET, &merging), (State::ObservedVariant, Some(1)));
+        let native = Record {
+            alts: vec!["T".into(), "A".into()],
+            ..split(3, "G", "T", [0, 1])
+        };
+        assert_eq!(call(&site, &TARGET, &merging), call(&[native], &TARGET, &merging));
+        // T on one haplotype, A on the other: another allele is called, as for the native record.
+        let other = [split(3, "G", "T", [0, 1]), split(3, "G", "A", [1, 0])];
+        assert_eq!(call(&other, &TARGET, &merging).0, State::OtherCalledAllele);
+        // Two ALTs on one haplotype cannot both be true: no call.
+        let conflict = [split(3, "G", "T", [1, 0]), split(3, "G", "A", [1, 0])];
+        assert_eq!(call(&conflict, &TARGET, &merging).0, State::PartialNoCall);
+        // A deletion anchored at the target's base leaves that base alone.
+        let anchored = [split(3, "G", "T", [1, 1]), split(3, "GT", "G", [0, 1])];
+        assert_eq!(call(&anchored, &TARGET, &merging), (State::ObservedVariant, Some(2)));
+        // For the deletion itself (a sequence target) the records merge to REF GT, ALTs TT and G.
+        let deletion = Target {
+            pos: 3,
+            ref_allele: "GT",
+            alt: Some("G"),
+            sequence: true,
+            sex_chromosome: false,
+        };
+        // One haplotype carrying both the SNV and the deletion is a conflict in the merged record: no call.
+        assert_eq!(call(&anchored, &deletion, &merging).0, State::PartialNoCall);
+        // The SNV on one haplotype and the deletion on the other: another allele is called.
+        let apart = [split(3, "G", "T", [1, 0]), split(3, "GT", "G", [0, 1])];
+        assert_eq!(call(&apart, &deletion, &merging).0, State::OtherCalledAllele);
+        let only_deletion = [split(3, "G", "T", [0, 0]), split(3, "GT", "G", [0, 1])];
+        assert_eq!(
+            call(&only_deletion, &deletion, &merging),
+            (State::ObservedVariant, Some(1))
+        );
+        // A deletion starting before the target still spans it: ambiguous either way.
+        let spanning = [split(2, "CG", "C", [0, 1]), split(3, "G", "T", [0, 1])];
+        assert_eq!(call(&spanning, &TARGET, &merging).0, State::AmbiguousOverlappingRecords);
     }
 
     #[test]

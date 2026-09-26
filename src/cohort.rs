@@ -71,6 +71,8 @@ pub struct CohortOptions<'a> {
     pub accept_missing_quality: bool,
     /// Leave records whose ALTs are all structural-variant symbols out (see `extract::Options`).
     pub skip_structural_alleles: bool,
+    /// Read split multi-allelic records as one (see `genotype::merge_split`).
+    pub merge_split_records: bool,
     pub threads: usize,
 }
 
@@ -436,7 +438,8 @@ pub fn extract_cohort(
                         policy_refcall,
                         options.haploid_xy_as_homozygous,
                         options.accept_missing_quality,
-                    ),
+                    )
+                    .with_merge_split(options.merge_split_records),
                     reference,
                     lines: HashMap::new(),
                     next_line: 0,
@@ -498,7 +501,8 @@ pub fn extract_cohort(
         policy_refcall,
         options.haploid_xy_as_homozygous,
         options.accept_missing_quality,
-    );
+    )
+    .with_merge_split(options.merge_split_records);
     let header = Header {
         schema: SCHEMA.into(),
         pgsum_version: env!("CARGO_PKG_VERSION").into(),
@@ -510,8 +514,10 @@ pub fn extract_cohort(
             haploid_xy_as_homozygous: policy.haploid_xy_as_homozygous,
             accept_missing_quality: policy.accept_missing_quality,
             skip_structural_alleles: false,
+            merge_split_records: false,
         }
-        .with_structural_skipped(options.skip_structural_alleles),
+        .with_structural_skipped(options.skip_structural_alleles)
+        .with_split_merged(options.merge_split_records),
         samples,
         gvcf: SourceFile {
             name: vcf

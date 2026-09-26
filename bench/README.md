@@ -74,6 +74,8 @@ sample.
 | Phase 3, lifted | 64 | 26 | 93.7% (41%) | 209 s |
 | NYGC 30× | 64 | 0 | 75.4% (34%) | 322 s |
 | NYGC 30×, `--skip-structural-alleles` | 64 | 2 | 92.6% (44%) | 335 s |
+| Phase 3, `--merge-split-records` | 64 | 26 | 93.7% (41%) | 178 s |
+| NYGC 30×, both options | 64 | 2 | 92.8% (44%) | 279 s |
 
 The 30× release carries structural variants as symbolic records spanning many kilobases; every score site
 under one has two overlapping records, which pgsum's genotype rules call ambiguous, so the site is unusable
@@ -83,8 +85,12 @@ multi-allelic sites into separate records five times as often (37,292 positions 
 calls more indels over SNVs, and a single ambiguous panel sample at a site removes the term. For the two
 scores that meet the guideline on both panels the EUR percentiles agree within 0.2 points.
 
-With the current rules phase 3 gives the fuller comparison. A rule for split multi-allelic records (each
-record's genotype read for its own ALT) would be needed for the 30× panel to match it.
+`--merge-split-records` reads records split from one multi-allelic site as that site; it cuts ambiguous
+calls by 73% on the 30× panel and 71% on phase 3, but not the number of scores meeting the guideline. What
+limits both panels now is the rule that a term is used only when every one of the 2,504 panel samples has a
+passing call there: one sample carrying a third allele, or a site absent from the panel, removes the term
+(the 30× release has more of both: 639 against 500 million `other_called_allele` calls and 360 against 202
+million target calls without a record). With the current rules phase 3 gives the fuller comparison.
 
 ## plink2 `--score` (2026-09-25)
 

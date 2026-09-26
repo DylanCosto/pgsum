@@ -16,6 +16,7 @@ fn opts(targets_cache: Option<&Path>, haploid_xy_as_homozygous: bool, scan: Scan
         haploid_xy_as_homozygous,
         accept_missing_quality: false,
         skip_structural_alleles: false,
+        merge_split_records: false,
         sample: None,
         scan,
         threads: 2,

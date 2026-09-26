@@ -207,6 +207,11 @@ enum Command {
         /// Genomes release. Recorded in the policy ID.
         #[arg(long)]
         skip_structural_alleles: bool,
+        /// Read records that start at the same position (a multi-allelic site split into one record per ALT) as
+        /// one multi-allelic record, instead of calling the site ambiguous; for panels written that way, such as
+        /// the 30× 1000 Genomes release. Recorded in the policy ID.
+        #[arg(long)]
+        merge_split_records: bool,
     },
     /// Score packs against an extracted genotype table.
     Score {
@@ -278,6 +283,11 @@ enum Command {
         /// Genomes release. Recorded in the policy ID.
         #[arg(long)]
         skip_structural_alleles: bool,
+        /// Read records that start at the same position (a multi-allelic site split into one record per ALT) as
+        /// one multi-allelic record, instead of calling the site ambiguous; for panels written that way, such as
+        /// the 30× 1000 Genomes release. Recorded in the policy ID.
+        #[arg(long)]
+        merge_split_records: bool,
         /// Also score terms without an author other allele, using the orientation their pack inferred.
         #[arg(long)]
         allow_inferred_other_allele: bool,
@@ -338,6 +348,7 @@ fn main() -> ExitCode {
             sample,
             accept_missing_quality,
             skip_structural_alleles,
+            merge_split_records,
             all_samples,
         } => packs.resolve().and_then(|packs| {
             if all_samples {
@@ -346,6 +357,7 @@ fn main() -> ExitCode {
                     haploid_xy_as_homozygous,
                     accept_missing_quality,
                     skip_structural_alleles,
+                    merge_split_records,
                     threads,
                 };
                 return extract_cohort(&gvcf, &reference, &packs, &out, &options);
@@ -355,6 +367,7 @@ fn main() -> ExitCode {
                 haploid_xy_as_homozygous,
                 accept_missing_quality,
                 skip_structural_alleles,
+                merge_split_records,
                 sample: sample.as_deref(),
                 scan,
                 threads,
@@ -399,6 +412,7 @@ fn main() -> ExitCode {
             sample,
             accept_missing_quality,
             skip_structural_alleles,
+            merge_split_records,
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
@@ -417,6 +431,7 @@ fn main() -> ExitCode {
                 haploid_xy_as_homozygous,
                 accept_missing_quality,
                 skip_structural_alleles,
+                merge_split_records,
                 sample: sample.as_deref(),
                 scan,
                 threads,

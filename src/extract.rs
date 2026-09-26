@@ -67,6 +67,8 @@ pub struct Options<'a> {
     /// Leave records whose ALTs are all structural-variant symbols (`<DEL>`, `<INV>`, …) out, so they do not
     /// make every target they span ambiguous (panels that carry SVs, such as the 30× 1000 Genomes release).
     pub skip_structural_alleles: bool,
+    /// Read split multi-allelic records as one multi-allelic record (see `genotype::merge_split`).
+    pub merge_split_records: bool,
     /// The sample to read from a multi-sample VCF.
     pub sample: Option<&'a str>,
     pub scan: ScanMode,
@@ -888,7 +890,8 @@ pub fn extract(
         scanned.header.refcall_defined,
         options.haploid_xy_as_homozygous,
         options.accept_missing_quality,
-    );
+    )
+    .with_merge_split(options.merge_split_records);
     let calls = assess(&set.keys, &set.sequences, &scanned, reference, &policy, options.threads)?;
     timings.assess_s = t.elapsed().as_secs_f64();
     let t = Instant::now();
@@ -897,7 +900,8 @@ pub fn extract(
         .header
         .policy
         .clone()
-        .with_structural_skipped(options.skip_structural_alleles);
+        .with_structural_skipped(options.skip_structural_alleles)
+        .with_split_merged(options.merge_split_records);
     timings.table_s = t.elapsed().as_secs_f64();
     Ok((table, timings))
 }

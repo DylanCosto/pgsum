@@ -157,6 +157,10 @@ pub struct PolicyInfo {
     /// ends in `-skip-structural`.
     #[serde(default)]
     pub skip_structural_alleles: bool,
+    /// Split multi-allelic records were read as one (`--merge-split-records`); the ID then ends in
+    /// `-merge-split`.
+    #[serde(default)]
+    pub merge_split_records: bool,
 }
 
 impl PolicyInfo {
@@ -165,6 +169,14 @@ impl PolicyInfo {
         if skipped && !self.skip_structural_alleles {
             self.skip_structural_alleles = true;
             self.id.push_str("-skip-structural");
+        }
+        self
+    }
+    /// Record `--merge-split-records` in the policy.
+    pub fn with_split_merged(mut self, merged: bool) -> Self {
+        if merged && !self.merge_split_records {
+            self.merge_split_records = true;
+            self.id.push_str("-merge-split");
         }
         self
     }
@@ -504,6 +516,7 @@ impl GenotypeTable {
                     haploid_xy_as_homozygous: policy.haploid_xy_as_homozygous,
                     accept_missing_quality: policy.accept_missing_quality,
                     skip_structural_alleles: false,
+                    merge_split_records: false,
                 },
                 sample: scanned.header,
                 gvcf: SourceFile {

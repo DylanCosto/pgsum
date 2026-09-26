@@ -47,6 +47,7 @@ each validated on real data and labelled in every result that uses it (see DESIG
 | `extract --haploid-xy-as-homozygous` | sit on haploid chrX/chrY calls from callers that write them |
 | `extract --accept-missing-quality` | come from genotype-only VCFs (imputed, array, joint-called: `GT` without depth or GQ) |
 | `extract --skip-structural-alleles` | sit under structural-variant records (`<DEL>`, `<INV>`, …) in panels that carry them |
+| `extract --merge-split-records` | sit at multi-allelic sites a panel splits into one record per ALT |
 
 ## Install
 

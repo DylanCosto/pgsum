@@ -201,6 +201,11 @@ from the flags. Contribution for effect-allele dosage `d ∈ {0,1,2}`:
 - recessive: `w × [d = 2]`
 - dosage_weights: `dosage_d_weight`
 
+A `variant_description` of the form `FinnGen_VariantID=chr<C>_<POS>_<A>_<B>` (the Mars 2022 FinnGen scores,
+PGS002761 and PGS002768) is not a review reason when C and POS equal the author's `chr_name` (without `chr`)
+and `chr_position` and {A, B} is the effect/other allele pair, as in the reference implementation since
+2026-09-26 (`COMPILE_RULES` `2026-09-26.finngen-identifier`).
+
 ## Orientation (compile time)
 
 - **SNVs:** compare the reference base at `hm_pos` with the effect and other alleles, directly and
@@ -256,6 +261,16 @@ breakends; not `<*>` or `<NON_REF>`) spans every target inside it, making each o
 matching (they still count for record order and in `records_scanned`), and the policy ID gains
 `-skip-structural`. It is meant for genotype panels such as the 30× 1000 Genomes release; a sample carrying the
 SV is then read from the small-variant records alone.
+
+**Split multi-allelic records.** Panels often split a multi-allelic site into one record per ALT, so a target
+there has several overlapping records and is `ambiguous_overlapping_records`. With `--merge-split-records`
+(policy ID `-merge-split`) the records starting at the target's position are read as one multi-allelic
+record, as `bcftools norm -m+` would write it: REF the longest of their REFs and each ALT extended to it; a
+haplotype with ALT alleles in two records is a no-call; FILTER and FT keep any failure; DP, MIN_DP and GQ the
+smallest value. For an SNV target, records there that are only indels after its base (anchored insertions
+and deletions) are set aside first. The merged record then goes through the single-record rules, so a split
+site gets exactly the call its native multi-allelic record would (`genotype::tests`). Records starting before
+the target, such as a deletion spanning it, still make it ambiguous.
 
 **Genotype-only VCFs.** Imputed, array and joint-called VCFs often carry only `GT`, so every call is
 `quality_missing` by default. `extract --accept-missing-quality` accepts a variant record that reports
