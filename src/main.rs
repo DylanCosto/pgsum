@@ -202,6 +202,11 @@ enum Command {
         /// array or joint-called data). Recorded in the table's policy ID.
         #[arg(long)]
         accept_missing_quality: bool,
+        /// Leave out records whose ALTs are all structural-variant symbols (`<DEL>`, `<INV>`, …, breakends), which
+        /// otherwise make every target they span ambiguous; for panels that carry SVs, such as the 30× 1000
+        /// Genomes release. Recorded in the policy ID.
+        #[arg(long)]
+        skip_structural_alleles: bool,
     },
     /// Score packs against an extracted genotype table.
     Score {
@@ -268,6 +273,11 @@ enum Command {
         /// array or joint-called data). Recorded in the table's policy ID.
         #[arg(long)]
         accept_missing_quality: bool,
+        /// Leave out records whose ALTs are all structural-variant symbols (`<DEL>`, `<INV>`, …, breakends), which
+        /// otherwise make every target they span ambiguous; for panels that carry SVs, such as the 30× 1000
+        /// Genomes release. Recorded in the policy ID.
+        #[arg(long)]
+        skip_structural_alleles: bool,
         /// Also score terms without an author other allele, using the orientation their pack inferred.
         #[arg(long)]
         allow_inferred_other_allele: bool,
@@ -327,6 +337,7 @@ fn main() -> ExitCode {
             scan,
             sample,
             accept_missing_quality,
+            skip_structural_alleles,
             all_samples,
         } => packs.resolve().and_then(|packs| {
             if all_samples {
@@ -334,6 +345,7 @@ fn main() -> ExitCode {
                     targets_cache: targets_cache.as_deref(),
                     haploid_xy_as_homozygous,
                     accept_missing_quality,
+                    skip_structural_alleles,
                     threads,
                 };
                 return extract_cohort(&gvcf, &reference, &packs, &out, &options);
@@ -342,6 +354,7 @@ fn main() -> ExitCode {
                 targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
                 accept_missing_quality,
+                skip_structural_alleles,
                 sample: sample.as_deref(),
                 scan,
                 threads,
@@ -385,6 +398,7 @@ fn main() -> ExitCode {
             scan,
             sample,
             accept_missing_quality,
+            skip_structural_alleles,
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
@@ -402,6 +416,7 @@ fn main() -> ExitCode {
                 targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
                 accept_missing_quality,
+                skip_structural_alleles,
                 sample: sample.as_deref(),
                 scan,
                 threads,

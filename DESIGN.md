@@ -250,6 +250,13 @@ pseudoautosomal regions), so these are scored like autosomes: a hemizygous ALT c
 default; `extract --haploid-xy-as-homozygous` reads a haploid chrX/chrY call as homozygous, and the genotype
 table's policy ID becomes `pgsum-dp10-gq20-pass-haploid-xy-homozygous-v1`. pgsum does not infer sex.
 
+**Structural-variant records.** A record whose ALTs are all structural symbols (`<DEL>`, `<INV>`, `<INS:…>`,
+breakends; not `<*>` or `<NON_REF>`) spans every target inside it, making each one
+`ambiguous_overlapping_records`. `extract --skip-structural-alleles` leaves such records out of target
+matching (they still count for record order and in `records_scanned`), and the policy ID gains
+`-skip-structural`. It is meant for genotype panels such as the 30× 1000 Genomes release; a sample carrying the
+SV is then read from the small-variant records alone.
+
 **Genotype-only VCFs.** Imputed, array and joint-called VCFs often carry only `GT`, so every call is
 `quality_missing` by default. `extract --accept-missing-quality` accepts a variant record that reports
 neither depth nor GQ on its GT and FILTER alone; a record that reports either is still checked against both

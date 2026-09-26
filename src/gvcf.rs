@@ -113,6 +113,16 @@ pub struct Interval<'a> {
     pub chrom: &'a str,
     pub pos: u64,
     pub end: u64,
+    pub alt: &'a str,
+}
+
+/// Whether every ALT allele of a record is a structural-variant symbol (`<DEL>`, `<INV>`, …) or a breakend;
+/// the gVCF placeholders `<*>` and `<NON_REF>` are not.
+pub fn is_structural(alt: &str) -> bool {
+    !alt.is_empty()
+        && alt
+            .split(',')
+            .all(|a| (a.starts_with('<') && a != "<*>" && a != "<NON_REF>") || a.contains('[') || a.contains(']'))
 }
 
 fn parse_u64(text: &str) -> Option<u64> {
@@ -149,7 +159,7 @@ pub fn interval(line: &str) -> Result<Interval<'_>> {
     let pos_text = next()?;
     let _id = next()?;
     let ref_allele = next()?;
-    let _alt = next()?;
+    let alt = next()?;
     let _qual = next()?;
     let _filter = next()?;
     let info = next()?;
@@ -163,7 +173,7 @@ pub fn interval(line: &str) -> Result<Interval<'_>> {
     if end < pos {
         return invalid!("record end {end} is before POS {pos}");
     }
-    Ok(Interval { chrom, pos, end })
+    Ok(Interval { chrom, pos, end, alt })
 }
 
 fn valid_gt(gt: &str) -> bool {
@@ -230,6 +240,16 @@ pub fn parse_record(line: &str) -> Result<Record> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn structural_alleles() {
+        for alt in ["<DEL>", "<INS:ME:ALU>", "<DUP>,<INV>", "G]17:198982]", "]13:123456]T"] {
+            assert!(is_structural(alt), "{alt}");
+        }
+        for alt in ["T", "<*>", "<NON_REF>", "C,<*>", "<DEL>,T", "."] {
+            assert!(!is_structural(alt), "{alt}");
+        }
+    }
 
     #[test]
     fn block_and_variant_records() {

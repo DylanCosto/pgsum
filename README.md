@@ -46,6 +46,7 @@ each validated on real data and labelled in every result that uses it (see DESIG
 | `--accept-informational-descriptions` | carry a `variant_description` that is only an annotation |
 | `extract --haploid-xy-as-homozygous` | sit on haploid chrX/chrY calls from callers that write them |
 | `extract --accept-missing-quality` | come from genotype-only VCFs (imputed, array, joint-called: `GT` without depth or GQ) |
+| `extract --skip-structural-alleles` | sit under structural-variant records (`<DEL>`, `<INV>`, …) in panels that carry them |
 
 ## Install
 
@@ -112,6 +113,11 @@ pgsum extract --gvcf 1kgp.vcf.gz --all-samples --accept-missing-quality --refere
 pgsum score --genotypes sample.pgsg --pack packs/ --out results/ \
     --reference-panel 1kgp.pgsc --reference-groups integrated_call_samples_v3.20130502.ALL.panel
 ```
+
+Which panel: 1000 Genomes phase 3 lifted to GRCh38 currently gives the fuller comparison. The 30× release
+calls sites more like a modern WGS genome, but it carries structural variants (pass
+`--skip-structural-alleles` when extracting it) and splits multi-allelic sites, which pgsum's rules treat as
+ambiguous, so fewer terms match (`bench/README.md`, "Reference panels").
 
 Each result then has `reference` (matched terms and coverage, percentile among all panel samples and within
 each group, group mean, SD and z-score) and `ancestry` (the nearest group), and `scores.tsv` gains the

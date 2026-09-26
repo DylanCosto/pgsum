@@ -62,6 +62,30 @@ sites plink2 scores; the tools differ in which sites they use: pgsum does not sc
 where the file has several records at one position (split multi-allelic sites), and it scores multi-allelic
 sites written as one record, which plink2 cannot match to `chr:pos:ref:alt` IDs.
 
+## Reference panels (2026-09-26)
+
+HG002 placed among the 2,504 unrelated 1000 Genomes samples for the same 100 scores, with two versions of
+the panel: phase 3 lifted to GRCh38 (low coverage, imputed) and the NYGC 30× release (native GRCh38,
+`20220422_3202_phased_SNV_INDEL_SV`). A term is used only if it is scorable in HG002 and in every panel
+sample.
+
+| Panel | Placed | Meet the 99% guideline | Matched weight, median (min) | Extract, 2,504/3,202 samples |
+|---|---|---|---|---|
+| Phase 3, lifted | 64 | 26 | 93.7% (41%) | 209 s |
+| NYGC 30× | 64 | 0 | 75.4% (34%) | 322 s |
+| NYGC 30×, `--skip-structural-alleles` | 64 | 2 | 92.6% (44%) | 335 s |
+
+The 30× release carries structural variants as symbolic records spanning many kilobases; every score site
+under one has two overlapping records, which pgsum's genotype rules call ambiguous, so the site is unusable
+for all samples (23% of target calls). `--skip-structural-alleles` leaves those records out and recovers most
+of the matched weight, but fewer scores reach the guideline than with phase 3: the 30× release also splits
+multi-allelic sites into separate records five times as often (37,292 positions on chr22 against 7,169) and
+calls more indels over SNVs, and a single ambiguous panel sample at a site removes the term. For the two
+scores that meet the guideline on both panels the EUR percentiles agree within 0.2 points.
+
+With the current rules phase 3 gives the fuller comparison. A rule for split multi-allelic records (each
+record's genotype read for its own ALT) would be needed for the 30× panel to match it.
+
 ## plink2 `--score` (2026-09-25)
 
 Same machine (12-core Mac, 26 GB RAM), same sample (GIAB HG002, DeepVariant gVCF), same scores, same

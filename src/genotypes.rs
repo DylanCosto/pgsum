@@ -153,6 +153,21 @@ pub struct PolicyInfo {
     pub haploid_xy_as_homozygous: bool,
     #[serde(default)]
     pub accept_missing_quality: bool,
+    /// Records whose ALTs were all structural symbols were left out (`--skip-structural-alleles`); the ID then
+    /// ends in `-skip-structural`.
+    #[serde(default)]
+    pub skip_structural_alleles: bool,
+}
+
+impl PolicyInfo {
+    /// Record `--skip-structural-alleles` in the policy.
+    pub fn with_structural_skipped(mut self, skipped: bool) -> Self {
+        if skipped && !self.skip_structural_alleles {
+            self.skip_structural_alleles = true;
+            self.id.push_str("-skip-structural");
+        }
+        self
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -488,6 +503,7 @@ impl GenotypeTable {
                     refcall_is_reference: policy.refcall_is_reference,
                     haploid_xy_as_homozygous: policy.haploid_xy_as_homozygous,
                     accept_missing_quality: policy.accept_missing_quality,
+                    skip_structural_alleles: false,
                 },
                 sample: scanned.header,
                 gvcf: SourceFile {

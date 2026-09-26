@@ -64,6 +64,9 @@ pub struct Options<'a> {
     pub haploid_xy_as_homozygous: bool,
     /// Accept calls that report neither depth nor GQ (genotype-only VCFs).
     pub accept_missing_quality: bool,
+    /// Leave records whose ALTs are all structural-variant symbols (`<DEL>`, `<INV>`, …) out, so they do not
+    /// make every target they span ambiguous (panels that carry SVs, such as the 30× 1000 Genomes release).
+    pub skip_structural_alleles: bool,
     /// The sample to read from a multi-sample VCF.
     pub sample: Option<&'a str>,
     pub scan: ScanMode,
@@ -103,6 +106,9 @@ pub(crate) struct Collector<'a> {
     /// Sample columns in the file, and whether its header defines DeepVariant's `RefCall` filter.
     samples: usize,
     refcall_defined: bool,
+    /// Leave records whose ALTs are all structural symbols out of target matching (see `Options`).
+    pub(crate) skip_structural: bool,
+    pub(crate) structural_skipped: u64,
 }
 
 impl<'a> Collector<'a> {
@@ -152,6 +158,8 @@ impl<'a> Collector<'a> {
             last_code: None,
             samples: header.samples,
             refcall_defined: header.refcall_defined,
+            skip_structural: false,
+            structural_skipped: 0,
         }
     }
 
@@ -181,6 +189,10 @@ impl<'a> Collector<'a> {
             return invalid!("records are not sorted by position");
         }
         self.current.1 = span.pos;
+        if self.skip_structural && gvcf::is_structural(span.alt) {
+            self.structural_skipped += 1;
+            return Ok(());
+        }
         let (keys, ends) = (self.keys, self.ends);
         let end_of_contig = self.contig_ranges[code as usize].1;
         // Targets ending before this record's POS can't overlap it or any later record; with spans up to
@@ -251,6 +263,7 @@ impl<'a> Collector<'a> {
         }
         self.records_scanned += scan.records;
         self.canonical_records += scan.canonical_records;
+        self.structural_skipped += scan.structural_skipped;
         Ok(())
     }
 
@@ -301,6 +314,7 @@ pub(crate) struct ChunkScan {
     canonical_records: u64,
     /// Runs of records on one contig: code, first and last POS, and the line (in the chunk) of the first.
     pub(crate) segments: Vec<(u8, u64, u64, u64)>,
+    pub(crate) structural_skipped: u64,
 }
 
 /// Find the records of a chunk of whole lines that overlap targets, as `Collector::record` would. Errors
@@ -347,6 +361,10 @@ fn scan_chunk(chunk: &[u8], c: &Collector) -> std::result::Result<ChunkScan, (u6
                 cursor = lo + keys[lo..hi].partition_point(|&k| key_position(k).1 as u64 + c.max_span < span.pos);
                 end_of_contig = hi;
             }
+        }
+        if c.skip_structural && gvcf::is_structural(span.alt) {
+            out.structural_skipped += 1;
+            continue;
         }
         while cursor < end_of_contig && key_position(keys[cursor]).1 as u64 + c.max_span < span.pos {
             cursor += 1;
@@ -396,7 +414,15 @@ pub fn scan(gvcf: &Path, keys: &[u64], ends: &[u64], options: &Options) -> Resul
                     100.0 * share.min(1.0),
                     index.path.display()
                 );
-                return scan_indexed(gvcf, keys, ends, options.sample, &index, &chunks);
+                return scan_indexed(
+                    gvcf,
+                    keys,
+                    ends,
+                    options.sample,
+                    options.skip_structural_alleles,
+                    &index,
+                    &chunks,
+                );
             }
             Ok(Some((_, _, share))) => eprintln!(
                 "  reading the whole gVCF: the targets need about {:.1}% of it",
@@ -414,7 +440,14 @@ pub fn scan(gvcf: &Path, keys: &[u64], ends: &[u64], options: &Options) -> Resul
             Err(e) => eprintln!("pgsum: not using the gVCF index ({e}); reading the whole file"),
         }
     }
-    scan_full(gvcf, keys, ends, options.sample, options.threads)
+    scan_full(
+        gvcf,
+        keys,
+        ends,
+        options.sample,
+        options.threads,
+        options.skip_structural_alleles,
+    )
 }
 
 /// The index, the merged chunks the targets need, and their share of the compressed file; `None` without an
@@ -475,6 +508,7 @@ fn scan_indexed(
     keys: &[u64],
     ends: &[u64],
     sample: Option<&str>,
+    skip_structural: bool,
     index: &Index,
     chunks: &[Chunk],
 ) -> Result<Extracted> {
@@ -504,6 +538,7 @@ fn scan_indexed(
         return invalid!("{}: no records on chr1–chr22, chrX, chrY or chrM", index.path.display());
     }
     let mut collector = Collector::new(keys, ends, &header);
+    collector.skip_structural = skip_structural;
     for chunk in chunks {
         reader
             .seek(noodles_bgzf::VirtualPosition::from(chunk.start))
@@ -567,15 +602,27 @@ fn compression(path: &Path) -> Result<Compression> {
 
 /// Read the whole file once: bgzipped VCFs are decompressed on `threads` threads, plain gzip and
 /// uncompressed VCFs are read on one.
-fn scan_full(gvcf: &Path, keys: &[u64], ends: &[u64], sample: Option<&str>, threads: usize) -> Result<Extracted> {
+fn scan_full(
+    gvcf: &Path,
+    keys: &[u64],
+    ends: &[u64],
+    sample: Option<&str>,
+    threads: usize,
+    skip_structural: bool,
+) -> Result<Extracted> {
     let header = HeaderFacts {
         requested_sample: sample.map(str::to_owned),
         ..HeaderFacts::default()
     };
-    let (header, collector, digest, bytes) =
-        stream_records(gvcf, keys, ends, header, threads, |c, scan, lines_before| {
-            c.merge(scan, lines_before)
-        })?;
+    let (header, collector, digest, bytes) = stream_records(
+        gvcf,
+        keys,
+        ends,
+        header,
+        threads,
+        skip_structural,
+        |c, scan, lines_before| c.merge(scan, lines_before),
+    )?;
     Ok(collector.finish(header, digest, bytes))
 }
 
@@ -588,6 +635,7 @@ pub(crate) fn stream_records<'a>(
     ends: &'a [u64],
     mut header: HeaderFacts,
     threads: usize,
+    skip_structural: bool,
     mut on_scan: impl FnMut(&mut Collector<'a>, ChunkScan, u64) -> std::result::Result<(), (u64, Error)>,
 ) -> Result<(HeaderFacts, Collector<'a>, String, u64)> {
     let file = File::open(gvcf).map_err(Error::io(gvcf))?;
@@ -641,6 +689,7 @@ pub(crate) fn stream_records<'a>(
     // Records: chunks of whole lines, parsed in parallel a batch at a time and handed on in file order, so the
     // result is the same as reading line by line.
     let mut collector = Collector::new(keys, ends, &header);
+    collector.skip_structural = skip_structural;
     let batch_len = 2 * threads.max(1);
     let mut carry: Vec<u8> = Vec::new();
     let mut eof = false;
@@ -843,7 +892,12 @@ pub fn extract(
     let calls = assess(&set.keys, &set.sequences, &scanned, reference, &policy, options.threads)?;
     timings.assess_s = t.elapsed().as_secs_f64();
     let t = Instant::now();
-    let table = GenotypeTable::new(gvcf, reference_identity, &policy, set, scanned, calls);
+    let mut table = GenotypeTable::new(gvcf, reference_identity, &policy, set, scanned, calls);
+    table.header.policy = table
+        .header
+        .policy
+        .clone()
+        .with_structural_skipped(options.skip_structural_alleles);
     timings.table_s = t.elapsed().as_secs_f64();
     Ok((table, timings))
 }

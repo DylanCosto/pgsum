@@ -69,6 +69,8 @@ pub struct CohortOptions<'a> {
     pub targets_cache: Option<&'a Path>,
     pub haploid_xy_as_homozygous: bool,
     pub accept_missing_quality: bool,
+    /// Leave records whose ALTs are all structural-variant symbols out (see `extract::Options`).
+    pub skip_structural_alleles: bool,
     pub threads: usize,
 }
 
@@ -420,6 +422,7 @@ pub fn extract_cohort(
         &ends,
         header,
         options.threads,
+        options.skip_structural_alleles,
         |collector: &mut Collector, scan: ChunkScan, lines_before: u64| {
             collector.check_order(&scan, lines_before)?;
             let w = window.get_or_insert_with(|| {
@@ -506,7 +509,9 @@ pub fn extract_cohort(
             refcall_is_reference: policy.refcall_is_reference,
             haploid_xy_as_homozygous: policy.haploid_xy_as_homozygous,
             accept_missing_quality: policy.accept_missing_quality,
-        },
+            skip_structural_alleles: false,
+        }
+        .with_structural_skipped(options.skip_structural_alleles),
         samples,
         gvcf: SourceFile {
             name: vcf
