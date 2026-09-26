@@ -28,17 +28,27 @@ use crate::{Error, Result, invalid};
 use sha2::{Digest, Sha256};
 
 pub const MAGIC: &[u8; 8] = b"PGSUMGT1";
-pub const SCHEMA: &str = "pgsum-genotypes-v2";
-/// Earlier schema still read: v1 has no sequence targets.
+pub const SCHEMA: &str = "pgsum-genotypes-v3";
+/// Earlier schemas still read. v1 has no sequence targets; v1 and v2 pack keys as contig << 40 | pos << 8 |
+/// 8 low bits (sequence flag 0x80, so at most 128 sequence targets per position) and are converted on reading.
+pub const SCHEMA_V2: &str = "pgsum-genotypes-v2";
 pub const SCHEMA_V1: &str = "pgsum-genotypes-v1";
 
-/// Bit set in the key of a sequence (indel or multi-base) target; SNV keys never set it.
-pub const SEQUENCE_FLAG: u64 = 0x80;
+/// Target keys are contig << 48 | pos << 16 | 16 low bits, so keys sort by (contig, pos) and then by the low
+/// bits: REF and ALT codes for an SNV, or the sequence flag and an index for a sequence target.
+const CONTIG_SHIFT: u32 = 48;
+const POS_SHIFT: u32 = 16;
 
-/// Key of the `index`-th distinct sequence target at a position (at most 128 per position).
-pub fn sequence_key(contig: u8, pos: u32, index: u8) -> u64 {
-    debug_assert!(index < 0x80);
-    (contig as u64) << 40 | (pos as u64) << 8 | SEQUENCE_FLAG | index as u64
+/// Bit set in the key of a sequence (indel or multi-base) target; SNV keys never set it.
+pub const SEQUENCE_FLAG: u64 = 0x8000;
+
+/// Distinct sequence targets a position can hold.
+pub const MAX_SEQUENCES_PER_POSITION: usize = 0x8000;
+
+/// Key of the `index`-th distinct sequence target at a position.
+pub fn sequence_key(contig: u8, pos: u32, index: u16) -> u64 {
+    debug_assert!((index as usize) < MAX_SEQUENCES_PER_POSITION);
+    (contig as u64) << CONTIG_SHIFT | (pos as u64) << POS_SHIFT | SEQUENCE_FLAG | index as u64
 }
 
 pub fn is_sequence_key(key: u64) -> bool {
@@ -47,7 +57,14 @@ pub fn is_sequence_key(key: u64) -> bool {
 
 /// Contig code and position of any target key.
 pub fn key_position(key: u64) -> (u8, u32) {
-    ((key >> 40) as u8, (key >> 8) as u32)
+    ((key >> CONTIG_SHIFT) as u8, (key >> POS_SHIFT) as u32)
+}
+
+/// A key from a v1 or v2 genotype table in the current layout.
+fn upgrade_v2_key(key: u64) -> u64 {
+    let (contig, pos, low) = ((key >> 40) as u8, (key >> 8) as u32, key & 0xff);
+    let low = if low & 0x80 != 0 { SEQUENCE_FLAG | (low & 0x7f) } else { low };
+    (contig as u64) << CONTIG_SHIFT | (pos as u64) << POS_SHIFT | low
 }
 
 const BASES: [u8; 4] = *b"ACGT";
@@ -63,7 +80,7 @@ pub const ANY_ALT: u8 = b'*';
 /// of `ANY_ALT` sets bit 2 and sorts after the specific ALTs.
 pub fn target_key(contig: u8, pos: u32, ref_base: u8, alt_base: u8) -> u64 {
     let alt = if alt_base == ANY_ALT { 4 } else { base_code(alt_base) };
-    (contig as u64) << 40 | (pos as u64) << 8 | base_code(ref_base) << 4 | alt
+    (contig as u64) << CONTIG_SHIFT | (pos as u64) << POS_SHIFT | base_code(ref_base) << 4 | alt
 }
 
 /// `(contig, pos, REF, ALT)` from a target key; ALT is `ANY_ALT` for an any-allele target.
@@ -74,8 +91,8 @@ pub fn unpack_key(key: u64) -> (u8, u32, u8, u8) {
         BASES[(key & 3) as usize]
     };
     (
-        (key >> 40) as u8,
-        (key >> 8) as u32,
+        (key >> CONTIG_SHIFT) as u8,
+        (key >> POS_SHIFT) as u32,
         BASES[(key >> 4 & 3) as usize],
         alt,
     )
@@ -335,7 +352,7 @@ impl GenotypeTable {
         input.read_exact(&mut json).map_err(Error::io(path))?;
         let header: Header =
             serde_json::from_slice(&json).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
-        if header.schema != SCHEMA && header.schema != SCHEMA_V1 {
+        if ![SCHEMA, SCHEMA_V2, SCHEMA_V1].contains(&header.schema.as_str()) {
             return invalid!("{}: schema {} is not {SCHEMA}", path.display(), header.schema);
         }
         let mut body = Vec::new();
@@ -352,12 +369,14 @@ impl GenotypeTable {
             Ok(s)
         };
         let count = |b: &[u8]| u64::from_le_bytes(b.try_into().expect("8 bytes")) as usize;
+        let legacy = header.schema != SCHEMA;
+        let upgrade = |key: u64| if legacy { upgrade_v2_key(key) } else { key };
         let n = count(take(8)?);
         let mut entries = Vec::with_capacity(n);
         for _ in 0..n {
             let b = take(17)?;
             entries.push(Entry {
-                key: u64::from_le_bytes(b[0..8].try_into().expect("8")),
+                key: upgrade(u64::from_le_bytes(b[0..8].try_into().expect("8"))),
                 state: State::from_code(b[8]).ok_or_else(bad)?,
                 alt_dosage: (b[9] != 255).then_some(b[9]),
                 refcall_adapted: b[10] & 1 != 0,
@@ -379,10 +398,10 @@ impl GenotypeTable {
         let n = count(take(8)?);
         let text = take(n)?.to_vec();
         let mut sequences = Vec::new();
-        if header.schema == SCHEMA {
+        if header.schema != SCHEMA_V1 {
             let n = count(take(8)?);
             for _ in 0..n {
-                let key = u64::from_le_bytes(take(8)?.try_into().expect("8"));
+                let key = upgrade(u64::from_le_bytes(take(8)?.try_into().expect("8")));
                 let pos = u32::from_le_bytes(take(4)?.try_into().expect("4")) as u64;
                 let mut alleles = [String::new(), String::new()];
                 for a in &mut alleles {
@@ -453,6 +472,23 @@ mod tests {
         let any = target_key(3, 100, b'G', ANY_ALT);
         assert_eq!(unpack_key(any), (3, 100, b'G', ANY_ALT));
         assert!(target_key(3, 100, b'G', b'T') < any && any < target_key(3, 101, b'A', b'C'));
+    }
+
+    #[test]
+    fn sequence_keys_sort_after_snvs_and_hold_many_per_position() {
+        let last = sequence_key(1, 109_219_262, (MAX_SEQUENCES_PER_POSITION - 1) as u16);
+        assert!(target_key(1, 109_219_262, b'T', ANY_ALT) < sequence_key(1, 109_219_262, 0));
+        assert!(sequence_key(1, 109_219_262, 128) < last && last < target_key(1, 109_219_263, b'A', b'C'));
+        assert!(is_sequence_key(last) && !is_sequence_key(target_key(1, 5, b'A', b'C')));
+        assert_eq!(key_position(last), (1, 109_219_262));
+    }
+
+    #[test]
+    fn v2_keys_upgrade() {
+        let v2_snv = 1u64 << 40 | 69_516_650u64 << 8 | 1 << 4 | 3;
+        assert_eq!(upgrade_v2_key(v2_snv), target_key(1, 69_516_650, b'C', b'T'));
+        let v2_sequence = 7u64 << 40 | 1_000u64 << 8 | 0x80 | 5;
+        assert_eq!(upgrade_v2_key(v2_sequence), sequence_key(7, 1_000, 5));
     }
 
     #[test]

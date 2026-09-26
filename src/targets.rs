@@ -22,12 +22,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 
 use crate::alleles::Variant;
-use crate::genotypes::{PackRef, is_sequence_key, key_position, sequence_key};
+use crate::genotypes::{MAX_SEQUENCES_PER_POSITION, PackRef, is_sequence_key, key_position, sequence_key};
 use crate::pack::{Pack, ReferenceIdentity, records_sha256};
 use crate::{Error, Result, invalid};
 
 pub const MAGIC: &[u8; 8] = b"PGSUMTI1";
-pub const SCHEMA: &str = "pgsum-targets-v2";
+pub const SCHEMA: &str = "pgsum-targets-v3";
 
 /// The targets of a set of packs.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -45,22 +45,22 @@ impl TargetSet {
     fn new(mut snv_keys: Vec<u64>, sequences: Vec<(u8, Variant)>, packs: Vec<PackRef>) -> Result<TargetSet> {
         let mut keyed = Vec::with_capacity(sequences.len());
         let mut previous: Option<(u8, u64)> = None;
-        let mut index = 0u8;
+        let mut index = 0usize;
         for (contig, v) in sequences {
             index = if previous == Some((contig, v.pos)) {
                 index + 1
             } else {
                 0
             };
-            if index >= 0x80 {
+            if index >= MAX_SEQUENCES_PER_POSITION {
                 return invalid!(
-                    "more than 128 distinct indel targets at {}:{}",
+                    "more than {MAX_SEQUENCES_PER_POSITION} distinct indel targets at {}:{}",
                     crate::term::CONTIGS[contig as usize - 1],
                     v.pos
                 );
             }
             previous = Some((contig, v.pos));
-            keyed.push((sequence_key(contig, v.pos as u32, index), v));
+            keyed.push((sequence_key(contig, v.pos as u32, index as u16), v));
         }
         snv_keys.extend(keyed.iter().map(|(k, _)| *k));
         snv_keys.sort_unstable();

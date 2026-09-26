@@ -59,7 +59,12 @@ Done once per PGS Catalog release, independent of any sample.
   contigs other than chr1–22, X, Y and M are skipped. Records must be sorted and each contig contiguous.
 - Every record whose interval `[POS, INFO/END or POS+len(REF)-1]` overlaps a target is kept verbatim. After
   the scan, targets are assessed in parallel from their records with the genotype rules below.
-- Output: a genotype table (`pgsum-genotypes-v1`, `.pgsg`) with each target's state, ALT dosage and flags, the
+- Target keys are `contig << 48 | pos << 16 | 16 low bits`, so they sort by position: an SNV's low bits hold
+  its REF and ALT codes; an indel or multi-base target sets bit 15 and numbers the distinct normalized
+  variants at its position (up to 32,768). The Catalog needs more than the 128 an earlier 8-bit layout
+  allowed: after left-alignment, PGS004753, PGS004784, PGS004785, PGS004787 and PGS004799 each have 161
+  distinct indels at chr1:109219262. Tables written with the earlier layout (v1, v2) are converted on reading.
+- Output: a genotype table (`pgsum-genotypes-v3`, `.pgsg`) with each target's state, ALT dosage and flags, the
   kept gVCF lines each call was made from, and a header with the gVCF, reference and pack digests, the
   sample ID, the DeepVariant version, whether the header defines `RefCall`, and counts per state.
 
@@ -408,6 +413,29 @@ run took 378 s (362 s of it collecting targets); the table is byte-identical eit
 
 Under the strict rule 189 scores are complete for HG002. 2,214 have no scorable term at all: their scoring
 files give only an effect allele, so every term is `author_other_allele_missing` (see Open questions).
+
+**All opt-ins, 2026-09-26:** the whole Catalog was recompiled under `COMPILE_RULES` `2026-09-25.inferred-indels`
+with the 1000 Genomes phase 3 non-SNV set (6,990 of 6,991; PGS005164 still fails) in 3 h 52 min. HG002
+`extract` found 43.3M targets (the index rebuild took 196 s; 243 s in all, 5.0 GB peak). `score` took 281 s
+by default and 313 s with every opt-in. With no opt-in, all 6,990 results are identical to the run before
+the recompile.
+
+| HG002, 6,990 scores | Default | `--allow-inferred-other-allele` | All four opt-ins |
+|---|---|---|---|
+| Complete (strict) | 189 | 289 | 329 |
+| Term coverage ≥ 99% | 1,973 | 3,512 | 4,175 |
+| Term coverage ≥ 95% | 2,254 | 3,803 | 4,925 |
+| Term coverage ≥ 80% | 4,145 | 5,717 | 6,155 |
+| No scorable term | 2,214 | 114 | 59 |
+| Terms scorable | 64.84% | 92.59% | 96.82% |
+
+With all four opt-ins, the terms scored through each were: inferred other allele 1.27B, informational
+descriptions 61.1M, palindromes 115.4M (1,552 scores strand-consistent), indels 15.5M (12.4M by public
+pair, 3.1M by reference fit). Of the 142.8M terms still unscorable, 91.3M are model terms that need review
+(mostly non-informational descriptions and interactions), 26.2M have no orientation (palindromes in
+strand-inconsistent scores, and indels that fit both ways with no public record), 12.5M are sites where
+HG002 carries a different allele from both of the term's, and 13.3M fail genotype rules (low quality, no
+call, overlapping records, unsupported representations).
 
 **M3 (score), 2026-09-25:** on HG002, every term's status, effect dosage and contribution text, and every
 score's exact partial sum, are identical to the reference implementation for all 8 development scores
