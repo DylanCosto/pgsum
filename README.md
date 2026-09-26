@@ -18,7 +18,22 @@ Every score gets two answers:
 - **partial**: the exact sum over usable terms, labelled as partial, with the share of terms and of total
   effect it covers.
 
-Weights are summed exactly (no floating point), and every output records the digests of its inputs.
+### Which number to use
+
+The strict score is rarely available: for HG002, 189 of 6,990 Catalog scores have every term usable by
+default (329 with every opt-in), because most large scores include a few sites a genome can't call. In
+practice, use the **partial score when it covers at least 99% of the terms and 99% of the total weight**
+(`partial.meets_coverage_guideline`, and the `meets_coverage_guideline` column of `scores.tsv`). For HG002
+that is 1,950 scores by default and 4,120 with every opt-in. Below that, the missing terms can move the
+score noticeably.
+
+Both are raw sums on the author's scale, not percentiles. A partial score can only be compared with other
+scores computed over the same terms: a reference population scored on a different set of sites is not a
+valid comparison.
+
+Sums are exact decimals, so the same inputs give byte-identical output on any machine and thread count,
+and every output records the digests of its inputs. The exactness is for reproducibility: a result like
+`-2461760.133929721328533131` is exact, but the weights behind it carry only a few significant figures.
 
 By default pgsum follows a conservative reference implementation exactly. Opt-ins widen what can be scored,
 each validated on real data and labelled in every result that uses it (see DESIGN.md):
@@ -155,6 +170,9 @@ What has been checked, and against what:
   samples in 6 minutes against about 73 hours; `bench/README.md`).
 - Raw scores only: no ancestry adjustment, percentiles or absolute risk.
 - A plain VCF (no reference blocks) scores poorly: pgsum does not assume the reference where a VCF is silent.
+- chrX dosage: terms on chrX count 0, 1 or 2 copies as the gVCF's diploid calls give them, so a male's
+  hemizygous ALT counts as 2. Scores differ in whether their authors coded males 0/1 or 0/2; results for
+  scores with chrX terms say so (`sex_chromosomes`).
 - Validated end to end on one genome (HG002); calls from other callers and samples follow the same rules
   but have not been checked against a truth set beyond it.
 

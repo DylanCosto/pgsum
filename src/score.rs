@@ -23,7 +23,7 @@ use crate::pack::{Inference, Oriented, Pack, TermRecord, Waivers, Weight};
 use crate::term::{CONTIGS, Model, Reason};
 use crate::{Result, invalid};
 
-pub const SCHEMA: &str = "pgsum-score-v1";
+pub const SCHEMA: &str = "pgsum-score-v2";
 
 /// A contribution's coefficient: a weight's 64-bit coefficient times a dosage multiplier fits in 128 bits;
 /// wider weights use arbitrary precision.
@@ -287,7 +287,25 @@ pub struct Partial {
     pub status: String,
     pub raw_score: String,
     pub coverage: Coverage,
+    /// Whether coverage reaches `COVERAGE_GUIDELINE` of both terms and weight, the point from which pgsum
+    /// suggests using the partial score (see README, "Which number to use").
+    pub meets_coverage_guideline: bool,
     pub note: String,
+}
+
+/// Share of terms and of weight a partial score should cover before it is used (the 99% rule).
+pub const COVERAGE_GUIDELINE: f64 = 0.99;
+
+/// A score's terms on the sex chromosomes and how pgsum counted them.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct SexChromosomes {
+    pub chrx_terms: u64,
+    pub chrx_scorable: u64,
+    pub chry_terms: u64,
+    pub chry_scorable: u64,
+    /// Present when the score has chrX or chrY terms.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -331,6 +349,8 @@ pub struct ScoreResult {
     /// Whether indels and multi-base terms could be scored with inferred orientations, and how many were, by
     /// method.
     pub inferred_indels: IndelUse,
+    /// Terms on chrX and chrY, with a note on the dosage convention when there are any.
+    pub sex_chromosomes: SexChromosomes,
     pub inputs: Inputs,
 }
 
@@ -404,6 +424,9 @@ struct Tally {
     effect_scorable: f64,
     inferred: BTreeMap<&'static str, u64>,
     informational: u64,
+    /// Terms on chrX and chrY, and how many of them were scorable.
+    sex_chromosome_terms: [u64; 2],
+    sex_chromosome_scorable: [u64; 2],
     tsv: Vec<u8>,
 }
 
@@ -425,6 +448,15 @@ fn tally(
         let term = term?;
         let o = outcome(&term, genotypes, options)?;
         t.total += 1;
+        let sex_chromosome = match term.contig {
+            23 => Some(0),
+            24 => Some(1),
+            _ => None,
+        };
+        if let Some(x) = sex_chromosome {
+            t.sex_chromosome_terms[x] += 1;
+            t.sex_chromosome_scorable[x] += o.contribution.is_some() as u64;
+        }
         *t.states.entry(o.status).or_default() += 1;
         let effect = effect_size(&term);
         match effect {
@@ -510,9 +542,14 @@ pub fn score(
     let (mut effect_all, mut effect_scorable) = (0f64, 0f64);
     let mut inferred: BTreeMap<String, u64> = BTreeMap::new();
     let mut informational = 0u64;
+    let (mut sex_terms, mut sex_scorable) = ([0u64; 2], [0u64; 2]);
     for t in tallies {
         let t = t?;
         informational += t.informational;
+        for x in 0..2 {
+            sex_terms[x] += t.sex_chromosome_terms[x];
+            sex_scorable[x] += t.sex_chromosome_scorable[x];
+        }
         for (k, v) in t.inferred {
             *inferred.entry(k.to_owned()).or_default() += v;
         }
@@ -555,6 +592,16 @@ pub fn score(
         .into_iter()
         .filter_map(|k| inferred.remove(k.as_str()).map(|n| (k.as_str().to_owned(), n)))
         .collect();
+    let term_fraction = if total == 0 {
+        0.0
+    } else {
+        scorable as f64 / total as f64
+    };
+    let weight_fraction = if effect_all == 0.0 {
+        0.0
+    } else {
+        effect_scorable / effect_all
+    };
     Ok(ScoreResult {
         schema: SCHEMA.into(),
         pgsum_version: env!("CARGO_PKG_VERSION").into(),
@@ -575,18 +622,11 @@ pub fn score(
             coverage: Coverage {
                 scorable_terms: scorable,
                 total_terms: total,
-                term_fraction: if total == 0 {
-                    0.0
-                } else {
-                    scorable as f64 / total as f64
-                },
-                weight_fraction: if effect_all == 0.0 {
-                    0.0
-                } else {
-                    effect_scorable / effect_all
-                },
+                term_fraction,
+                weight_fraction,
                 terms_without_weight: without_weight,
             },
+            meets_coverage_guideline: term_fraction >= COVERAGE_GUIDELINE && weight_fraction >= COVERAGE_GUIDELINE,
             note: "Sum of scorable terms only. Unscorable terms contribute nothing; no genotype is imputed. Not \
                    comparable with complete scores or reference distributions unless their coverage matches."
                 .into(),
@@ -618,6 +658,18 @@ pub fn score(
         informational_descriptions: InformationalUse {
             accepted: options.accept_informational_descriptions,
             scorable_terms: informational,
+        },
+        sex_chromosomes: SexChromosomes {
+            chrx_terms: sex_terms[0],
+            chrx_scorable: sex_scorable[0],
+            chry_terms: sex_terms[1],
+            chry_scorable: sex_scorable[1],
+            note: (sex_terms != [0, 0]).then(|| {
+                "chrX/chrY terms are counted as 0, 1 or 2 copies, as the gVCF's diploid calls give them: a male's \
+                 hemizygous ALT counts as 2. Authors differ in whether they coded males 0/1 or 0/2 on chrX, so \
+                 compare with the score's publication before comparing male and female samples."
+                    .into()
+            }),
         },
         inputs: Inputs {
             pack_records_sha256: h.records_sha256.clone(),

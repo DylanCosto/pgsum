@@ -130,6 +130,7 @@ fn synthetic_scores_match_reference_implementation() {
     assert_eq!(withheld.raw_score, None);
     assert_eq!(withheld.partial.raw_score, "7.3");
     assert_eq!((withheld.scorable_terms, withheld.required_terms), (10, 26));
+    assert!(result.partial.meets_coverage_guideline && !withheld.partial.meets_coverage_guideline);
     std::fs::remove_dir_all(&out).unwrap();
 }
 
@@ -583,7 +584,9 @@ fn haploid_sex_chromosome_calls() {
         )
         .unwrap();
         let mut tsv = Vec::new();
-        pgsum::score::score(&pack, &table, &Default::default(), Some(&mut tsv)).unwrap();
+        let result = pgsum::score::score(&pack, &table, &Default::default(), Some(&mut tsv)).unwrap();
+        let x = &result.sex_chromosomes;
+        assert!(x.chrx_terms > 0 && x.chry_terms == 0 && x.note.as_deref().is_some_and(|n| n.contains("0/1 or 0/2")));
         let text = String::from_utf8(tsv).unwrap();
         let f: Vec<String> = text.lines().last().unwrap().split('\t').map(str::to_owned).collect();
         (

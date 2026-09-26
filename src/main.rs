@@ -645,12 +645,13 @@ fn score(
     }
     results.sort_by(|a, b| a.pgs_id.cmp(&b.pgs_id));
     let mut summary = String::from(
-        "pgs_id\tstatus\traw_score\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\n",
+        "pgs_id\tstatus\traw_score\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\t\
+         meets_coverage_guideline\tchrx_terms\n",
     );
     for r in &results {
         let c = &r.partial.coverage;
         summary.push_str(&format!(
-            "{}\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\n",
+            "{}\t{}\t{}\t{}\t{}\t{}\t{:.6}\t{:.6}\t{}\t{}\n",
             r.pgs_id,
             r.status,
             r.raw_score.as_deref().unwrap_or(""),
@@ -658,7 +659,9 @@ fn score(
             c.scorable_terms,
             c.total_terms,
             c.term_fraction,
-            c.weight_fraction
+            c.weight_fraction,
+            r.partial.meets_coverage_guideline as u8,
+            r.sex_chromosomes.chrx_terms
         ));
         eprintln!(
             "{}: {} (partial {} over {:.2}% of terms, {:.2}% of weight)",

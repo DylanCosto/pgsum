@@ -337,7 +337,9 @@ deletions spanning the site, no-calls and unresolved palindromic SNVs, which any
 
 ## Arithmetic
 
-Weights are exact decimals and the sum is exact (no floating point). Contributions are grouped by exponent
+Weights are exact decimals and the sum is exact (no floating point). The purpose is reproducibility, not
+precision: the same inputs give byte-identical output on any machine and any thread count, and results can
+be compared as strings. Published weights carry only a few significant figures. Contributions are grouped by exponent
 in 128-bit accumulators and combined with arbitrary-precision integers at the end. The sum starts from
 decimal zero, so its exponent is the smallest exponent among the scorable contributions (and at most 0),
 and it is written in Python `decimal.Decimal` text form. Raw scores are therefore identical as strings to
@@ -345,13 +347,16 @@ the reference implementation's, trailing zeros included (e.g. `1332.647502000000
 
 Coverage fractions are floating point; they describe the sum and never enter it.
 
-## Output (`pgsum-score-v1`)
+## Output (`pgsum-score-v2`)
 
 One JSON object per score (`src/score.rs`, `ScoreResult`):
 
 - `pgs_id`, `sample_id`, `policy`, `status`, `raw_score` (string or null), `withheld_because`
 - `partial`: `raw_score`, `coverage` (`scorable_terms`, `total_terms`, `term_fraction`, `weight_fraction`,
-  `terms_without_weight`) and a note on comparability
+  `terms_without_weight`), `meets_coverage_guideline` (at least 99% of terms and of weight; v2) and a note on
+  comparability
+- `sex_chromosomes` (v2): terms on chrX and chrY and how many were scorable, with a note on the dosage
+  convention when there are any
 - `required_terms`, `scorable_terms`, `states` (term status → count)
 - `weight_type` (Catalog), `license`, `matches_publication`, `inventory_consistent`
 - `imputation_performed: false`, `calibration: "uncalibrated: …"`
@@ -563,9 +568,12 @@ DeepTrio on Illumina WGS of HG002 (Google `deepvariant` case study). MD5s matche
   while a file is compiled.
 - chrX/chrY ploidy for male samples: by default calls must be diploid (DeepVariant writes male chrX as
   `1/1`); `--haploid-xy-as-homozygous` reads haploid calls (DRAGEN) as homozygous. pgsum does not infer sex.
-- A passing `0/0` record evaluated for a different allele at the target's position counts as reference for
-  the target (the reference implementation's rule). Against GIAB v4.2.1 this is wrong at one HG002 site: a
-  DeepVariant `RefCall` for the deletion `TAC>T` at chr10:105096103 is read as reference for the insertion
-  `T>TAC` there, which GIAB calls heterozygous. Requiring the record to have been evaluated for the target's
-  own allele would fix it, at the cost of parity.
+- A passing `0/0` variant record whose alleles do not include an indel target still counts as reference for
+  it (a `RefCall` for the deletion `TAC>T` is read as reference for the insertion `T>TAC` at the same
+  position). This is wrong at chr10:105096103 in HG002 (GIAB calls the insertion heterozygous), so the
+  stricter rule was tried on 2026-09-26: accept such a `0/0` only when one of the record's alleles is the
+  target. Against GIAB v4.2.1 on HG002 it withheld 32,683 comparable indel calls, of which 32,673 had been
+  correct and 10 wrong; indel concordance was unchanged (99.958%). The rule was kept: on the sites in
+  question it is right 99.97% of the time. It affects only indel targets, which are scored only with
+  `--allow-inferred-indels`.
 - Whether to add frequency-supported orientation for palindromic SNVs, and from which reference panel.
