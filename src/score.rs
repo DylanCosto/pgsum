@@ -155,10 +155,10 @@ pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable, options: &Options) -> 
         Oriented::Snv(o) if o.status != Status::Resolved => return Ok(Outcome::without_call("unresolved_orientation")),
         Oriented::Snv(o) => {
             let key = target_key(t.contig, t.pos, o.ref_base, o.alt_base);
-            called(t, genotypes.get(key), o.effect_is_alt, inferred)?
+            called(t, genotypes.get(key)?, o.effect_is_alt, inferred)?
         }
         Oriented::Sequence { variant, effect_is_alt } => {
-            called(t, genotypes.get_sequence(t.contig, &variant), effect_is_alt, inferred)?
+            called(t, genotypes.get_sequence(t.contig, &variant)?, effect_is_alt, inferred)?
         }
     };
     outcome.informational_description_accepted = t.reasons.0 & Reason::VariantDescription as u32 != 0;

@@ -1,5 +1,6 @@
 use clap::{Args, Parser, Subcommand};
 use pgsum::compile::{compile_file, reference_identity};
+use pgsum::extract::{Options as ExtractOptions, ScanMode};
 use pgsum::genotypes::GenotypeTable;
 use pgsum::pack::Pack;
 use pgsum::reference::Reference;
@@ -186,6 +187,13 @@ enum Command {
         /// Read haploid chrX/chrY calls (`1`) as homozygous (`1/1`), as DeepVariant writes male chrX.
         #[arg(long)]
         haploid_xy_as_homozygous: bool,
+        /// How to read the gVCF: `auto` uses its .tbi/.csi index when the targets need under half of the
+        /// file, `full` always reads it whole, `indexed` requires the index.
+        #[arg(long, value_enum, default_value_t = ScanMode::Auto)]
+        scan: ScanMode,
+        /// The sample to read from a multi-sample VCF.
+        #[arg(long)]
+        sample: Option<String>,
     },
     /// Score packs against an extracted genotype table.
     Score {
@@ -239,6 +247,13 @@ enum Command {
         /// Read haploid chrX/chrY calls (`1`) as homozygous (`1/1`), as DeepVariant writes male chrX.
         #[arg(long)]
         haploid_xy_as_homozygous: bool,
+        /// How to read the gVCF: `auto` uses its .tbi/.csi index when the targets need under half of the
+        /// file, `full` always reads it whole, `indexed` requires the index.
+        #[arg(long, value_enum, default_value_t = ScanMode::Auto)]
+        scan: ScanMode,
+        /// The sample to read from a multi-sample VCF.
+        #[arg(long)]
+        sample: Option<String>,
         /// Also score terms without an author other allele, using the orientation their pack inferred.
         #[arg(long)]
         allow_inferred_other_allele: bool,
@@ -295,16 +310,17 @@ fn main() -> ExitCode {
             out,
             targets_cache,
             haploid_xy_as_homozygous,
+            scan,
+            sample,
         } => packs.resolve().and_then(|packs| {
-            extract(
-                &gvcf,
-                &reference,
-                &packs,
-                &out,
-                targets_cache.as_deref(),
+            let options = ExtractOptions {
+                targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
+                sample: sample.as_deref(),
+                scan,
                 threads,
-            )
+            };
+            extract(&gvcf, &reference, &packs, &out, &options)
         }),
         Command::Score {
             genotypes,
@@ -334,6 +350,8 @@ fn main() -> ExitCode {
             bundle,
             targets_cache,
             haploid_xy_as_homozygous,
+            scan,
+            sample,
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
@@ -347,15 +365,14 @@ fn main() -> ExitCode {
             };
             std::fs::create_dir_all(&out).map_err(Error::io(&out))?;
             let table_path = out.join("genotypes.pgsg");
-            extract(
-                &gvcf,
-                &reference,
-                &packs,
-                &table_path,
-                targets_cache.as_deref(),
+            let extract_options = ExtractOptions {
+                targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
+                sample: sample.as_deref(),
+                scan,
                 threads,
-            )?;
+            };
+            extract(&gvcf, &reference, &packs, &table_path, &extract_options)?;
             score(
                 &GenotypeTable::open(&table_path)?,
                 &packs,
@@ -524,28 +541,12 @@ fn fetch(args: &FetchArgs) -> Result<()> {
     Ok(())
 }
 
-fn extract(
-    gvcf: &Path,
-    reference: &Path,
-    packs: &[PathBuf],
-    out: &Path,
-    targets_cache: Option<&Path>,
-    haploid_xy_as_homozygous: bool,
-    threads: usize,
-) -> Result<()> {
+fn extract(gvcf: &Path, reference: &Path, packs: &[PathBuf], out: &Path, options: &ExtractOptions) -> Result<()> {
     let started = std::time::Instant::now();
     let reference = Reference::open(reference)?;
     let identity = reference_identity(&reference)?;
     let loaded = started.elapsed().as_secs_f64();
-    let (table, timings) = pgsum::extract::extract(
-        gvcf,
-        &reference,
-        &identity,
-        packs,
-        targets_cache,
-        haploid_xy_as_homozygous,
-        threads,
-    )?;
+    let (table, timings) = pgsum::extract::extract(gvcf, &reference, &identity, packs, options)?;
     let t = std::time::Instant::now();
     table.write(out)?;
     eprintln!(
@@ -576,6 +577,9 @@ fn extract(
     Ok(())
 }
 
+/// Above this many packs, `score` decompresses the whole genotype table up front.
+const PRELOAD_PACKS: usize = 50;
+
 /// Score every pack against the table: packs in parallel, and each pack's terms in parallel chunks.
 fn score(
     table: &GenotypeTable,
@@ -587,6 +591,10 @@ fn score(
 ) -> Result<()> {
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
     let started = std::time::Instant::now();
+    // Blocks load as scoring reaches them; with many packs nearly all are needed, so load them in parallel.
+    if packs.len() > PRELOAD_PACKS {
+        table.preload()?;
+    }
     let outcomes: Vec<(&PathBuf, Result<pgsum::score::ScoreResult>)> = packs
         .par_iter()
         .map(|path| {

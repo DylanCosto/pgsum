@@ -12,6 +12,7 @@ pub mod fetch;
 pub mod genotype;
 pub mod genotypes;
 pub mod gvcf;
+pub mod index;
 pub mod orient;
 pub mod pack;
 pub mod public;

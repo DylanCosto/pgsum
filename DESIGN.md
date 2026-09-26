@@ -46,31 +46,51 @@ Done once per PGS Catalog release, independent of any sample.
 
 ### 2. `extract`: gVCF → genotype table
 
-- Input: a bgzipped single-sample gVCF (no index needed), the reference FASTA and `.fai`, and packs compiled
-  against that same reference (checked by digest).
+- Input: a gVCF or VCF (bgzipped, plain gzip or uncompressed; one sample, or one chosen with `--sample`), the
+  reference FASTA and `.fai`, and packs compiled against that same reference (checked by digest). Contigs may
+  be named `chr1` or `1` (`chrM` or `MT`) in the VCF, its index and the FASTA. A VCF whose `##contig` lengths
+  differ from the reference's is refused as another assembly; BCF is refused with a conversion hint.
 - Targets: every distinct oriented SNV `(contig, pos, REF, ALT)` from a pack term with no review reasons and a
   resolved orientation. Packs are read in parallel, decoding only the columns that identify targets (not the
   weights), and the union is deduplicated whenever it doubles.
 - Target index (`--targets-cache`, `.pgst`): the union of targets with the identity (PGS ID and records
   digest) of every pack it came from and the reference digest. A later run reads only the packs' headers and
   reuses the index if all three match; otherwise it collects targets again and rewrites the index.
-- One pass over the file: BGZF blocks are decompressed on all cores (`noodles-bgzf` with libdeflate) and one
-  thread scans the text, reading only `CHROM`, `POS`, `REF` and `INFO/END` from each record. Records on
+- Reading (`--scan auto|full|indexed`). With a `.tbi` or `.csi` index next to a bgzipped file (and not older
+  than it), targets closer than 16 kb are merged into regions, each region's index chunks are collected (the
+  bins overlapping it, less chunks ending before its linear-index or `loffset` minimum), and chunks sharing a
+  BGZF block are merged. `auto` reads only those chunks when they span under half of the compressed file,
+  otherwise the whole file. htslib indexes a record under its whole span, `INFO/END` included, so a reference
+  block is found from any position it covers. Reading the whole file: BGZF blocks are decompressed on all
+  cores (`noodles-bgzf` with libdeflate), the text is cut into 4 MB chunks at line ends, chunks are parsed in
+  parallel and merged in file order, so the result is the same as reading line by line (checked for every
+  split of a test file). Each record is scanned for `CHROM`, `POS`, `REF` and `INFO/END` only. Records on
   contigs other than chr1–22, X, Y and M are skipped. Records must be sorted and each contig contiguous.
-- Every record whose interval `[POS, INFO/END or POS+len(REF)-1]` overlaps a target is kept verbatim. After
-  the scan, targets are assessed in parallel from their records with the genotype rules below.
+- Every record whose interval `[POS, INFO/END or POS+len(REF)-1]` overlaps a target is kept verbatim (for a
+  multi-sample VCF, its first nine columns and the chosen sample's). After the scan, targets are assessed in
+  parallel from their records with the genotype rules below; neighbouring targets covered by the same
+  records reuse one parse.
 - Target keys are `contig << 48 | pos << 16 | 16 low bits`, so they sort by position: an SNV's low bits hold
   its REF and ALT codes; an indel or multi-base target sets bit 15 and numbers the distinct normalized
   variants at its position (up to 32,768). The Catalog needs more than the 128 an earlier 8-bit layout
   allowed: after left-alignment, PGS004753, PGS004784, PGS004785, PGS004787 and PGS004799 each have 161
   distinct indels at chr1:109219262. Tables written with the earlier layout (v1, v2) are converted on reading.
-- Output: a genotype table (`pgsum-genotypes-v3`, `.pgsg`) with each target's state, ALT dosage and flags, the
+- Output: a genotype table (`pgsum-genotypes-v4`, `.pgsg`) with each target's state, ALT dosage and flags, the
   kept gVCF lines each call was made from, and a header with the gVCF, reference and pack digests, the
-  sample ID, the DeepVariant version, whether the header defines `RefCall`, and counts per state.
+  sample ID, the DeepVariant version, whether the header defines `RefCall`, and counts per state. Targets are
+  stored in independently compressed blocks of 65,536, each with the records its targets need and the
+  SHA-256 of its bytes, so `score` decompresses only the blocks its packs touch (all of them, in parallel,
+  above 50 packs). Tables v1–v3 (one frame) are still read.
+- Input digests: the FASTA's and the gVCF's SHA-256 are remembered between runs (`~/.cache/pgsum`, keyed by
+  path, size, modification time and inode), since hashing a 3 GB FASTA takes over a second. A full read of
+  the gVCF hashes it as it goes and records the digest; an indexed read uses the remembered digest or hashes
+  the file once.
 
-Why one stream rather than per-contig index queries: on HG002 (437 MB, 36.0M records) decompression takes
-0.3 s on 12 cores and scanning every line 0.9 s, so reading the whole file is not the bottleneck. For
-comparison, full record parsing with htslib took 18.2 s.
+On HG002 (437 MB, 36.0M records, 12 cores), against all 6,990 packs: reading the whole file takes 1.3 s,
+assessing the 43.3M targets 3.1 s, 12 s in all with the target index. For one 77-term score through the index,
+`extract` reads 2.8% of the file and takes 0.12 s, against 4.6 s to read it whole; for four small scores
+(588 targets) 0.6 s against 4.6 s. Tables are byte-identical whichever way the file is read (HG002 and the
+DRAGEN HG002 gVCF, and the synthetic fixtures with `.tbi` and `.csi` indexes).
 
 ### 3. `score`: packs × genotype table → results
 

@@ -26,7 +26,7 @@ pub fn reference_identity(reference: &Reference) -> Result<ReferenceIdentity> {
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default(),
-        fasta_sha256: file_sha256(&reference.path)?,
+        fasta_sha256: crate::digest::cached_file_sha256(&reference.path)?,
         fai_sha256: file_sha256(&reference.fai_path)?,
     })
 }

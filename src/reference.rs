@@ -26,6 +26,13 @@ pub struct Reference {
 impl Reference {
     pub fn open(path: &Path) -> Result<Reference> {
         let fai_path = PathBuf::from(format!("{}.fai", path.display()));
+        if !fai_path.is_file() {
+            return invalid!(
+                "{}: no FASTA index; create it with `samtools faidx {}`",
+                fai_path.display(),
+                path.display()
+            );
+        }
         let text = std::fs::read_to_string(&fai_path).map_err(Error::io(&fai_path))?;
         let mut entries = HashMap::new();
         for line in text.lines() {
@@ -59,6 +66,15 @@ impl Reference {
         if entries.is_empty() {
             return invalid!("{}: no contigs", fai_path.display());
         }
+        // Reach `1`, `X` or `MT` (Ensembl, NCBI) under the names pgsum uses, unless the FASTA also has those.
+        let aliases: Vec<(String, Entry)> = entries
+            .iter()
+            .filter_map(|(name, e)| {
+                let canonical = crate::term::CONTIGS[crate::term::contig_code_of_name(name)? as usize - 1];
+                (canonical != name && !entries.contains_key(canonical)).then(|| (canonical.to_owned(), *e))
+            })
+            .collect();
+        entries.extend(aliases);
         let file = File::open(path).map_err(Error::io(path))?;
         // SAFETY: the reference is read-only input; changing the file while pgsum runs is unsupported.
         let map = unsafe { Mmap::map(&file) }.map_err(Error::io(path))?;

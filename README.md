@@ -1,6 +1,6 @@
 # pgsum
 
-Polygenic score calculation from single-sample gVCFs.
+Polygenic score calculation from gVCFs, exact and without imputation.
 
 **Status: v0.1, early development.** The full pipeline works. On GIAB HG002 it matches a reference
 implementation of the same rules term for term, and sum for sum, on 11.7 million Catalog terms.
@@ -66,17 +66,44 @@ TSV. With `--bundle`, every result goes into one `results.jsonl.zst` (one JSON o
 file per score: for the whole Catalog that is 4 MB rather than 6,990 small files, which on an exFAT drive with
 1 MB allocation blocks take 14 GB.
 
-pgsum reads gVCFs from DeepVariant (long- and short-read), DRAGEN and GATK HaplotypeCaller, and plain VCFs.
-A plain VCF has no reference blocks, so sites without a record are `unknown_no_record` rather than assumed
-reference. DRAGEN writes male chrX and chrY as haploid; pass `--haploid-xy-as-homozygous` to `extract` or `run`.
+### Inputs
+
+pgsum reads gVCFs from DeepVariant (long- and short-read), DRAGEN and GATK HaplotypeCaller, and plain VCFs,
+on GRCh38:
+
+- bgzipped (`.vcf.gz`), plain gzip or uncompressed; BCF is not read (convert with `bcftools view -Oz`);
+- contigs named `chr1` or `1` (and `chrM` or `MT`), in the VCF and in the reference FASTA alike;
+- one sample, or several with `--sample NAME`;
+- a `.tbi` or `.csi` index next to a bgzipped file lets `extract` read only the parts the scores need, so a
+  run with a few scores takes a fraction of a second (`tabix -p vcf sample.g.vcf.gz` creates one). pgsum
+  decides per run (`--scan auto`, the default) and the table is identical either way.
+
+A VCF whose `##contig` lengths differ from the reference (for example GRCh37) is refused. A plain VCF has no
+reference blocks, so sites without a record are `unknown_no_record` rather than assumed reference. DRAGEN
+writes male chrX and chrY as haploid; pass `--haploid-xy-as-homozygous` to `extract` or `run`.
+
+pgsum records the SHA-256 of every input. Hashing a 3 GB reference takes a second, so digests are remembered
+in `~/.cache/pgsum/digests.tsv` (or `$XDG_CACHE_HOME/pgsum`, or `$PGSUM_CACHE_DIR`), keyed by path, size,
+modification time and inode; `PGSUM_NO_DIGEST_CACHE=1` turns this off.
 
 The whole Catalog: `pgsum fetch --all --reference GRCh38.fa --out packs/` downloads and compiles all 6,990
 scores (4.5 billion terms, 31.6 GB of packs); an interrupted run resumes. For many samples against the same
 packs, pass `--targets-cache packs.pgst` to `extract` or `run`: the first run records which sites the packs
 need, later runs skip reading every pack to find out.
 
-On a 12-core Mac with a 36-million-record HG002 gVCF, against all 6,990 scores: extract 17 s (with the target
-index; 120 s the first time) and score 95 s, so about two minutes per sample.
+### Speed
+
+On a 12-core Mac with the packs on a USB SSD and a 36-million-record HG002 gVCF:
+
+| Run | Time |
+|---|---|
+| `run`, one score (77 terms), indexed gVCF | 0.4 s |
+| `run`, four small scores (588 targets), indexed gVCF | 0.8 s |
+| `extract`, all 6,990 scores (43.3M targets, with the target index) | 12 s |
+| `score`, all 6,990 scores (4.5 billion terms) | 141 s |
+| `score`, three scores against a saved whole-Catalog genotype table | 0.8 s |
+
+Without an index, `extract` reads the whole file on all cores: 5 s for a 154-million-record GATK gVCF.
 
 ## Scoring files and licences
 

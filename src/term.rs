@@ -12,6 +12,13 @@ pub const CONTIGS: [&str; 25] = [
     "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chrX", "chrY", "chrM",
 ];
 
+/// Contig code of a sequence name in a gVCF, index or reference FASTA: `chr1`…`chr22`, `chrX`, `chrY` and
+/// `chrM`, or the same without the `chr` prefix (`1`, `X`, `MT`, as in Ensembl and NCBI GRCh38).
+pub fn contig_code_of_name(name: &str) -> Option<u8> {
+    let code = contig_code(name.strip_prefix("chr").unwrap_or(name));
+    (code != 0).then_some(code)
+}
+
 /// `hm_chr` value → contig code.
 fn contig_code(hm_chr: &str) -> u8 {
     match hm_chr {
@@ -369,6 +376,31 @@ pub fn describe<'a>(row: &Row<'a>, columns: &Columns) -> Description<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn contig_names() {
+        for (name, code) in [
+            ("chr1", 1),
+            ("1", 1),
+            ("chr22", 22),
+            ("X", 23),
+            ("chrY", 24),
+            ("chrM", 25),
+            ("MT", 25),
+        ] {
+            assert_eq!(contig_code_of_name(name), Some(code), "{name}");
+        }
+        for name in [
+            "chr23",
+            "chrUn_KI270302v1",
+            "HLA-A*01:01:01:01",
+            "chr1_KI270706v1_random",
+            "01",
+            "chrchr1",
+        ] {
+            assert_eq!(contig_code_of_name(name), None, "{name}");
+        }
+    }
 
     #[test]
     fn contig_codes() {

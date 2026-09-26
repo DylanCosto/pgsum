@@ -8,7 +8,17 @@
 use std::path::Path;
 
 use pgsum::compile::{compile_file, reference_identity};
-use pgsum::extract::extract;
+use pgsum::extract::{Options, ScanMode, extract};
+
+fn opts(targets_cache: Option<&Path>, haploid_xy_as_homozygous: bool, scan: ScanMode) -> Options<'_> {
+    Options {
+        targets_cache,
+        haploid_xy_as_homozygous,
+        sample: None,
+        scan,
+        threads: 2,
+    }
+}
 use pgsum::genotypes::GenotypeTable;
 use pgsum::pack::Pack;
 use pgsum::reference::Reference;
@@ -35,9 +45,7 @@ fn synthetic_gvcf_matches_reference_implementation() {
         &reference,
         &identity,
         std::slice::from_ref(&pack_path),
-        None,
-        false,
-        2,
+        &opts(None, false, ScanMode::Full),
     )
     .unwrap();
     let pack = Pack::open(&pack_path).unwrap();
@@ -94,9 +102,7 @@ fn synthetic_scores_match_reference_implementation() {
         &reference,
         &identity,
         &paths,
-        None,
-        false,
-        2,
+        &opts(None, false, ScanMode::Full),
     )
     .unwrap();
 
@@ -150,12 +156,33 @@ fn target_index_is_reused_only_for_the_same_packs() {
     }
     let gvcf = fixtures.join("synthetic.g.vcf.gz");
     let cache = out.join("targets.pgst");
-    let (first, t1) = extract(&gvcf, &reference, &identity, &paths, Some(&cache), false, 2).unwrap();
+    let (first, t1) = extract(
+        &gvcf,
+        &reference,
+        &identity,
+        &paths,
+        &opts(Some(&cache), false, ScanMode::Full),
+    )
+    .unwrap();
     assert!(!t1.targets_from_cache && cache.exists());
-    let (second, t2) = extract(&gvcf, &reference, &identity, &paths, Some(&cache), false, 2).unwrap();
+    let (second, t2) = extract(
+        &gvcf,
+        &reference,
+        &identity,
+        &paths,
+        &opts(Some(&cache), false, ScanMode::Full),
+    )
+    .unwrap();
     assert!(t2.targets_from_cache);
     assert_eq!(first.header, second.header);
-    let (third, t3) = extract(&gvcf, &reference, &identity, &paths[..1], Some(&cache), false, 2).unwrap();
+    let (third, t3) = extract(
+        &gvcf,
+        &reference,
+        &identity,
+        &paths[..1],
+        &opts(Some(&cache), false, ScanMode::Full),
+    )
+    .unwrap();
     assert!(!t3.targets_from_cache);
     assert_eq!(third.header.packs.len(), 1);
     std::fs::remove_dir_all(&out).unwrap();
@@ -191,9 +218,7 @@ fn inferred_other_alleles_are_opt_in() {
         &reference,
         &identity,
         &paths,
-        None,
-        false,
-        2,
+        &opts(None, false, ScanMode::Full),
     )
     .unwrap();
     let allow = pgsum::score::Options {
@@ -295,9 +320,7 @@ fn custom_scoring_file() {
         &reference,
         &identity,
         std::slice::from_ref(&path),
-        None,
-        false,
-        2,
+        &opts(None, false, ScanMode::Full),
     )
     .unwrap();
     let result = pgsum::score::score(&Pack::open(&path).unwrap(), &table, &Default::default(), None).unwrap();
@@ -348,9 +371,7 @@ fn informational_descriptions_are_opt_in() {
         &reference,
         &identity,
         std::slice::from_ref(&path),
-        None,
-        false,
-        2,
+        &opts(None, false, ScanMode::Full),
     )
     .unwrap();
     let pack = Pack::open(&path).unwrap();
@@ -426,9 +447,7 @@ fn inferred_palindromes_need_a_forward_strand_score() {
         &reference,
         &identity,
         &paths,
-        None,
-        false,
-        2,
+        &opts(None, false, ScanMode::Full),
     )
     .unwrap();
     let allow = pgsum::score::Options {
@@ -490,9 +509,7 @@ fn inferred_indels() {
         &reference,
         &identity,
         std::slice::from_ref(&path),
-        None,
-        false,
-        2,
+        &opts(None, false, ScanMode::Full),
     )
     .unwrap();
     let pack = Pack::open(&path).unwrap();
@@ -561,9 +578,7 @@ fn haploid_sex_chromosome_calls() {
             &reference,
             &identity,
             std::slice::from_ref(&path),
-            None,
-            haploid,
-            2,
+            &opts(None, haploid, ScanMode::Full),
         )
         .unwrap();
         let mut tsv = Vec::new();
@@ -590,4 +605,264 @@ fn haploid_sex_chromosome_calls() {
         )
     );
     std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// Reading only the index chunks gives the same table body as reading the whole file, with a tabix or a CSI
+/// index, for SNV and indel targets; `--scan indexed` without an index is an error.
+#[test]
+fn indexed_reads_match_full_scan() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-indexed-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    let public = pgsum::public::PublicVariants::open(&fixtures.join("public_variants.tsv")).unwrap();
+    let mut packs = Vec::new();
+    for id in ["PGS999997", "PGS999998"] {
+        compile_file(
+            &fixtures.join(format!("{id}_hmPOS_GRCh38.txt.gz")),
+            Some(&fixtures.join(format!("{id}.metadata.json"))),
+            &reference,
+            &identity,
+            None,
+            &out,
+        )
+        .unwrap();
+        packs.push(out.join(format!("{id}.pgsp")));
+    }
+    compile_file(
+        &fixtures.join("INDELS.tsv"),
+        None,
+        &reference,
+        &identity,
+        Some(&public),
+        &out,
+    )
+    .unwrap();
+    let indel_pack = vec![out.join("INDELS.pgsp")];
+    for (gvcf, packs) in [
+        ("synthetic.g.vcf.gz", &packs),
+        ("synthetic_indel.g.vcf.gz", &indel_pack),
+    ] {
+        for ext in ["tbi", "csi"] {
+            let dir = out.join(format!("{gvcf}-{ext}"));
+            std::fs::create_dir_all(&dir).unwrap();
+            let copy = dir.join(gvcf);
+            std::fs::copy(fixtures.join(gvcf), &copy).unwrap();
+            let run = |mode| {
+                extract(&copy, &reference, &identity, packs, &opts(None, false, mode))
+                    .unwrap()
+                    .0
+            };
+            assert!(
+                extract(
+                    &copy,
+                    &reference,
+                    &identity,
+                    packs,
+                    &opts(None, false, ScanMode::Indexed)
+                )
+                .is_err(),
+                "{gvcf}: indexed without an index"
+            );
+            std::fs::copy(
+                fixtures.join(format!("{gvcf}.{ext}")),
+                dir.join(format!("{gvcf}.{ext}")),
+            )
+            .unwrap();
+            // An index older than the file is not used.
+            let index = dir.join(format!("{gvcf}.{ext}"));
+            let old = std::fs::metadata(&copy).unwrap().modified().unwrap() - std::time::Duration::from_secs(3600);
+            std::fs::File::options()
+                .write(true)
+                .open(&index)
+                .unwrap()
+                .set_modified(old)
+                .unwrap();
+            assert!(
+                extract(
+                    &copy,
+                    &reference,
+                    &identity,
+                    packs,
+                    &opts(None, false, ScanMode::Indexed)
+                )
+                .is_err()
+            );
+            std::fs::File::options()
+                .write(true)
+                .open(&index)
+                .unwrap()
+                .set_modified(std::time::SystemTime::now())
+                .unwrap();
+            let (full, indexed, auto) = (run(ScanMode::Full), run(ScanMode::Indexed), run(ScanMode::Auto));
+            assert!(full.header.targets > 0);
+            for other in [&indexed, &auto] {
+                assert_eq!(other.header.body_sha256, full.header.body_sha256, "{gvcf} with .{ext}");
+                assert_eq!(other.header.gvcf, full.header.gvcf, "{gvcf} with .{ext}");
+                assert_eq!(other.header.states, full.header.states, "{gvcf} with .{ext}");
+            }
+        }
+    }
+    std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// The same calls come out of the synthetic gVCF when it is uncompressed, plain gzip, has a second sample
+/// (read with `sample`), or names contigs `1` and `X` against a reference that does too.
+#[test]
+fn input_variants_read_alike() {
+    use std::io::Write;
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-inputs-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let text = {
+        let mut s = String::new();
+        std::io::Read::read_to_string(
+            &mut flate2::read::MultiGzDecoder::new(std::fs::File::open(fixtures.join("synthetic.g.vcf.gz")).unwrap()),
+            &mut s,
+        )
+        .unwrap();
+        s
+    };
+    let compile = |reference: &Reference, dir: &Path| {
+        let identity = reference_identity(reference).unwrap();
+        std::fs::create_dir_all(dir).unwrap();
+        compile_file(
+            &fixtures.join("PGS999998_hmPOS_GRCh38.txt.gz"),
+            Some(&fixtures.join("PGS999998.metadata.json")),
+            reference,
+            &identity,
+            None,
+            dir,
+        )
+        .unwrap();
+        (identity, vec![dir.join("PGS999998.pgsp")])
+    };
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let (identity, packs) = compile(&reference, &out.join("packs"));
+    let calls = |gvcf: &Path, reference: &Reference, identity, packs: &[std::path::PathBuf], sample: Option<&str>| {
+        let options = Options {
+            sample,
+            ..opts(None, false, ScanMode::Full)
+        };
+        let (table, _) = extract(gvcf, reference, identity, packs, &options)?;
+        let pack = Pack::open(&packs[0]).unwrap();
+        let mut tsv = Vec::new();
+        pgsum::score::score(&pack, &table, &Default::default(), Some(&mut tsv)).unwrap();
+        Ok::<_, pgsum::Error>((table.header.states.clone(), table.header.body_sha256.clone(), tsv))
+    };
+    let expected = calls(
+        &fixtures.join("synthetic.g.vcf.gz"),
+        &reference,
+        &identity,
+        &packs,
+        None,
+    )
+    .unwrap();
+
+    let plain = out.join("synthetic.vcf");
+    std::fs::write(&plain, &text).unwrap();
+    assert_eq!(
+        calls(&plain, &reference, &identity, &packs, None).unwrap(),
+        expected,
+        "uncompressed"
+    );
+
+    let gzip = out.join("synthetic.vcf.gz");
+    let mut encoder = flate2::write::GzEncoder::new(std::fs::File::create(&gzip).unwrap(), Default::default());
+    encoder.write_all(text.as_bytes()).unwrap();
+    encoder.finish().unwrap();
+    assert_eq!(
+        calls(&gzip, &reference, &identity, &packs, None).unwrap(),
+        expected,
+        "plain gzip"
+    );
+
+    // A second sample after SYNTH; records are kept with SYNTH's column only, so even the body is unchanged.
+    let two: String = text
+        .lines()
+        .map(|l| match l {
+            _ if l.starts_with("##") => format!("{l}\n"),
+            _ if l.starts_with("#CHROM") => format!("{l}\tOTHER\n"),
+            _ => format!("{l}\t./.\n"),
+        })
+        .collect();
+    let multi = out.join("two_samples.vcf");
+    std::fs::write(&multi, two).unwrap();
+    assert_eq!(
+        calls(&multi, &reference, &identity, &packs, Some("SYNTH")).unwrap(),
+        expected,
+        "--sample"
+    );
+    assert!(
+        calls(&multi, &reference, &identity, &packs, None).is_err(),
+        "two samples, none chosen"
+    );
+    assert!(calls(&multi, &reference, &identity, &packs, Some("NOBODY")).is_err());
+
+    // Another assembly's contig lengths, and BCF, are refused.
+    let other = out.join("other_assembly.vcf");
+    std::fs::write(
+        &other,
+        text.replace("##contig=<ID=chr1,length=60>", "##contig=<ID=chr1,length=61>"),
+    )
+    .unwrap();
+    let err = calls(&other, &reference, &identity, &packs, None)
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("different assembly"), "{err}");
+    let bcf = out.join("synthetic.bcf");
+    std::fs::write(&bcf, b"BCF\x02\x02rest").unwrap();
+    let err = calls(&bcf, &reference, &identity, &packs, None)
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("BCF is not supported"), "{err}");
+
+    // `1` and `X` in the VCF and the reference FASTA and index.
+    let unprefixed = |s: &str| s.replace("\nchr", "\n").replace("ID=chr", "ID=").replace(">chr", ">");
+    assert_eq!(
+        fasta_index(&std::fs::read_to_string(fixtures.join("synthetic.fa")).unwrap()),
+        std::fs::read_to_string(fixtures.join("synthetic.fa.fai")).unwrap()
+    );
+    let fasta = out.join("renamed.fa");
+    let renamed_fasta = std::fs::read_to_string(fixtures.join("synthetic.fa"))
+        .unwrap()
+        .replace(">chr", ">");
+    std::fs::write(&fasta, &renamed_fasta).unwrap();
+    std::fs::write(out.join("renamed.fa.fai"), fasta_index(&renamed_fasta)).unwrap();
+    let renamed_reference = Reference::open(&fasta).unwrap();
+    let (renamed_identity, renamed_packs) = compile(&renamed_reference, &out.join("renamed-packs"));
+    let renamed = out.join("renamed.vcf");
+    std::fs::write(&renamed, unprefixed(&text)).unwrap();
+    let (states, _, tsv) = calls(&renamed, &renamed_reference, &renamed_identity, &renamed_packs, None).unwrap();
+    assert_eq!((states, tsv), (expected.0, expected.2), "contigs named 1 and X");
+    std::fs::remove_dir_all(&out).unwrap();
+}
+
+/// A `.fai` for FASTA text whose sequence lines all have the same width.
+fn fasta_index(fasta: &str) -> String {
+    let mut out = String::new();
+    let mut offset = 0usize;
+    let mut current: Option<(String, usize, usize, usize, usize)> = None; // name, length, start, bases, width
+    let finish = |c: Option<(String, usize, usize, usize, usize)>, out: &mut String| {
+        if let Some((name, length, start, bases, width)) = c {
+            out.push_str(&format!("{name}\t{length}\t{start}\t{bases}\t{width}\n"));
+        }
+    };
+    for line in fasta.split_inclusive('\n') {
+        if let Some(name) = line.strip_prefix('>') {
+            finish(current.take(), &mut out);
+            let name = name.split_whitespace().next().unwrap().to_owned();
+            current = Some((name, 0, offset + line.len(), 0, 0));
+        } else if let Some(c) = current.as_mut() {
+            let bases = line.trim_end().len();
+            if c.3 == 0 {
+                (c.3, c.4) = (bases, line.len());
+            }
+            c.1 += bases;
+        }
+        offset += line.len();
+    }
+    finish(current, &mut out);
+    out
 }

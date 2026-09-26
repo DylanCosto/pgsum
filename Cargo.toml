@@ -2,8 +2,8 @@
 name = "pgsum"
 version = "0.1.0"
 edition = "2024"
-rust-version = "1.85"
-description = "Polygenic score calculation from single-sample gVCFs, with reference-block-aware genotype rules"
+rust-version = "1.88"
+description = "Polygenic score calculation from gVCFs: exact sums, reference-block-aware genotype rules, no imputation"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/DylanCosto/pgsum"
 readme = "README.md"
@@ -20,6 +20,7 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4.6", features = ["derive"] }
 flate2 = { version = "1.1.10", default-features = false, features = ["zlib-rs"] }
+memchr = "2.8.3"
 memmap2 = "0.9.11"
 noodles-bgzf = { version = "0.45.0", features = ["libdeflate"] }
 num-bigint = "0.5.1"

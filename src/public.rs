@@ -12,7 +12,6 @@ use flate2::read::MultiGzDecoder;
 
 use crate::digest::file_sha256;
 use crate::pack::SourceFile;
-use crate::term::CONTIGS;
 use crate::{Error, Result, invalid};
 
 pub struct PublicVariants {
@@ -38,7 +37,6 @@ impl PublicVariants {
         } else {
             Box::new(raw)
         };
-        let contigs: HashMap<&str, u8> = CONTIGS.iter().enumerate().map(|(i, c)| (*c, i as u8 + 1)).collect();
         let mut pairs: HashMap<(u8, u32), Vec<(String, String)>> = HashMap::new();
         for (n, line) in BufReader::with_capacity(1 << 20, reader).lines().enumerate() {
             let line = line.map_err(Error::io(path))?;
@@ -54,10 +52,7 @@ impl PublicVariants {
             ) else {
                 return invalid!("{}: line {} is not CHROM POS REF ALT", path.display(), n + 1);
             };
-            let Some(&code) = contigs
-                .get(chrom)
-                .or_else(|| contigs.get(format!("chr{chrom}").as_str()))
-            else {
+            let Some(code) = crate::term::contig_code_of_name(chrom) else {
                 continue;
             };
             if a.contains(',') {

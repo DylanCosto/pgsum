@@ -13,6 +13,18 @@ pub const REFCALL_DEFINITION: &str =
 #[derive(Clone, Debug, Default, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct HeaderFacts {
     pub sample_id: String,
+    /// The chosen sample's column (0-based) in a multi-sample VCF; 9 for a single-sample file.
+    #[serde(skip)]
+    pub sample_column: usize,
+    /// Sample columns in the file.
+    #[serde(skip)]
+    pub samples: usize,
+    /// `##contig` lengths by contig code, where the header gives them.
+    #[serde(skip)]
+    pub contig_lengths: Vec<(u8, u64)>,
+    /// The sample to read from a multi-sample VCF (`--sample`), set before reading the header.
+    #[serde(skip)]
+    pub requested_sample: Option<String>,
     /// `##DeepVariant_version=`, when it is a plain `X.Y.Z` version.
     pub deepvariant_version: Option<String>,
     /// The header defines DeepVariant's `RefCall` filter.
@@ -30,15 +42,47 @@ impl HeaderFacts {
                     .all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()));
             self.deepvariant_version = plain.then(|| version.to_owned());
         }
+        if let Some(fields) = line.strip_prefix("##contig=<").and_then(|l| l.strip_suffix('>')) {
+            let value = |key: &str| {
+                fields
+                    .split(',')
+                    .find_map(|f| f.strip_prefix(key).and_then(|v| v.strip_prefix('=')))
+            };
+            if let (Some(code), Some(Ok(length))) = (
+                value("ID").and_then(crate::term::contig_code_of_name),
+                value("length").map(str::parse::<u64>),
+            ) {
+                self.contig_lengths.push((code, length));
+            }
+        }
         if line == REFCALL_DEFINITION {
             self.refcall_defined = true;
         }
         if line.starts_with("#CHROM\t") {
             let fields: Vec<&str> = line.split('\t').collect();
-            if fields.len() != 10 || fields[9].is_empty() {
-                return invalid!("the gVCF must have exactly one sample");
+            let samples = fields.get(9..).unwrap_or_default();
+            let column = match (&self.requested_sample, samples) {
+                (_, []) => return invalid!("the VCF has no sample columns"),
+                (Some(name), _) => match samples.iter().position(|s| s == name) {
+                    Some(i) if samples.iter().filter(|s| *s == name).count() == 1 => 9 + i,
+                    Some(_) => return invalid!("sample {name} appears more than once"),
+                    None => return invalid!("sample {name} is not in the VCF ({} samples)", samples.len()),
+                },
+                (None, [_]) => 9,
+                (None, _) => {
+                    return invalid!(
+                        "the VCF has {} samples; choose one with --sample (e.g. --sample {})",
+                        samples.len(),
+                        samples[0]
+                    );
+                }
+            };
+            if fields[column].is_empty() {
+                return invalid!("empty sample name");
             }
-            self.sample_id = fields[9].to_owned();
+            self.sample_id = fields[column].to_owned();
+            self.sample_column = column;
+            self.samples = samples.len();
             return Ok(true);
         }
         Ok(false)
