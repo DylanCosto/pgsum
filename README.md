@@ -79,6 +79,10 @@ pgsum score --genotypes sample.pgsg --pack packs/PGS000001.pgsp --out results/ -
 
 # Look inside packs and genotype tables.
 pgsum inspect packs/PGS000001.pgsp [--header] [--genotypes sample.pgsg]
+
+# Per-term evidence rows: status, call, dosage, contribution and source records (extract with
+# --term-positions; see DESIGN.md).
+pgsum evidence packs/PGS000001.pgsp --genotypes sample.pgsg --reference GRCh38.fa
 ```
 
 Many scores at once: `--pack` takes files or directories and can be repeated, `--pack-list` reads paths from
@@ -195,11 +199,11 @@ What has been checked, and against what:
   given pgsum's calls.
 - **Against pgsc_calc.** Where both score the same variants the sums agree (7 of 8 development scores; the
   rest differ in which variants each includes, by design).
-- **Against the reference implementation of the same rules.** pgsum was written to reproduce the PGS scorer
-  in an existing Python implementation by the same author, which is not public. On HG002, 133 scores (91.5
-  million terms: 8 development scores, the 27 report models and 100 random Catalog scores) give
-  identical compile output, identical calls, dosages and contributions for every term, and identical exact
-  sums; the case's saved production evidence for its 30 installed models is identical too. This shows the two
+- **Against the reference implementation of the same rules.** pgsum was written to reproduce an existing
+  Python implementation of these rules by the same author, which is not public. On HG002, 133 scores (91.5
+  million terms: 8 development scores, 27 report scores and 100 random Catalog scores) give identical compile
+  output, identical calls, dosages and contributions for every term, and identical exact sums; saved
+  production results for 30 installed scores are identical too. This shows the two
   implementations agree, not that either is right: that is what the GIAB check above is for.
 - **Across technologies.** HG002 scores complete from both the long-read and an Illumina gVCF are identical
   for 258 of 259 scores (213 of 215 against DRAGEN); each difference is one genotype call.

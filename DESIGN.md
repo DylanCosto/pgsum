@@ -447,6 +447,28 @@ The v0 bar: on GIAB HG002 (GRCh38, public data), for a fixed set of scores, ever
 and every score's value match an existing reference implementation of these rules. See
 `tests/parity_hg002.rs`.
 
+## Per-term evidence rows (`evidence`)
+
+Some callers keep, for every term of a score, a record of how it was scored: the term's status, the genotype
+call, the effect dosage and contribution, and the gVCF records the call was made from. `pgsum evidence <pack>
+--genotypes <table> --reference <FASTA>` writes these as JSON lines in term order (`ordinal`, `status`, `call`,
+`effect_dosage`, `contribution`, `source_records`), so such a caller need not read the gVCF or assess the
+terms itself. `--call-policy` sets the policy ID written into each call; `--after N` starts after N terms.
+
+- The table must be extracted with `--term-positions`. Besides the allele targets, each positioned term then
+  gets a position target (low key bits `0x7FFF`, state `records_at_position`) holding every record whose span
+  covers the position, including terms needing review or with unresolved orientation, whose rows carry their
+  records too. Position targets do not change any call.
+- Each record is written with its fields, INFO flags as `true`, sample fields as strings, `END` from INFO or
+  the REF length, `reference_block` when every ALT is `<*>`, `<NON_REF>` or `.`, the RefCall and DeepVariant
+  version facts from the header, and `query_record_sha256` over the line and its newline. A record met twice
+  at one position is written once.
+- The call is rebuilt from those records (FORMAT/FT and reference-block anchor checks, the documented RefCall
+  convention, then the diploid DP10/GQ20 site rules), and its state must equal pgsum's own call for the term;
+  any difference stops the run, so the rows cannot disagree with pgsum's scores.
+- Terms pgsum reads as sequences (indels) are written with pgsum's status and no call, marked
+  `pgsum_call_not_rebuilt`.
+
 ## Pack format (`pgsum-pack-v3`, v4 with indel orientations)
 
 One file per score, `<pgs_id>.pgsp`: magic bytes, a JSON header, then one zstd frame (level 3) holding the
@@ -540,12 +562,13 @@ strand-inconsistent scores, and indels that fit both ways with no public record)
 HG002 carries a different allele from both of the term's, and 13.3M fail genotype rules (low quality, no
 call, overlapping records, unsupported representations).
 
-**Broad parity with the reference implementation, 2026-09-26:** 125 more scores (the 27 report models and the 100 random
-benchmark scores, less the development set) were run through the reference implementation's unchanged term rules on HG002 with
-the same Catalog files. For all 125, compile output (description, review reasons, orientation, weights),
-every term's status, call state, effect dosage and contribution, and every exact sum are identical: 79.8
-million terms. Separately, a shadow comparison checks pgsum against the case's saved
-production evidence for every installed model: all 30 (25.6 million terms) are identical.
+**Broad parity with the reference implementation, 2026-09-26:** 125 more scores (27 report scores and the 100
+random benchmark scores, less the development set) were run through the reference implementation's unchanged
+term rules on HG002 with the same Catalog files. For all 125, compile output (description, review reasons,
+orientation, weights), every term's status, call state, effect dosage and contribution, and every exact sum
+are identical: 79.8 million terms. Separately, saved production results for 30 installed scores (25.6
+million terms) are identical, and so are whole per-term evidence rows (`evidence`), records included, for
+5.1 million saved terms of 28 scores.
 
 **GIAB concordance, 2026-09-26:** `bench/giab_concordance.py` compares every target of a genotype table with
 the GIAB v4.2.1 HG002 benchmark (chr1–22, `noinconsistent` BED; absent truth records inside it are hom-ref).

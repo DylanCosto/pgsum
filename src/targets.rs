@@ -94,6 +94,9 @@ pub struct Header {
     pub sequence_targets: u64,
     /// SHA-256 of the uncompressed body.
     pub body_sha256: String,
+    /// The keys include a position target for every term with a position.
+    #[serde(default)]
+    pub term_positions: bool,
 }
 
 /// Where the targets came from.
@@ -120,14 +123,14 @@ fn check_reference(pgs_id: &str, pack: &ReferenceIdentity, reference: &Reference
 }
 
 /// Read every pack (in parallel, target columns only) and return its targets and identity.
-pub fn collect(packs: &[PathBuf], reference: &ReferenceIdentity) -> Result<TargetSet> {
+pub fn collect(packs: &[PathBuf], reference: &ReferenceIdentity, positions: bool) -> Result<TargetSet> {
     // SNV keys from all packs accumulate here and are deduplicated whenever they have doubled.
     let union: Mutex<(Vec<u64>, usize)> = Mutex::new((Vec::new(), 0));
     let sequences: Mutex<BTreeSet<(u8, Variant)>> = Mutex::new(BTreeSet::new());
     let refs: Vec<PackRef> = packs
         .par_iter()
         .map(|path| -> Result<PackRef> {
-            let (header, keys, seqs) = Pack::open_target_keys(path)?;
+            let (header, keys, seqs) = Pack::open_target_keys(path, positions)?;
             check_reference(&header.pgs_id, &header.reference, reference)?;
             sequences.lock().expect("no panics while holding the lock").extend(seqs);
             let mut guard = union.lock().expect("no panics while holding the lock");
@@ -216,7 +219,7 @@ fn decode(body: &[u8], n: usize) -> Result<(Vec<u64>, usize)> {
     Ok((keys, at))
 }
 
-pub fn write(path: &Path, reference: &ReferenceIdentity, set: &TargetSet) -> Result<()> {
+pub fn write(path: &Path, reference: &ReferenceIdentity, set: &TargetSet, positions: bool) -> Result<()> {
     let snv: Vec<u64> = set.keys.iter().copied().filter(|&k| !is_sequence_key(k)).collect();
     let mut body = encode(&snv);
     let sequences = set.sequence_list();
@@ -236,6 +239,7 @@ pub fn write(path: &Path, reference: &ReferenceIdentity, set: &TargetSet) -> Res
         targets: snv.len() as u64,
         sequence_targets: sequences.len() as u64,
         body_sha256: records_sha256(&body),
+        term_positions: positions,
     };
     let json = serde_json::to_vec(&header).map_err(|e| Error::Invalid(e.to_string()))?;
     let tmp = path.with_extension("pgst.tmp");
@@ -311,19 +315,24 @@ pub fn read(path: &Path) -> Result<(Header, TargetSet)> {
 
 /// Targets for `packs`: from `cache` when it matches the packs and reference exactly, otherwise collected
 /// from the packs (and written to `cache`, if given).
-pub fn targets(packs: &[PathBuf], reference: &ReferenceIdentity, cache: Option<&Path>) -> Result<(TargetSet, Source)> {
+pub fn targets(
+    packs: &[PathBuf],
+    reference: &ReferenceIdentity,
+    cache: Option<&Path>,
+    positions: bool,
+) -> Result<(TargetSet, Source)> {
     if let Some(cache) = cache
         && cache.exists()
         && let Ok((header, set)) = read(cache)
     {
         let refs = pack_refs(packs, reference)?;
-        if &header.reference == reference && header.packs == refs {
+        if &header.reference == reference && header.packs == refs && header.term_positions == positions {
             return Ok((set, Source::Cache));
         }
     }
-    let set = collect(packs, reference)?;
+    let set = collect(packs, reference, positions)?;
     if let Some(cache) = cache {
-        write(cache, reference, &set)?;
+        write(cache, reference, &set, positions)?;
     }
     Ok((set, Source::Packs))
 }

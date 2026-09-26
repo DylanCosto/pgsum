@@ -69,6 +69,19 @@ pub fn is_sequence_key(key: u64) -> bool {
     key & SEQUENCE_FLAG != 0
 }
 
+/// Low bits of a position target: the records overlapping one term position, kept with no call (see
+/// `extract::Options::term_positions`). Never an SNV's REF/ALT code, and without the sequence flag, so it sorts
+/// after a position's SNV targets and before its sequence targets.
+const POSITION_LOW: u64 = 0x7fff;
+
+pub fn position_key(contig: u8, pos: u32) -> u64 {
+    (contig as u64) << CONTIG_SHIFT | (pos as u64) << POS_SHIFT | POSITION_LOW
+}
+
+pub fn is_position_key(key: u64) -> bool {
+    key & 0xffff == POSITION_LOW
+}
+
 /// Contig code and position of any target key.
 pub fn key_position(key: u64) -> (u8, u32) {
     ((key >> CONTIG_SHIFT) as u8, (key >> POS_SHIFT) as u32)

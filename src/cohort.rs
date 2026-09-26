@@ -386,7 +386,7 @@ pub fn extract_cohort(
     options: &CohortOptions,
     out: &Path,
 ) -> Result<CohortSummary> {
-    let (set, _) = crate::targets::targets(packs, identity, options.targets_cache)?;
+    let (set, _) = crate::targets::targets(packs, identity, options.targets_cache, false)?;
     let ends: Vec<u64> = set
         .keys
         .iter()

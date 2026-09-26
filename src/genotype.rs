@@ -252,10 +252,12 @@ pub enum State {
     OtherCalledAllele,
     ObservedReference,
     ObservedVariant,
+    /// A position target (`genotypes::position_key`): its records are kept, no call is made.
+    RecordsAtPosition,
 }
 
 impl State {
-    pub const ALL: [State; 17] = [
+    pub const ALL: [State; 18] = [
         State::GenotypeFiltered,
         State::ReferenceAnchorMismatch,
         State::ReferenceMismatch,
@@ -273,6 +275,7 @@ impl State {
         State::OtherCalledAllele,
         State::ObservedReference,
         State::ObservedVariant,
+        State::RecordsAtPosition,
     ];
 
     pub fn from_code(code: u8) -> Option<State> {
@@ -299,6 +302,7 @@ impl State {
             OtherCalledAllele => "other_called_allele",
             ObservedReference => "observed_reference",
             ObservedVariant => "observed_variant",
+            RecordsAtPosition => "records_at_position",
         }
     }
 

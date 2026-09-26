@@ -168,6 +168,22 @@ enum Command {
         #[arg(long)]
         allow_inferred_indels: bool,
     },
+    /// Print a pack's per-term evidence rows (JSON lines): status, call, effect dosage, contribution and the gVCF
+    /// records at the term's position. The table must be extracted with `--term-positions`.
+    Evidence {
+        pack: PathBuf,
+        #[arg(long)]
+        genotypes: PathBuf,
+        /// GRCh38 reference FASTA (with `.fai`).
+        #[arg(long)]
+        reference: PathBuf,
+        /// Policy ID written into each call (default: the genotype table's policy ID).
+        #[arg(long)]
+        call_policy: Option<String>,
+        /// Start after this many terms (to resume).
+        #[arg(long, default_value_t = 0)]
+        after: usize,
+    },
     /// Read genotypes from a gVCF at every site the packs need.
     Extract {
         /// Bgzipped single-sample gVCF with a tabix or CSI index.
@@ -212,6 +228,10 @@ enum Command {
         /// the 30× 1000 Genomes release. Recorded in the policy ID.
         #[arg(long)]
         merge_split_records: bool,
+        /// Also keep the gVCF records at the position of every term with one, including terms that cannot be
+        /// scored (see `evidence`).
+        #[arg(long)]
+        term_positions: bool,
     },
     /// Score packs against an extracted genotype table.
     Score {
@@ -336,6 +356,13 @@ fn main() -> ExitCode {
                 allow_inferred_indels,
             },
         ),
+        Command::Evidence {
+            pack,
+            genotypes,
+            reference,
+            call_policy,
+            after,
+        } => evidence(&pack, &genotypes, &reference, call_policy.as_deref(), after),
         Command::Fetch(args) => fetch(&args),
         Command::Extract {
             gvcf,
@@ -349,6 +376,7 @@ fn main() -> ExitCode {
             accept_missing_quality,
             skip_structural_alleles,
             merge_split_records,
+            term_positions,
             all_samples,
         } => packs.resolve().and_then(|packs| {
             if all_samples {
@@ -368,6 +396,7 @@ fn main() -> ExitCode {
                 accept_missing_quality,
                 skip_structural_alleles,
                 merge_split_records,
+                term_positions,
                 sample: sample.as_deref(),
                 scan,
                 threads,
@@ -432,6 +461,7 @@ fn main() -> ExitCode {
                 accept_missing_quality,
                 skip_structural_alleles,
                 merge_split_records,
+                term_positions: false,
                 sample: sample.as_deref(),
                 scan,
                 threads,
@@ -972,6 +1002,19 @@ fn write_targets_tsv(table: &GenotypeTable, out: &mut impl Write) -> Result<()> 
         )
         .map_err(io)?;
     }
+    Ok(())
+}
+
+fn evidence(pack: &Path, genotypes: &Path, reference: &Path, policy: Option<&str>, after: usize) -> Result<()> {
+    let (pack, table, reference) = (
+        Pack::open(pack)?,
+        GenotypeTable::open(genotypes)?,
+        Reference::open(reference)?,
+    );
+    let policy = policy.map_or_else(|| table.header.policy.id.clone(), str::to_owned);
+    let mut out = BufWriter::new(std::io::stdout().lock());
+    pgsum::evidence::write_rows(&pack, &table, &reference, &policy, after, &mut out)?;
+    out.flush().map_err(Error::io("<stdout>"))?;
     Ok(())
 }
 

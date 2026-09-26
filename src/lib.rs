@@ -8,6 +8,7 @@ pub mod cohort;
 pub mod compile;
 pub mod decimal;
 pub mod digest;
+pub mod evidence;
 pub mod extract;
 pub mod fetch;
 pub mod genotype;

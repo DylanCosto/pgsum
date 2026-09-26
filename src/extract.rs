@@ -69,6 +69,9 @@ pub struct Options<'a> {
     pub skip_structural_alleles: bool,
     /// Read split multi-allelic records as one multi-allelic record (see `genotype::merge_split`).
     pub merge_split_records: bool,
+    /// Also keep the records at the position of every term with one, including terms that cannot be scored
+    /// (`genotypes::position_key`), for per-term evidence rows.
+    pub term_positions: bool,
     /// The sample to read from a multi-sample VCF.
     pub sample: Option<&'a str>,
     pub scan: ScanMode,
@@ -819,6 +822,15 @@ pub fn assess(
                     for (i, &key) in keys.iter().enumerate().take(end).skip(start) {
                         let (code, pos) = key_position(key);
                         let contig = CONTIGS[code as usize - 1];
+                        if crate::genotypes::is_position_key(key) {
+                            out.push(CompactCall {
+                                state: genotype::State::RecordsAtPosition,
+                                alt_dosage: None,
+                                refcall_adapted: false,
+                                phased: false,
+                            });
+                            continue;
+                        }
                         ids.clear();
                         if scanned.first[i] != u32::MAX {
                             ids.push(scanned.first[i]);
@@ -867,7 +879,8 @@ pub fn extract(
 ) -> Result<(GenotypeTable, Timings)> {
     let mut timings = Timings::default();
     let t = Instant::now();
-    let (set, source) = crate::targets::targets(packs, reference_identity, options.targets_cache)?;
+    let (set, source) =
+        crate::targets::targets(packs, reference_identity, options.targets_cache, options.term_positions)?;
     timings.targets_s = t.elapsed().as_secs_f64();
     timings.targets_from_cache = source == crate::targets::Source::Cache;
     let ends: Vec<u64> = set

@@ -7,6 +7,8 @@
 
 use std::path::Path;
 
+use sha2::Digest;
+
 use pgsum::compile::{compile_file, reference_identity};
 use pgsum::extract::{Options, ScanMode, extract};
 
@@ -17,6 +19,7 @@ fn opts(targets_cache: Option<&Path>, haploid_xy_as_homozygous: bool, scan: Scan
         accept_missing_quality: false,
         skip_structural_alleles: false,
         merge_split_records: false,
+        term_positions: false,
         sample: None,
         scan,
         threads: 2,
@@ -871,4 +874,97 @@ fn fasta_index(fasta: &str) -> String {
     }
     finish(current, &mut out);
     out
+}
+
+/// With `--term-positions` the table keeps the records at every term's position, and `evidence` writes them
+/// with a call rebuilt from those records that agrees with pgsum's own call at every term.
+#[test]
+fn evidence_rows_carry_the_records_at_each_term() {
+    const POLICY: &str = "caller-policy-v1";
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures");
+    let out = std::env::temp_dir().join(format!("pgsum-evidence-test-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    let reference = Reference::open(&fixtures.join("synthetic.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    compile_file(
+        &fixtures.join("PGS999998_hmPOS_GRCh38.txt.gz"),
+        Some(&fixtures.join("PGS999998.metadata.json")),
+        &reference,
+        &identity,
+        None,
+        &out,
+    )
+    .unwrap();
+    let pack_path = out.join("PGS999998.pgsp");
+    let pack = Pack::open(&pack_path).unwrap();
+    let gvcf = fixtures.join("synthetic.g.vcf.gz");
+    let extract_with = |term_positions| {
+        let options = Options {
+            term_positions,
+            ..opts(None, false, ScanMode::Full)
+        };
+        extract(&gvcf, &reference, &identity, std::slice::from_ref(&pack_path), &options)
+            .unwrap()
+            .0
+    };
+
+    // A table without position targets is refused.
+    let plain = extract_with(false);
+    assert!(pgsum::evidence::write_rows(&pack, &plain, &reference, POLICY, 0, &mut Vec::new()).is_err());
+
+    let table = extract_with(true);
+    let path = out.join("positions.pgsg");
+    table.write(&path).unwrap();
+    let table = GenotypeTable::open(&path).unwrap();
+    // Position targets do not change any term's call.
+    let mut a = Vec::new();
+    let mut b = Vec::new();
+    pgsum::score::score(&pack, &plain, &Default::default(), Some(&mut a)).unwrap();
+    pgsum::score::score(&pack, &table, &Default::default(), Some(&mut b)).unwrap();
+    assert_eq!(a, b);
+
+    let mut rows = Vec::new();
+    let n = pgsum::evidence::write_rows(&pack, &table, &reference, POLICY, 0, &mut rows).unwrap();
+    let lines: Vec<&str> = std::str::from_utf8(&rows).unwrap().lines().collect();
+    assert_eq!(lines.len() as u64, n);
+    // Every record digest is of a line of the gVCF.
+    let mut text = String::new();
+    std::io::Read::read_to_string(
+        &mut flate2::read::MultiGzDecoder::new(std::fs::File::open(&gvcf).unwrap()),
+        &mut text,
+    )
+    .unwrap();
+    let digests: std::collections::HashSet<String> = text
+        .lines()
+        .filter(|l| !l.starts_with('#'))
+        .map(|l| {
+            format!(
+                "sha256:{}",
+                pgsum::digest::hex(&sha2::Sha256::digest(format!("{l}\n").as_bytes()))
+            )
+        })
+        .collect();
+    let mut with_records = 0;
+    for (i, line) in lines.iter().enumerate() {
+        let row: serde_json::Value = serde_json::from_str(line).unwrap();
+        assert_eq!(row["ordinal"], i as u64 + 1);
+        let records = row["source_records"].as_array().unwrap();
+        with_records += usize::from(!records.is_empty());
+        for r in records {
+            assert!(digests.contains(r["query_record_sha256"].as_str().unwrap()));
+        }
+        if row["status"] == "scorable_observation" {
+            assert_eq!(row["call"]["policy"], POLICY);
+            assert!(row["contribution"].is_string());
+        }
+    }
+    assert!(with_records > 0);
+    // Resuming after 5 terms gives the same rows from the sixth.
+    let mut tail = Vec::new();
+    pgsum::evidence::write_rows(&pack, &table, &reference, POLICY, 5, &mut tail).unwrap();
+    assert_eq!(
+        std::str::from_utf8(&tail).unwrap().lines().collect::<Vec<_>>(),
+        lines[5..]
+    );
+    std::fs::remove_dir_all(&out).unwrap();
 }

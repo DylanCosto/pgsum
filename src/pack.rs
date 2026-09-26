@@ -680,7 +680,8 @@ impl Columns {
 
     /// The SNV target keys (sorted, distinct) and sequence targets (sorted, distinct) of the terms that could
     /// need a genotype with every opt-in on, decoding only the columns that identify them.
-    pub fn target_keys(body: &[u8]) -> Result<(Vec<u64>, SequenceTargets)> {
+    /// Target keys of the terms (and, with `positions`, a position target for every term with a position).
+    pub fn target_keys(body: &[u8], term_positions: bool) -> Result<(Vec<u64>, SequenceTargets)> {
         let sections = split_sections(body)?;
         let n = sections[0].len();
         let (contig, status, ref_base, alt_base) = (sections[0], sections[5], sections[7], sections[8]);
@@ -729,6 +730,9 @@ impl Columns {
                 ))
             });
             let reasons = u32::try_from(r).map_err(|_| bad_body("reasons"))?;
+            if term_positions && contig[i] != 0 {
+                keys.push(crate::genotypes::position_key(contig[i], pos()?));
+            }
             let sequence = sequences.get(&(i as u32));
             match waived(
                 reasons,
@@ -893,10 +897,10 @@ impl Pack {
     }
 
     /// A pack's header, SNV target keys and sequence targets, without decoding weights.
-    pub fn open_target_keys(path: &Path) -> Result<(Header, Vec<u64>, SequenceTargets)> {
+    pub fn open_target_keys(path: &Path, positions: bool) -> Result<(Header, Vec<u64>, SequenceTargets)> {
         let (header, body) = Self::read_body(path)?;
         let (keys, sequences) =
-            Columns::target_keys(&body).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
+            Columns::target_keys(&body, positions).map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
         Ok((header, keys, sequences))
     }
 
