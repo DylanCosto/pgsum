@@ -31,6 +31,17 @@ each validated on real data and labelled in every result that uses it (see DESIG
 | `--accept-informational-descriptions` | carry a `variant_description` that is only an annotation |
 | `extract --haploid-xy-as-homozygous` | sit on haploid chrX/chrY calls from callers that write them |
 
+## Install
+
+Prebuilt binaries for macOS (Apple Silicon, Intel) and Linux (x86-64, ARM) are attached to each
+[release](https://github.com/DylanCosto/pgsum/releases). Or build from source with Rust 1.88 or later:
+
+```sh
+cargo install --git https://github.com/DylanCosto/pgsum
+```
+
+You also need a GRCh38 reference FASTA with its `.fai` (`samtools faidx`).
+
 ## Usage
 
 ```sh
