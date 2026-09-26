@@ -14,6 +14,7 @@ fn opts(targets_cache: Option<&Path>, haploid_xy_as_homozygous: bool, scan: Scan
     Options {
         targets_cache,
         haploid_xy_as_homozygous,
+        accept_missing_quality: false,
         sample: None,
         scan,
         threads: 2,

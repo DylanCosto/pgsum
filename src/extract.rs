@@ -62,6 +62,8 @@ pub struct Options<'a> {
     pub targets_cache: Option<&'a Path>,
     /// Read haploid chrX/chrY calls (`1`) as homozygous (`1/1`).
     pub haploid_xy_as_homozygous: bool,
+    /// Accept calls that report neither depth nor GQ (genotype-only VCFs).
+    pub accept_missing_quality: bool,
     /// The sample to read from a multi-sample VCF.
     pub sample: Option<&'a str>,
     pub scan: ScanMode,
@@ -774,7 +776,11 @@ pub fn extract(
     timings.scan_s = t.elapsed().as_secs_f64();
     check_assembly(gvcf, &scanned.header, reference)?;
     let t = Instant::now();
-    let policy = Policy::for_gvcf(scanned.header.refcall_defined, options.haploid_xy_as_homozygous);
+    let policy = Policy::for_gvcf(
+        scanned.header.refcall_defined,
+        options.haploid_xy_as_homozygous,
+        options.accept_missing_quality,
+    );
     let calls = assess(&set.keys, &set.sequences, &scanned, reference, &policy, options.threads)?;
     timings.assess_s = t.elapsed().as_secs_f64();
     let t = Instant::now();

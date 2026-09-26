@@ -77,7 +77,7 @@ fn main() {
     keys.dedup();
     for &key in &keys {
         let (c, p, r, a) = unpack_key(key);
-        let entry = table.get(key).expect("target in the genotype table");
+        let entry = table.get(key).unwrap().expect("target in the genotype table");
         let gt = match entry.alt_dosage {
             Some(0) if entry.state.is_passing() => "0/0",
             Some(1) if entry.state.is_passing() => "0/1",

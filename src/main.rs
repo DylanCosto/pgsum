@@ -194,6 +194,10 @@ enum Command {
         /// The sample to read from a multi-sample VCF.
         #[arg(long)]
         sample: Option<String>,
+        /// Accept calls that report neither depth nor GQ, on GT and FILTER alone (genotype-only VCFs: imputed,
+        /// array or joint-called data). Recorded in the table's policy ID.
+        #[arg(long)]
+        accept_missing_quality: bool,
     },
     /// Score packs against an extracted genotype table.
     Score {
@@ -254,6 +258,10 @@ enum Command {
         /// The sample to read from a multi-sample VCF.
         #[arg(long)]
         sample: Option<String>,
+        /// Accept calls that report neither depth nor GQ, on GT and FILTER alone (genotype-only VCFs: imputed,
+        /// array or joint-called data). Recorded in the table's policy ID.
+        #[arg(long)]
+        accept_missing_quality: bool,
         /// Also score terms without an author other allele, using the orientation their pack inferred.
         #[arg(long)]
         allow_inferred_other_allele: bool,
@@ -312,10 +320,12 @@ fn main() -> ExitCode {
             haploid_xy_as_homozygous,
             scan,
             sample,
+            accept_missing_quality,
         } => packs.resolve().and_then(|packs| {
             let options = ExtractOptions {
                 targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
+                accept_missing_quality,
                 sample: sample.as_deref(),
                 scan,
                 threads,
@@ -352,6 +362,7 @@ fn main() -> ExitCode {
             haploid_xy_as_homozygous,
             scan,
             sample,
+            accept_missing_quality,
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
@@ -368,6 +379,7 @@ fn main() -> ExitCode {
             let extract_options = ExtractOptions {
                 targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
+                accept_missing_quality,
                 sample: sample.as_deref(),
                 scan,
                 threads,

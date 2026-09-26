@@ -19,6 +19,44 @@ plink2 alone is only the scoring engine: it also needs its weight tables built (
 steps).
 
 
+## Many samples (2026-09-26)
+
+Same Mac, pgsum at the commit that added `--accept-missing-quality`.
+
+**Per-sample gVCFs**, pgsum's intended input: 20 1000 Genomes samples (4 per superpopulation) called with
+DeepVariant 0.8 on Illumina, about 97 million records each, from Google's public
+`brain-genomics-public/research/cohort/1KGP/dv_vcf/v1` (no index, so each gVCF is read whole):
+
+| Scores | Per sample | Peak memory | Throughput |
+|---|---|---|---|
+| 100 random (56.1M terms) | median 6.6 s (5.9–9.1 s) | 3.7 GB | about 545 samples/hour |
+| 100 random, two samples at a time | 5.3 s per sample | 3.8 GB each | about 685 samples/hour |
+| Whole Catalog (6,990 scores, 4.50B terms) | median 145 s (139–154 s) | up to 14.5 GB | about 25 samples/hour |
+
+plink2 and pgsc_calc cannot read per-sample gVCFs; scoring these with them needs joint genotyping first,
+which was not measured.
+
+**One joint-called cohort VCF**, plink2's intended input: 1000 Genomes phase 3 lifted to GRCh38 (2,504
+samples, 81.6 million records, 15.5 GB), the same 100 scores:
+
+| | Time |
+|---|---|
+| plink2: import to pgen at the 7.2M score sites | 340 s |
+| plink2: `--score` for all 2,504 samples (alt and ref tables) | 14 s |
+| **plink2 total, 2,504 samples** | **354 s (0.14 s per sample)** |
+| pgsum `run --sample S --accept-missing-quality`, one sample | 103–113 s |
+| pgsum, 2,504 samples one at a time (extrapolated) | about 73 hours |
+
+pgsum reads the whole multi-sample file once per sample and keeps one column, so on a large joint-called VCF
+it is roughly 750 times slower per sample than plink2, which reads the file once for everyone. Scoring many
+samples from one file in one pass is not implemented.
+
+The file has only `GT`, so by default pgsum calls nothing (`quality_missing`); `--accept-missing-quality`
+accepts genotype-only calls. With it, pgsum's sums for HG00096 match plink2's to plink2's precision on the
+sites plink2 scores; the tools differ in which sites they use: pgsum does not score the 1.5% of target sites
+where the file has several records at one position (split multi-allelic sites), and it scores multi-allelic
+sites written as one record, which plink2 cannot match to `chr:pos:ref:alt` IDs.
+
 ## plink2 `--score` (2026-09-25)
 
 Same machine (12-core Mac, 26 GB RAM), same sample (GIAB HG002, DeepVariant gVCF), same scores, same

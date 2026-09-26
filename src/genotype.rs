@@ -44,6 +44,9 @@ pub struct Policy {
     pub refcall_is_reference: bool,
     /// Read a haploid call on chrX or chrY (`1`) as homozygous (`1/1`), as DeepVariant writes male chrX.
     pub haploid_xy_as_homozygous: bool,
+    /// Accept a variant-record call that reports neither depth nor GQ (a genotype-only VCF: imputed,
+    /// array or joint-called data) on its GT and FILTER alone. A record reporting either is still checked.
+    pub accept_missing_quality: bool,
 }
 
 impl Default for Policy {
@@ -54,22 +57,29 @@ impl Default for Policy {
             min_gq: 20.0,
             refcall_is_reference: false,
             haploid_xy_as_homozygous: false,
+            accept_missing_quality: false,
         }
     }
 }
 
 impl Policy {
     /// The default policy, with DeepVariant's `RefCall` convention when the gVCF defines it and, optionally,
-    /// haploid chrX/chrY calls read as homozygous (which changes the policy ID).
-    pub fn for_gvcf(refcall_is_reference: bool, haploid_xy_as_homozygous: bool) -> Policy {
+    /// haploid chrX/chrY calls read as homozygous and genotype-only calls accepted (each changes the policy ID).
+    pub fn for_gvcf(
+        refcall_is_reference: bool,
+        haploid_xy_as_homozygous: bool,
+        accept_missing_quality: bool,
+    ) -> Policy {
         Policy {
-            id: if haploid_xy_as_homozygous {
-                "pgsum-dp10-gq20-pass-haploid-xy-homozygous-v1"
-            } else {
-                Policy::default().id
+            id: match (haploid_xy_as_homozygous, accept_missing_quality) {
+                (false, false) => Policy::default().id,
+                (true, false) => "pgsum-dp10-gq20-pass-haploid-xy-homozygous-v1",
+                (false, true) => "pgsum-diploid-dp10-gq20-pass-or-genotype-only-v1",
+                (true, true) => "pgsum-dp10-gq20-pass-or-genotype-only-haploid-xy-homozygous-v1",
             },
             refcall_is_reference,
             haploid_xy_as_homozygous,
+            accept_missing_quality,
             ..Policy::default()
         }
     }
@@ -280,11 +290,13 @@ fn assess_site(
     let block = record.is_reference_block();
     let depth = number(if block { &record.min_dp } else { &record.dp });
     let gq = number(&record.gq);
-    let (Some(depth), Some(gq)) = (depth, gq) else {
-        return Call::state(State::QualityMissing);
-    };
-    if depth < policy.min_depth || gq < policy.min_gq {
-        return Call::state(State::LowQuality);
+    match (depth, gq) {
+        (Some(depth), Some(gq)) if depth < policy.min_depth || gq < policy.min_gq => {
+            return Call::state(State::LowQuality);
+        }
+        (Some(_), Some(_)) => {}
+        (None, None) if policy.accept_missing_quality && !block => {}
+        _ => return Call::state(State::QualityMissing),
     }
     let indices: Vec<u32> = record.gt.iter().map(|a| a.expect("no-calls handled above")).collect();
     let dosage = if block {
@@ -466,6 +478,35 @@ mod tests {
         assert_eq!((call.state, call.alt_dosage), (State::ObservedReference, Some(0)));
     }
 
+    /// A genotype-only record passes only with `accept_missing_quality`; a record reporting one of depth and
+    /// GQ is still checked, and a reference block without quality never passes.
+    #[test]
+    fn genotype_only_calls_are_opt_in() {
+        let accepting = Policy::for_gvcf(false, false, true);
+        assert_ne!(accepting.id, Policy::default().id);
+        let mut r = variant([Some(0), Some(1)]);
+        (r.dp, r.gq) = (None, None);
+        assert_eq!(state(&[r.clone()]), State::QualityMissing);
+        let call = assess(std::slice::from_ref(&r), &TARGET, &accepting, reference);
+        assert_eq!((call.state, call.alt_dosage), (State::ObservedVariant, Some(1)));
+        r.gq = Some("5".into());
+        assert_eq!(
+            assess(std::slice::from_ref(&r), &TARGET, &accepting, reference).state,
+            State::QualityMissing
+        );
+        r.dp = Some("30".into());
+        assert_eq!(
+            assess(std::slice::from_ref(&r), &TARGET, &accepting, reference).state,
+            State::LowQuality
+        );
+        let mut b = block(1, 8);
+        (b.min_dp, b.gq) = (None, None);
+        assert_eq!(
+            assess(&[b], &TARGET, &accepting, reference).state,
+            State::QualityMissing
+        );
+    }
+
     #[test]
     fn reference_block_uses_min_dp() {
         let mut r = block(1, 8);
@@ -523,7 +564,7 @@ mod tests {
             assess(&[haploid.clone()], &x, &Policy::default(), reference).state,
             State::UnsupportedPloidy
         );
-        let policy = Policy::for_gvcf(false, true);
+        let policy = Policy::for_gvcf(false, true, false);
         let call = assess(&[haploid.clone()], &x, &policy, reference);
         assert_eq!((call.state, call.alt_dosage), (State::ObservedVariant, Some(2)));
         // Autosomes stay diploid-only.

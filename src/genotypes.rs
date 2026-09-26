@@ -151,6 +151,8 @@ pub struct PolicyInfo {
     pub refcall_is_reference: bool,
     #[serde(default)]
     pub haploid_xy_as_homozygous: bool,
+    #[serde(default)]
+    pub accept_missing_quality: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -485,6 +487,7 @@ impl GenotypeTable {
                     min_gq: policy.min_gq,
                     refcall_is_reference: policy.refcall_is_reference,
                     haploid_xy_as_homozygous: policy.haploid_xy_as_homozygous,
+                    accept_missing_quality: policy.accept_missing_quality,
                 },
                 sample: scanned.header,
                 gvcf: SourceFile {
@@ -834,7 +837,7 @@ mod tests {
         let table = GenotypeTable::new(
             Path::new("x.g.vcf.gz"),
             &reference,
-            &Policy::for_gvcf(false, false),
+            &Policy::for_gvcf(false, false, false),
             targets,
             scanned,
             calls,

@@ -209,6 +209,12 @@ pseudoautosomal regions), so these are scored like autosomes: a hemizygous ALT c
 default; `extract --haploid-xy-as-homozygous` reads a haploid chrX/chrY call as homozygous, and the genotype
 table's policy ID becomes `pgsum-dp10-gq20-pass-haploid-xy-homozygous-v1`. pgsum does not infer sex.
 
+**Genotype-only VCFs.** Imputed, array and joint-called VCFs often carry only `GT`, so every call is
+`quality_missing` by default. `extract --accept-missing-quality` accepts a variant record that reports
+neither depth nor GQ on its GT and FILTER alone; a record that reports either is still checked against both
+thresholds, and a reference block without them still fails. The policy ID gains `-or-genotype-only` (e.g.
+`pgsum-diploid-dp10-gq20-pass-or-genotype-only-v1`).
+
 ## Inferred other alleles (opt-in)
 
 2,214 of the 6,990 Catalog scores (September 2026) give only an effect allele. Their terms carry the review
@@ -459,6 +465,13 @@ pair, 3.1M by reference fit). Of the 142.8M terms still unscorable, 91.3M are mo
 strand-inconsistent scores, and indels that fit both ways with no public record), 12.5M are sites where
 HG002 carries a different allele from both of the term's, and 13.3M fail genotype rules (low quality, no
 call, overlapping records, unsupported representations).
+
+**Broad parity with the reference implementation, 2026-09-26:** 125 more scores (the 27 report models and the 100 random
+benchmark scores, less the development set) were run through the reference implementation's unchanged term rules on HG002 with
+the same Catalog files. For all 125, compile output (description, review reasons, orientation, weights),
+every term's status, call state, effect dosage and contribution, and every exact sum are identical: 79.8
+million terms. Separately, a shadow comparison checks pgsum against the case's saved
+production evidence for every installed model: all 30 (25.6 million terms) are identical.
 
 **GIAB concordance, 2026-09-26:** `bench/giab_concordance.py` compares every target of a genotype table with
 the GIAB v4.2.1 HG002 benchmark (chr1–22, `noinconsistent` BED; absent truth records inside it are hom-ref).

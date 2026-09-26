@@ -30,6 +30,7 @@ each validated on real data and labelled in every result that uses it (see DESIG
 | `--allow-inferred-indels` | are indels or multi-base variants (needs `compile --public-variants`) |
 | `--accept-informational-descriptions` | carry a `variant_description` that is only an annotation |
 | `extract --haploid-xy-as-homozygous` | sit on haploid chrX/chrY calls from callers that write them |
+| `extract --accept-missing-quality` | come from genotype-only VCFs (imputed, array, joint-called: `GT` without depth or GQ) |
 
 ## Install
 
@@ -138,17 +139,20 @@ What has been checked, and against what:
 - **Against pgsc_calc.** Where both score the same variants the sums agree (7 of 8 development scores; the
   rest differ in which variants each includes, by design).
 - **Against the reference implementation of the same rules.** pgsum was written to reproduce the PGS scorer
-  in an existing Python implementation by the same author, which is not public. Compile output is identical
-  for 52 scores, and every term's call, dosage and contribution, and every sum, for 8 scores (11.7 million
-  terms) on HG002. This is a check that the two implementations agree, not an independent check that either
-  is right.
+  in an existing Python implementation by the same author, which is not public. On HG002, 133 scores (91.5
+  million terms: 8 development scores, the 27 report models and 100 random Catalog scores) give
+  identical compile output, identical calls, dosages and contributions for every term, and identical exact
+  sums; the case's saved production evidence for its 30 installed models is identical too. This shows the two
+  implementations agree, not that either is right: that is what the GIAB check above is for.
 - **Across technologies.** HG002 scores complete from both the long-read and an Illumina gVCF are identical
   for 258 of 259 scores (213 of 215 against DRAGEN); each difference is one genotype call.
 
 ## Limitations
 
 - GRCh38 only; VCFs on another assembly are refused.
-- One sample per run. Many-sample performance has not been benchmarked.
+- One sample per run. Built for per-sample gVCFs (about 545 samples an hour against 100 scores); on one
+  large joint-called VCF it reads the whole file for each sample, so plink2 is far faster there (2,504
+  samples in 6 minutes against about 73 hours; `bench/README.md`).
 - Raw scores only: no ancestry adjustment, percentiles or absolute risk.
 - A plain VCF (no reference blocks) scores poorly: pgsum does not assume the reference where a VCF is silent.
 - Validated end to end on one genome (HG002); calls from other callers and samples follow the same rules
