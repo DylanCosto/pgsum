@@ -42,7 +42,7 @@ pub const MAGIC: &[u8; 8] = b"PGSUMPK2";
 pub const SCHEMA: &str = "pgsum-pack-v3";
 /// Version of the compile-time rules (term description, orientation, inference, informational
 /// descriptions). A pack compiled under other rules is recompiled by `fetch`.
-pub const COMPILE_RULES: &str = "2026-09-26.finngen-identifier";
+pub const COMPILE_RULES: &str = "2026-09-27.published-alleles";
 /// Earlier schema still read: v2 has no inferred-orientation columns.
 pub const SCHEMA_V2: &str = "pgsum-pack-v2";
 pub const EXTENSION: &str = "pgsp";
@@ -395,6 +395,8 @@ fn bad_body(what: &str) -> Error {
 const SECTIONS_V2: usize = 15;
 const SECTIONS_V3: usize = 19;
 const SECTIONS_V4: usize = 20;
+/// v5: the published effect and other allele of every term.
+const SECTIONS_V5: usize = 21;
 
 /// The sparse sequence section: entry count, then per entry the term index, position and REF/ALT (each a
 /// `u16` length and bytes), little-endian.
@@ -438,6 +440,35 @@ fn decode_sequences(bytes: &[u8]) -> Result<BTreeMap<u32, Variant>> {
 }
 
 /// The length-prefixed column sections of a pack body: 15 in v2, 19 in v3.
+/// The allele section: per term the effect and the other allele, each a varint length and bytes.
+fn encode_alleles(text: &[u8], start: &[u32]) -> Vec<u8> {
+    let mut out = Vec::with_capacity(text.len() + start.len());
+    for w in start.windows(2) {
+        put_varint(&mut out, (w[1] - w[0]) as u64);
+        out.extend_from_slice(&text[w[0] as usize..w[1] as usize]);
+    }
+    out
+}
+
+fn decode_alleles(section: &[u8], n: usize) -> Result<(Vec<u8>, Vec<u32>)> {
+    let (mut text, mut start) = (Vec::with_capacity(section.len()), Vec::with_capacity(2 * n + 1));
+    start.push(0);
+    let mut at = 0usize;
+    for _ in 0..2 * n {
+        let mut it = Varints(&section[at..], 0);
+        let len = it.next().ok_or_else(|| bad_body("alleles"))? as usize;
+        at += it.1;
+        let bytes = section.get(at..at + len).ok_or_else(|| bad_body("alleles"))?;
+        text.extend_from_slice(bytes);
+        start.push(text.len() as u32);
+        at += len;
+    }
+    if at != section.len() {
+        return Err(bad_body("alleles"));
+    }
+    Ok((text, start))
+}
+
 fn split_sections(body: &[u8]) -> Result<Vec<&[u8]>> {
     let mut at = 0usize;
     let mut sections = Vec::with_capacity(SECTIONS_V4);
@@ -448,7 +479,7 @@ fn split_sections(body: &[u8]) -> Result<Vec<&[u8]>> {
         sections.push(body.get(at..at + len).ok_or_else(|| bad_body("truncated"))?);
         at += len;
     }
-    if ![SECTIONS_V2, SECTIONS_V3, SECTIONS_V4].contains(&sections.len()) {
+    if ![SECTIONS_V2, SECTIONS_V3, SECTIONS_V4, SECTIONS_V5].contains(&sections.len()) {
         return Err(bad_body("unexpected number of columns"));
     }
     Ok(sections)
@@ -516,6 +547,10 @@ pub struct Columns {
     pub inferred_alt: Vec<u8>,
     /// Normalized variants of terms with a sequence inference, by term index (v4).
     pub sequences: BTreeMap<u32, Variant>,
+    /// Published effect and other allele of every term, as written in the scoring file (v5): the texts, and each
+    /// term's offsets into them (effect start, other start, end). Empty for earlier packs.
+    pub allele_text: Vec<u8>,
+    pub allele_start: Vec<u32>,
 }
 
 impl Columns {
@@ -566,6 +601,24 @@ impl Columns {
         }
         self.weights.extend(t.weights.iter().cloned());
         self.weight_start.push(self.weights.len() as u32);
+    }
+
+    /// Record the published alleles of the term last pushed.
+    pub fn push_alleles(&mut self, effect: &str, other: &str) {
+        if self.allele_start.is_empty() {
+            self.allele_start.push(0);
+        }
+        for allele in [effect, other] {
+            self.allele_text.extend_from_slice(allele.as_bytes());
+            self.allele_start.push(self.allele_text.len() as u32);
+        }
+    }
+
+    /// The published effect and other allele of the term at `i` (`None` for packs from before v5).
+    pub fn alleles(&self, i: usize) -> Option<(&str, &str)> {
+        let s = self.allele_start.get(2 * i..2 * i + 3)?;
+        let text = |a: u32, b: u32| std::str::from_utf8(&self.allele_text[a as usize..b as usize]).ok();
+        Some((text(s[0], s[1])?, text(s[1], s[2])?))
     }
 
     /// The term at `i`.
@@ -660,6 +713,7 @@ impl Columns {
             self.inferred_ref.clone(),
             self.inferred_alt.clone(),
             encode_sequences(&self.sequences),
+            encode_alleles(&self.allele_text, &self.allele_start),
         ]);
         let mut out = Vec::with_capacity(sections.iter().map(|s| s.len() + 8).sum());
         for section in sections {
@@ -690,7 +744,7 @@ impl Columns {
             return Err(bad_body("column lengths differ"));
         }
         let inferred = (sections.len() >= SECTIONS_V3).then(|| (sections[15], sections[17], sections[18]));
-        let sequences = if sections.len() == SECTIONS_V4 {
+        let sequences = if sections.len() >= SECTIONS_V4 {
             decode_sequences(sections[19])?
         } else {
             BTreeMap::new()
@@ -816,6 +870,11 @@ impl Columns {
         {
             return Err(bad("column lengths differ"));
         }
+        let (allele_text, allele_start) = if sections.len() == SECTIONS_V5 {
+            decode_alleles(sections[20], n)?
+        } else {
+            (Vec::new(), Vec::new())
+        };
         Ok(Columns {
             contig: sections[0].to_vec(),
             pos,
@@ -833,11 +892,13 @@ impl Columns {
             inferred_method: inferred(16),
             inferred_ref: inferred(17),
             inferred_alt: inferred(18),
-            sequences: if sections.len() == SECTIONS_V4 {
+            sequences: if sections.len() >= SECTIONS_V4 {
                 decode_sequences(sections[19])?
             } else {
                 BTreeMap::new()
             },
+            allele_text,
+            allele_start,
         })
     }
 }
@@ -919,6 +980,11 @@ impl Pack {
     }
 
     /// Terms from index `start` on.
+    /// The published effect and other allele of term `i` (0-based); `None` for packs compiled before v5.
+    pub fn alleles(&self, i: usize) -> Option<(&str, &str)> {
+        self.columns.alleles(i)
+    }
+
     pub fn terms_from(&self, start: usize) -> TermIter<'_> {
         TermIter {
             columns: &self.columns,
@@ -1036,5 +1102,39 @@ mod tests {
             put_varint(&mut b, zigzag(v));
             assert_eq!(unzigzag(Columns::decode_one(&b)), v);
         }
+    }
+
+    #[test]
+    fn published_alleles_round_trip() {
+        let term = TermRecord {
+            contig: 1,
+            pos: 100,
+            model: Model::Additive,
+            allele_kind: AlleleKind::LiteralSnv,
+            palindromic: false,
+            orientation: Orientation {
+                status: Status::Resolved,
+                method: Method::Direct,
+                ref_base: b'A',
+                alt_base: b'G',
+                effect_is_alt: true,
+            },
+            reasons: Reasons(0),
+            weights: vec![Weight::Invalid],
+            inferred: None,
+            informational_description: false,
+            inferred_sequence: None,
+        };
+        let mut columns = Columns::default();
+        for (effect, other) in [("A", "G"), ("TTA", ""), ("", "C")] {
+            columns.push(&term);
+            columns.push_alleles(effect, other);
+        }
+        let decoded = Columns::decode(&columns.encode()).unwrap();
+        assert_eq!(decoded.alleles(0), Some(("A", "G")));
+        assert_eq!(decoded.alleles(1), Some(("TTA", "")));
+        assert_eq!(decoded.alleles(2), Some(("", "C")));
+        assert_eq!(decoded.alleles(3), None);
+        assert_eq!(decoded, columns);
     }
 }

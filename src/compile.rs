@@ -360,6 +360,7 @@ pub fn compile_file(
             informational_description: d.informational_description,
             inferred_sequence: sequence.map(|(_, v, _)| v),
         });
+        terms.push_alleles(d.effect_allele, d.other_allele);
         match orientation.status {
             Status::Resolved if d.allele_kind == AlleleKind::LiteralSnv => match orientation.method {
                 Method::Direct => forward += 1,
