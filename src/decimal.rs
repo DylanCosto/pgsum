@@ -129,6 +129,20 @@ impl Decimal {
         Some(if self.negative { -magnitude } else { magnitude })
     }
 
+    /// Python's `format(Decimal, "f")` form: never an exponent.
+    pub fn to_plain_string(&self) -> String {
+        let c = &self.coefficient;
+        let sign = if self.negative { "-" } else { "" };
+        if self.exponent >= 0 {
+            let zeros = if c == "0" { 0 } else { self.exponent as usize };
+            return format!("{sign}{c}{}", "0".repeat(zeros));
+        }
+        let places = (-self.exponent) as usize;
+        let padded = format!("{}{c}", "0".repeat((places + 1).saturating_sub(c.len())));
+        let (int_part, frac_part) = padded.split_at(padded.len() - places);
+        format!("{sign}{int_part}.{frac_part}")
+    }
+
     /// Python's `str(Decimal)` form.
     pub fn to_python_string(&self) -> String {
         let c = &self.coefficient;

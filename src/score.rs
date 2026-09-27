@@ -356,6 +356,9 @@ pub struct SexChromosomes {
     pub chrx_scorable: u64,
     pub chry_terms: u64,
     pub chry_scorable: u64,
+    /// The karyotype and chrX coding the score was read with (`score --karyotype`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub karyotype: Option<Sex>,
     /// Present when the score has chrX or chrY terms.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
@@ -410,6 +413,9 @@ pub struct ScoreResult {
     /// The panel group nearest to the sample (`score --reference`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ancestry: Option<crate::panel::Ancestry>,
+    /// The filled score placed within one group of a PLINK reference panel (`score --reference-group`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub placement: Option<crate::placement::GroupPlacement>,
     /// Missing terms filled from population allele frequencies (`score --fill-frequencies`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fill: Option<crate::fill::Fill>,
@@ -510,7 +516,7 @@ fn tally(
     let (offset, first) = start;
     for (i, term) in pack.terms_from(offset).take(end - first).enumerate() {
         let term = term?;
-        let o = outcome(&term, genotypes, options)?;
+        let o = by_karyotype(&term, outcome(&term, genotypes, options)?, extras.sex);
         t.total += 1;
         let sex_chromosome = match term.contig {
             23 => Some(0),
@@ -586,6 +592,48 @@ fn tally(
 pub struct Extras<'a> {
     /// Fill missing terms from this frequency table (see `fill`).
     pub fill: Option<&'a crate::frequencies::FrequencyTable>,
+    /// Score chrX by the sample's karyotype (see `Sex`).
+    pub sex: Option<Sex>,
+}
+
+/// A sample's karyotype and how the score's authors coded chrX, for `score --karyotype`.
+///
+/// For an XX sample chrX terms stay diploid. For an XY sample, a chrX term outside the pseudoautosomal regions
+/// is hemizygous: the gVCF's diploid call `0/0` or `1/1` is read as 0 or 1 copy, the contribution is
+/// `w × k × copies` with `k` = 2 for authors who coded males 0/2 (dosage compensation) and 1 for 0/1, and a
+/// heterozygous call there is missing (`heterozygous_call_in_hemizygous_region`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Sex {
+    pub xy: bool,
+    pub k: u8,
+}
+
+/// GRCh38 pseudoautosomal regions on chrX: `start < pos <= end`.
+pub const PAR: [(u32, u32); 2] = [(10000, 2781479), (155701382, 156030895)];
+
+pub fn in_par(pos: u32) -> bool {
+    PAR.iter().any(|&(start, end)| start < pos && pos <= end)
+}
+
+/// A term's outcome for a sample of this karyotype (see `Sex`).
+fn by_karyotype(term: &TermRecord, o: Outcome, sex: Option<Sex>) -> Outcome {
+    let Some(sex) = sex else { return o };
+    if !sex.xy || term.contig != 23 || in_par(term.pos) {
+        return o;
+    }
+    match o.effect_dosage {
+        Some(1) if o.contribution.is_some() => Outcome {
+            status: "heterozygous_call_in_hemizygous_region",
+            effect_dosage: None,
+            contribution: None,
+            ..o
+        },
+        Some(d) if o.contribution.is_some() => Outcome {
+            contribution: contribution(term.model, &term.weights, sex.k * (d / 2)),
+            ..o
+        },
+        _ => o,
+    }
 }
 
 /// A term's `|effect weight|` and, if it is missing, its fill.
@@ -828,15 +876,22 @@ pub fn score_with(
             chrx_scorable: sex_scorable[0],
             chry_terms: sex_terms[1],
             chry_scorable: sex_scorable[1],
-            note: (sex_terms != [0, 0]).then(|| {
-                "chrX/chrY terms are counted as 0, 1 or 2 copies, as the gVCF's diploid calls give them: a male's \
-                 hemizygous ALT counts as 2. Authors differ in whether they coded males 0/1 or 0/2 on chrX, so \
-                 compare with the score's publication before comparing male and female samples."
-                    .into()
+            karyotype: extras.sex,
+            note: (sex_terms != [0, 0]).then(|| match extras.sex {
+                None => "chrX/chrY terms are counted as 0, 1 or 2 copies, as the gVCF's diploid calls give them: a \
+                         male's hemizygous ALT counts as 2. Authors differ in whether they coded males 0/1 or 0/2 on \
+                         chrX, so compare with the score's publication before comparing male and female samples."
+                    .into(),
+                Some(Sex { xy: false, .. }) => "chrX terms are diploid for this XX sample.".into(),
+                Some(Sex { xy: true, k }) => format!(
+                    "chrX terms outside the pseudoautosomal regions are hemizygous for this XY sample: a 0/0 or 1/1 \
+                     call is 0 or 1 copy, weighted x{k}; a heterozygous call there is missing."
+                ),
             }),
         },
         reference: None,
         ancestry: None,
+        placement: None,
         fill,
         inputs: Inputs {
             pack_records_sha256: h.records_sha256.clone(),
@@ -917,6 +972,62 @@ mod tests {
             overflowing.finish().coefficient,
             (BigInt::from(i128::MAX / 3) * BigInt::from(4u8)).to_string()
         );
+    }
+
+    #[test]
+    fn xy_chrx_terms_are_hemizygous_outside_the_pars() {
+        use crate::orient::{Method, Orientation, Status};
+        let term = |pos| TermRecord {
+            contig: 23,
+            pos,
+            model: Model::Additive,
+            allele_kind: crate::term::AlleleKind::LiteralSnv,
+            palindromic: false,
+            orientation: Orientation {
+                status: Status::Resolved,
+                method: Method::Direct,
+                ref_base: b'A',
+                alt_base: b'G',
+                effect_is_alt: true,
+            },
+            reasons: crate::term::Reasons(0),
+            weights: vec![Weight::Small {
+                negative: false,
+                coefficient: 3,
+                exponent: -1,
+            }],
+            inferred: None,
+            informational_description: false,
+            inferred_sequence: None,
+        };
+        let called = |t: &TermRecord, d: u8| Outcome {
+            status: "scorable_observation",
+            call_state: "observed_variant",
+            effect_dosage: Some(d),
+            contribution: contribution(t.model, &t.weights, d),
+            inferred: None,
+            informational_description_accepted: false,
+        };
+        let text = |o: Outcome| o.contribution.map(|c| c.to_decimal().to_python_string());
+        let (x, par) = (term(5_000_000), term(20_000));
+        let xy = |k| Some(Sex { xy: true, k });
+        // 1/1 is one copy: w × k × 1.
+        assert_eq!(text(by_karyotype(&x, called(&x, 2), xy(2))).as_deref(), Some("0.6"));
+        assert_eq!(text(by_karyotype(&x, called(&x, 2), xy(1))).as_deref(), Some("0.3"));
+        assert_eq!(text(by_karyotype(&x, called(&x, 0), xy(2))).as_deref(), Some("0.0"));
+        // A heterozygous call in a hemizygous region is missing.
+        let het = by_karyotype(&x, called(&x, 1), xy(2));
+        assert_eq!(
+            (het.status, het.contribution),
+            ("heterozygous_call_in_hemizygous_region", None)
+        );
+        // Pseudoautosomal and XX calls are unchanged.
+        assert_eq!(by_karyotype(&par, called(&par, 1), xy(2)), called(&par, 1));
+        assert_eq!(
+            by_karyotype(&x, called(&x, 1), Some(Sex { xy: false, k: 2 })),
+            called(&x, 1)
+        );
+        assert!(in_par(10_001) && in_par(2_781_479) && !in_par(10_000) && !in_par(2_781_480));
     }
 
     #[test]

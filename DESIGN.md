@@ -151,6 +151,76 @@ is the percentile to read. Score sites are in linkage, so likelihood differences
 admixed sample may sit between groups. Percentiles are uncalibrated: no ancestry adjustment beyond the choice
 of group, and no absolute risk.
 
+## Filling missing terms (`score --fill-frequencies`)
+
+`pgsum frequencies` builds a table from population VCFs (unindexed and unsorted are fine; genotypes are
+ignored): each record's position, REF, ALT, one INFO frequency field as written, and whether it carries a
+multi-allelic flag (1000 Genomes marks split multi-allelic sites `MULTI_ALLELIC`). The header records each
+source's size, SHA-256 and MD5 and whether the MD5 matches a manifest (`name`, `bytes`, `md5`). For the 22
+autosome files of 1000 Genomes phase 3 on GRCh38 (15 GB with genotypes) it takes 89 s and is 231 MB.
+
+With a table, every term that is not scorable for the sample is filled or omitted, exactly:
+
+- omitted when it has no GRCh38 position (`no_position`), a review reason other than an unresolved harmonized
+  position (`requires_review`), a non-additive model, or a position off the autosomes
+  (`no_frequency_source_for_contig`);
+- its alleles are its resolved orientation's (reference strand, method `orientation_direct` or
+  `orientation_complement`); without one, a palindrome is omitted (`palindrome_orientation_unresolved`), a
+  term with unresolved alleles too (`source_alleles_unresolved`), and any other uses its published alleles
+  (`published_alleles`, from v5 packs);
+- the table must have a record at the position (`site_absent`) carrying the same two alleles
+  (`alleles_differ`), exactly one (`multiple_matching_records`), with a frequency in 0..=1
+  (`frequency_missing_or_invalid`);
+- an effect allele equal to the record's ALT is filled with `w × 2 × f` (`…:effect_is_alt`); one equal to its
+  REF with `w × 2 × (1 − f)` (`…:effect_is_ref`), but only when the record is alone at its position and not
+  flagged multi-allelic, since `1 − f` of a split record is not the REF frequency
+  (`multiallelic_reference_effect_allele`).
+
+`fill.filled_score` (the partial score plus the fills) is given when at least 99% of terms and 99% of summed
+`|effect weight|` are scorable, measured before filling (exact comparisons); the counts, exact `|w|` sums by
+state and reason, and the fill sum are given either way. `--terms` adds each term's `fill` outcome, the
+frequency used and the fill contribution. This is mean imputation of a population's expected dosage, not a
+genotype: use it only within the 1% the gate allows.
+
+## Placing within a reference group (`score --reference-panel <panel>.bed --reference-group`)
+
+For a score that can be placed (a `filled_score`, or without a frequency table a partial score meeting the
+coverage guideline), pgsum scores every panel sample listed in `--reference-groups` over the sample's own
+term set, exactly, and places the sample within one group. The panel is a PLINK 1 fileset with `A1` = ALT
+and multi-allelic sites split into biallelic lines (`plink2 --make-bed`); `--placement-positions` lists the
+positions to cut a large panel down to first.
+
+- A term scorable for the sample matches the panel line at its position with the same allele pair. Effect =
+  ALT adds `w × ALT dosage`; effect = REF adds `2w − w × (ALT dosage of every single-base line there with that
+  REF)`, exact on split multi-allelic sites. A missing panel genotype takes `2f`, `f` the ALT frequency among
+  the group's called samples (reported in `missing_genotypes`; that part is floating point).
+- A term with no panel line gets, for the sample and everyone, `w × 2 × f` from the frequency table (the
+  sample's own contribution is replaced); one that cannot be filled is left out for everyone and listed in
+  `omitted`, with a sensitivity result giving it a homozygous-reference dosage in every panel sample.
+- The sample's filled terms add the same value to everyone. Constants shared by everyone cannot change a
+  percentile or Z; they keep the reported scores on the sample's scale.
+- Placement: `100 × (#{ref < x} + ½ #{ref = x}) / n` (mid-rank), the group mean and sample SD (`n − 1`, sums as
+  Python's `math.fsum`), `Z = (x − mean) / SD`, from the exact scores' nearest floats.
+- `contributions`: each panel line's `coef × (sample ALT dosage − group mean ALT dosage)`, summed over the
+  score (the deviation), per fixed 1 Mb window (the top one in the deviation's direction) and per
+  `--contribution-region` BED region.
+- Only additive scores are placed; for an XY sample, a score with hemizygous chrX terms is not placed yet.
+
+Against the reference implementation's placement (plink2 `--score`, which prints sums to 6 significant
+digits) on HG002 and HG003, 24 placed scores each: identical percentiles, term counts, constants and
+omissions; Z within 8 × 10⁻⁷; reference scores within plink2's print rounding. One sensitivity percentile
+differs by one sample because plink2's rounding moved a reference score across the sample's (pgsum's exact
+value is on the other side). Region contributions agree to 12 significant digits.
+
+## Sex chromosomes (`score --karyotype`)
+
+With `--karyotype XX|XY --x-dosage-model dosage_compensated_0_2|hemizygous_0_1`, chrX terms of an XY sample
+outside the pseudoautosomal regions (GRCh38 `10000 < pos ≤ 2781479`, `155701382 < pos ≤ 156030895`) are
+hemizygous: a `0/0` or `1/1` call is 0 or 1 copy, contributing `w × k × copies` (`k` = 2 or 1 by how the
+authors coded males), and a heterozygous call there is missing (`heterozygous_call_in_hemizygous_region`),
+counting against the 99% gate. XX samples and pseudoautosomal terms are unchanged. Without `--karyotype`,
+chrX calls are counted as the gVCF gives them (see `sex_chromosomes.note`).
+
 ## Custom scores
 
 Any score, not only the Catalog's, can be compiled from a tab-separated file (plain or gzipped) laid out like
@@ -561,6 +631,10 @@ pair, 3.1M by reference fit). Of the 142.8M terms still unscorable, 91.3M are mo
 strand-inconsistent scores, and indels that fit both ways with no public record), 12.5M are sites where
 HG002 carries a different allele from both of the term's, and 13.3M fail genotype rules (low quality, no
 call, overlapping records, unsupported representations).
+
+**Derivations, 2026-09-27:** the reference implementation's threshold results (99% gates, fills and
+omissions by reason, per-term fill rows) are identical for all 28 installed scores on HG002 and HG003
+(`score --fill-frequencies`), and its placements as described in "Placing within a reference group".
 
 **Broad parity with the reference implementation, 2026-09-26:** 125 more scores (27 report scores and the 100
 random benchmark scores, less the development set) were run through the reference implementation's unchanged

@@ -130,6 +130,36 @@ percentile in the nearest group. Read a percentile only when `reference.meets_co
 matched terms hold at least 99% of the terms and of the weight); below that it places a subset of the score. For HG002 against 1000 Genomes this takes 33 s for 100 scores and assigns
 EUR. Percentiles are uncalibrated: no ancestry adjustment beyond the choice of group, and no absolute risk.
 
+### Filling missing terms and placing within one group
+
+The steps a report usually needs after scoring (a completeness gate, filling the few missing terms, a
+percentile within one reference population, and where an extreme result comes from) run in seconds:
+
+```sh
+# Once: an allele-frequency table from population VCFs (here 1000 Genomes phase 3 on GRCh38, EUR_AF).
+pgsum frequencies --vcf phase3.chr{1..22}.GRCh38.GT.crossmap.vcf.gz --field EUR_AF \
+    --manifest phase3.crossmap.GRCh38.07302021.manifest.tsv --out 1kg-eur.pgsf
+
+# Fill missing terms (w × 2 × effect-allele frequency), and list the positions a panel needs.
+pgsum score --genotypes sample.pgsg --pack packs/ --fill-frequencies 1kg-eur.pgsf \
+    --placement-positions positions.txt --out results/
+
+# Cut a PLINK panel to those positions (for example the PGS Catalog's pgsc_1000G_v1), then place within EUR.
+plink2 --pfile GRCh38_1000G_ALL vzs --set-all-var-ids '@:#:$r:$a' --extract range positions.txt \
+    --keep phase3-samples.txt --make-bed --out panel
+pgsum score --genotypes sample.pgsg --pack packs/ --fill-frequencies 1kg-eur.pgsf \
+    --reference-panel panel.bed --reference-groups integrated_call_samples_v3.20130502.ALL.panel \
+    --reference-group EUR --contribution-region GRCh38_MHC.bed.gz --out results/
+```
+
+Each result gains `fill` (terms filled and left out, by method and reason, exact sums, and a `filled_score`
+when at least 99% of terms and of |weight| are scorable) and `placement` (percentile, Z, the group's mean
+and SD, terms without a panel line, a homozygous-reference sensitivity result, and the share of the deviation
+from the group mean in the top 1 Mb window and each region given). `<PGS_ID>.reference-scores.tsv` has every
+panel sample's exact score. For HG002 and HG003, 28 scores (27 million terms) take about 20 s including the
+fill, placement and regions. `--karyotype XX|XY --x-dosage-model` reads chrX by sex (DESIGN.md, "Sex
+chromosomes"). See DESIGN.md, "Filling missing terms" and "Placing within a reference group".
+
 ### Inputs
 
 pgsum reads gVCFs from DeepVariant (long- and short-read), DRAGEN and GATK HaplotypeCaller, and plain VCFs,

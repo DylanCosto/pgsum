@@ -20,6 +20,7 @@ pub mod index;
 pub mod orient;
 pub mod pack;
 pub mod panel;
+pub mod placement;
 pub mod public;
 pub mod reference;
 pub mod score;

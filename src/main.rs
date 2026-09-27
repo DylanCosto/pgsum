@@ -450,11 +450,20 @@ fn main() -> ExitCode {
             }
             let table = GenotypeTable::open(&genotypes)?;
             let panel = open_panel(&reference, &table)?;
+            let group_panel = open_group_panel(&reference)?;
             let fill = reference
                 .fill_frequencies
                 .as_deref()
                 .map(pgsum::frequencies::FrequencyTable::open)
                 .transpose()?;
+            let sex = reference.karyotype.as_deref().map(|k| pgsum::score::Sex {
+                xy: k == "XY",
+                k: if reference.x_dosage_model.as_deref() == Some("hemizygous_0_1") {
+                    1
+                } else {
+                    2
+                },
+            });
             score(
                 &table,
                 &packs,
@@ -464,6 +473,9 @@ fn main() -> ExitCode {
                 &options,
                 panel.as_ref(),
                 fill.as_ref(),
+                group_panel.as_ref(),
+                sex,
+                reference.placement_positions.as_deref(),
             )
         }),
         Command::Run {
@@ -514,6 +526,9 @@ fn main() -> ExitCode {
                 &options,
                 None,
                 None,
+                None,
+                None,
+                None,
             )
         }),
     };
@@ -541,6 +556,26 @@ struct ReferenceArgs {
     /// The group column of `--reference-groups`.
     #[arg(long = "reference-group-column", default_value = "super_pop")]
     reference_group_column: String,
+    /// With a PLINK panel (`--reference-panel <panel>.bed`): the group to place each score in, for example EUR.
+    /// Every panel sample listed in `--reference-groups` is scored.
+    #[arg(long = "reference-group")]
+    reference_group: Option<String>,
+    /// With `--reference-group`: also report each BED region's share of the sample's deviation from the group
+    /// mean (repeatable; for example the MHC).
+    #[arg(long = "contribution-region")]
+    contribution_regions: Vec<PathBuf>,
+    /// The sample's karyotype, XX or XY: chrX terms outside the pseudoautosomal regions are then hemizygous for
+    /// XY (see DESIGN.md, "Sex chromosomes"). Needs `--x-dosage-model`.
+    #[arg(long, requires = "x_dosage_model", value_parser = ["XX", "XY"])]
+    karyotype: Option<String>,
+    /// How the score's authors coded chrX in males: `dosage_compensated_0_2` (a hemizygous ALT counts 2) or
+    /// `hemizygous_0_1` (counts 1).
+    #[arg(long, requires = "karyotype", value_parser = ["dosage_compensated_0_2", "hemizygous_0_1"])]
+    x_dosage_model: Option<String>,
+    /// Write the positions (`CHR BP1 BP2 LABEL`, plink2 `--extract range`) of every term scorable in a score
+    /// that can be placed, to cut a PLINK panel down to them before `--reference-panel`.
+    #[arg(long = "placement-positions")]
+    placement_positions: Option<PathBuf>,
     /// Fill each score's missing terms from this allele-frequency table (`pgsum frequencies`); see DESIGN.md,
     /// "Filling missing terms".
     #[arg(long = "fill-frequencies")]
@@ -839,10 +874,47 @@ struct Panel {
     ancestry: pgsum::panel::Ancestry,
 }
 
+/// A PLINK panel and the group to place scores in (`--reference-panel <panel>.bed --reference-group`).
+struct GroupPanel {
+    panel: pgsum::placement::PlinkPanel,
+    groups: std::collections::HashMap<String, String>,
+    column: String,
+    group: String,
+    regions: Vec<pgsum::placement::Region>,
+}
+
+fn open_group_panel(args: &ReferenceArgs) -> Result<Option<GroupPanel>> {
+    let (Some(path), Some(groups)) = (&args.reference_panel, &args.reference_groups) else {
+        return Ok(None);
+    };
+    if path.extension().and_then(|e| e.to_str()) != Some("bed") {
+        return Ok(None);
+    }
+    let Some(group) = &args.reference_group else {
+        return Err(Error::Invalid("a PLINK panel needs --reference-group".into()));
+    };
+    let panel = pgsum::placement::PlinkPanel::open(path)?;
+    let groups = pgsum::placement::read_groups(groups, &args.reference_group_column)?;
+    let mut regions = Vec::new();
+    for path in &args.contribution_regions {
+        regions.extend(pgsum::placement::read_regions(path)?);
+    }
+    Ok(Some(GroupPanel {
+        panel,
+        groups,
+        column: args.reference_group_column.clone(),
+        group: group.clone(),
+        regions,
+    }))
+}
+
 fn open_panel(args: &ReferenceArgs, table: &GenotypeTable) -> Result<Option<Panel>> {
     let (Some(path), Some(groups)) = (&args.reference_panel, &args.reference_groups) else {
         return Ok(None);
     };
+    if path.extension().and_then(|e| e.to_str()) == Some("bed") {
+        return Ok(None);
+    }
     let started = std::time::Instant::now();
     let cohort = pgsum::cohort::CohortTable::open(path)?;
     cohort.preload()?;
@@ -879,8 +951,12 @@ fn score(
     options: &pgsum::score::Options,
     panel: Option<&Panel>,
     fill: Option<&pgsum::frequencies::FrequencyTable>,
+    group_panel: Option<&GroupPanel>,
+    sex: Option<pgsum::score::Sex>,
+    placement_positions: Option<&Path>,
 ) -> Result<()> {
-    let extras = pgsum::score::Extras { fill };
+    let extras = pgsum::score::Extras { fill, sex };
+    let positions = std::sync::Mutex::new(std::collections::BTreeSet::<(u8, u32)>::new());
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
     let started = std::time::Instant::now();
     // Blocks load as scoring reaches them; with many packs nearly all are needed, so load them in parallel.
@@ -903,6 +979,16 @@ fn score(
                     pgsum::score::score_with(&pack, table, options, &extras, None)?
                 };
                 let mut result = result;
+                if placement_positions.is_some() {
+                    let placeable = match &result.fill {
+                        Some(f) => f.filled_score.is_some(),
+                        None => result.partial.meets_coverage_guideline,
+                    };
+                    if placeable {
+                        let found = pgsum::placement::scorable_positions(&pack, table, options, sex)?;
+                        positions.lock().expect("positions").extend(found);
+                    }
+                }
                 if let Some(p) = panel {
                     result.reference = Some(pgsum::panel::place(
                         &pack,
@@ -914,6 +1000,41 @@ fn score(
                         options,
                     )?);
                     result.ancestry = Some(p.ancestry.clone());
+                }
+                if let Some(g) = group_panel {
+                    // Placed when the score is complete enough: its filled score, or without a frequency table
+                    // its partial score when the coverage guideline is met.
+                    let (raw, fill_sum) = match &result.fill {
+                        Some(f) => (f.filled_score.clone(), f.filled.sum.clone()),
+                        None => (
+                            result
+                                .partial
+                                .meets_coverage_guideline
+                                .then(|| result.partial.raw_score.clone()),
+                            "0".to_owned(),
+                        ),
+                    };
+                    if let Some(raw) = raw {
+                        let parse = |t: &str| {
+                            pgsum::decimal::Decimal::parse(t).ok_or_else(|| Error::Invalid(format!("invalid sum {t}")))
+                        };
+                        let placement = pgsum::placement::place(
+                            &pack,
+                            table,
+                            options,
+                            &g.panel,
+                            &g.groups,
+                            &g.column,
+                            &g.group,
+                            fill,
+                            &parse(&raw)?,
+                            &parse(&fill_sum)?,
+                            &g.regions,
+                            sex,
+                        )?;
+                        pgsum::placement::write_scores(&placement, &out.join(format!("{id}.reference-scores.tsv")))?;
+                        result.placement = Some(placement);
+                    }
                 }
                 if !bundle {
                     let json_path = out.join(format!("{id}.score.json"));
@@ -935,6 +1056,20 @@ fn score(
         }
     }
     results.sort_by(|a, b| a.pgs_id.cmp(&b.pgs_id));
+    if let Some(path) = placement_positions {
+        let mut text = String::new();
+        for (contig, pos) in positions.into_inner().expect("positions") {
+            let name = match (contig, pos) {
+                (23, p) if p <= pgsum::score::PAR[0].1 && p > pgsum::score::PAR[0].0 => "PAR1".to_owned(),
+                (23, p) if p > pgsum::score::PAR[1].0 && p <= pgsum::score::PAR[1].1 => "PAR2".to_owned(),
+                (c, _) => pgsum::term::CONTIGS[c as usize - 1]
+                    .trim_start_matches("chr")
+                    .to_owned(),
+            };
+            text.push_str(&format!("{name}\t{pos}\t{pos}\tterm\n"));
+        }
+        std::fs::write(path, text).map_err(Error::io(path))?;
+    }
     let mut summary = String::from(
         "pgs_id\tstatus\traw_score\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\t\
          meets_coverage_guideline\tchrx_terms\treference_group\treference_percentile\tmatched_term_coverage\t\

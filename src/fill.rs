@@ -141,12 +141,33 @@ pub fn resolve(
         };
         (e.to_owned(), x.to_owned(), "published_alleles".to_owned())
     };
-    let records: Vec<&Record> = table.at(term.contig, term.pos)?;
+    resolve_alleles(term.contig, term.pos, &effect, &other, &method, table, w2)
+}
+
+/// The fill of an additive term at `contig`:`pos` with these effect and other alleles (reference strand, or as
+/// published); `method` names where the alleles came from. `w2` is the term's weight times two.
+pub fn resolve_alleles(
+    contig: u8,
+    pos: u32,
+    effect: &str,
+    other: &str,
+    method: &str,
+    table: &FrequencyTable,
+    w2: Option<Contribution>,
+) -> Result<Outcome> {
+    use Outcome::Omitted;
+    if contig == 0 || pos == 0 {
+        return Ok(Omitted("no_position"));
+    }
+    if contig > 22 {
+        return Ok(Omitted("no_frequency_source_for_contig"));
+    }
+    let records: Vec<&Record> = table.at(contig, pos)?;
     if let Some(r) = records.iter().find(|r| r.alt.contains(',')) {
         return invalid!(
             "the frequency table has a multi-ALT record at {}:{} ({}); split multi-allelic sites first",
-            crate::term::CONTIGS[term.contig as usize - 1],
-            term.pos,
+            crate::term::CONTIGS[contig as usize - 1],
+            pos,
             r.alt
         );
     }
@@ -154,13 +175,10 @@ pub fn resolve(
         return Ok(Omitted("site_absent"));
     }
     let same = |r: &&&Record| {
-        let (mut a, mut b) = (
-            [effect.as_str(), other.as_str()],
-            [r.ref_allele.as_str(), r.alt.as_str()],
-        );
+        let (mut a, mut b) = ([effect, other], [r.ref_allele.as_str(), r.alt.as_str()]);
         a.sort_unstable();
         b.sort_unstable();
-        a[0] == b[0] && a[1] == b[1] || (a[0] == a[1] && b[0] == b[1] && a[0] == b[0])
+        a == b
     };
     let matches: Vec<&&Record> = records.iter().filter(same).collect();
     let record = match matches[..] {
