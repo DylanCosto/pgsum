@@ -246,7 +246,7 @@ fn call_value(
 }
 
 /// Write one JSON line per term of `pack`: `ordinal`, `status`, `call`, `effect_dosage`, `contribution` and
-/// `source_records`, from the term after ordinal `after`; each call carries `policy` as its policy ID. Terms pgsum
+/// `source_records`, from the term after ordinal `after` (at most `limit` terms); each call carries `policy` as its policy ID. Terms pgsum
 /// reads as sequences (indels) are written with pgsum's status and no call, marked `pgsum_call_not_rebuilt`.
 pub fn write_rows(
     pack: &Pack,
@@ -254,6 +254,7 @@ pub fn write_rows(
     reference: &Reference,
     policy: &str,
     after: usize,
+    limit: Option<usize>,
     out: &mut impl Write,
 ) -> Result<u64> {
     let extracted = table
@@ -274,7 +275,7 @@ pub fn write_rows(
     let caller = table.header.sample.deepvariant_version.as_deref();
     let options = Options::default();
     let mut n = 0u64;
-    for (i, term) in pack.terms_from(after).enumerate() {
+    for (i, term) in pack.terms_from(after).take(limit.unwrap_or(usize::MAX)).enumerate() {
         let term = term?;
         let ordinal = (after + i) as u64 + 1;
         // The records at the term's position; a record met twice is kept once.

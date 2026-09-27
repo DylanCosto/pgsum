@@ -180,9 +180,12 @@ enum Command {
         /// Policy ID written into each call (default: the genotype table's policy ID).
         #[arg(long)]
         call_policy: Option<String>,
-        /// Start after this many terms (to resume).
+        /// Start after this many terms (to resume, or for one batch of rows).
         #[arg(long, default_value_t = 0)]
         after: usize,
+        /// Write at most this many terms.
+        #[arg(long)]
+        limit: Option<usize>,
     },
     /// Build an allele-frequency table from population VCFs (for `score --fill-frequencies`).
     Frequencies {
@@ -379,7 +382,8 @@ fn main() -> ExitCode {
             reference,
             call_policy,
             after,
-        } => evidence(&pack, &genotypes, &reference, call_policy.as_deref(), after),
+            limit,
+        } => evidence(&pack, &genotypes, &reference, call_policy.as_deref(), after, limit),
         Command::Frequencies {
             vcf,
             field,
@@ -1202,7 +1206,14 @@ fn frequencies(vcf: &[PathBuf], field: &str, flag: &str, manifest: Option<&Path>
     Ok(())
 }
 
-fn evidence(pack: &Path, genotypes: &Path, reference: &Path, policy: Option<&str>, after: usize) -> Result<()> {
+fn evidence(
+    pack: &Path,
+    genotypes: &Path,
+    reference: &Path,
+    policy: Option<&str>,
+    after: usize,
+    limit: Option<usize>,
+) -> Result<()> {
     let (pack, table, reference) = (
         Pack::open(pack)?,
         GenotypeTable::open(genotypes)?,
@@ -1210,7 +1221,7 @@ fn evidence(pack: &Path, genotypes: &Path, reference: &Path, policy: Option<&str
     );
     let policy = policy.map_or_else(|| table.header.policy.id.clone(), str::to_owned);
     let mut out = BufWriter::new(std::io::stdout().lock());
-    pgsum::evidence::write_rows(&pack, &table, &reference, &policy, after, &mut out)?;
+    pgsum::evidence::write_rows(&pack, &table, &reference, &policy, after, limit, &mut out)?;
     out.flush().map_err(Error::io("<stdout>"))?;
     Ok(())
 }

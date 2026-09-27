@@ -910,7 +910,7 @@ fn evidence_rows_carry_the_records_at_each_term() {
 
     // A table without position targets is refused.
     let plain = extract_with(false);
-    assert!(pgsum::evidence::write_rows(&pack, &plain, &reference, POLICY, 0, &mut Vec::new()).is_err());
+    assert!(pgsum::evidence::write_rows(&pack, &plain, &reference, POLICY, 0, None, &mut Vec::new()).is_err());
 
     let table = extract_with(true);
     let path = out.join("positions.pgsg");
@@ -924,7 +924,7 @@ fn evidence_rows_carry_the_records_at_each_term() {
     assert_eq!(a, b);
 
     let mut rows = Vec::new();
-    let n = pgsum::evidence::write_rows(&pack, &table, &reference, POLICY, 0, &mut rows).unwrap();
+    let n = pgsum::evidence::write_rows(&pack, &table, &reference, POLICY, 0, None, &mut rows).unwrap();
     let lines: Vec<&str> = std::str::from_utf8(&rows).unwrap().lines().collect();
     assert_eq!(lines.len() as u64, n);
     // Every record digest is of a line of the gVCF.
@@ -961,7 +961,7 @@ fn evidence_rows_carry_the_records_at_each_term() {
     assert!(with_records > 0);
     // Resuming after 5 terms gives the same rows from the sixth.
     let mut tail = Vec::new();
-    pgsum::evidence::write_rows(&pack, &table, &reference, POLICY, 5, &mut tail).unwrap();
+    pgsum::evidence::write_rows(&pack, &table, &reference, POLICY, 5, None, &mut tail).unwrap();
     assert_eq!(
         std::str::from_utf8(&tail).unwrap().lines().collect::<Vec<_>>(),
         lines[5..]
