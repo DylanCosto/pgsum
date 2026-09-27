@@ -180,3 +180,123 @@ mod tests {
         std::fs::remove_dir_all(&dir).unwrap();
     }
 }
+
+/// MD5 (RFC 1321), only to compare files with published MD5 manifests; never used as an identity on its own.
+#[derive(Clone)]
+pub struct Md5 {
+    state: [u32; 4],
+    buffer: Vec<u8>,
+    length: u64,
+}
+
+impl Default for Md5 {
+    fn default() -> Self {
+        Md5 {
+            state: [0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476],
+            buffer: Vec::with_capacity(64),
+            length: 0,
+        }
+    }
+}
+
+const MD5_SHIFTS: [u32; 64] = [
+    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20, 5, 9, 14, 20,
+    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15,
+    21,
+];
+
+impl Md5 {
+    pub fn update(&mut self, mut data: &[u8]) {
+        self.length = self.length.wrapping_add(data.len() as u64);
+        if !self.buffer.is_empty() {
+            let take = (64 - self.buffer.len()).min(data.len());
+            self.buffer.extend_from_slice(&data[..take]);
+            data = &data[take..];
+            if self.buffer.len() == 64 {
+                let block: [u8; 64] = self.buffer[..].try_into().expect("64 bytes");
+                self.block(&block);
+                self.buffer.clear();
+            }
+        }
+        let mut chunks = data.chunks_exact(64);
+        for chunk in &mut chunks {
+            self.block(chunk.try_into().expect("64 bytes"));
+        }
+        self.buffer.extend_from_slice(chunks.remainder());
+    }
+
+    fn block(&mut self, block: &[u8; 64]) {
+        let m: Vec<u32> = block
+            .chunks_exact(4)
+            .map(|c| u32::from_le_bytes(c.try_into().expect("4")))
+            .collect();
+        let [mut a, mut b, mut c, mut d] = self.state;
+        for i in 0..64 {
+            let (f, g) = match i / 16 {
+                0 => ((b & c) | (!b & d), i),
+                1 => ((d & b) | (!d & c), (5 * i + 1) % 16),
+                2 => (b ^ c ^ d, (3 * i + 5) % 16),
+                _ => (c ^ (b | !d), (7 * i) % 16),
+            };
+            let k = ((i as f64 + 1.0).sin().abs() * 4294967296.0) as u32;
+            let rotated = a
+                .wrapping_add(f)
+                .wrapping_add(k)
+                .wrapping_add(m[g])
+                .rotate_left(MD5_SHIFTS[i]);
+            (a, d, c) = (d, c, b);
+            b = b.wrapping_add(rotated);
+        }
+        for (s, v) in self.state.iter_mut().zip([a, b, c, d]) {
+            *s = s.wrapping_add(v);
+        }
+    }
+
+    /// The digest as lower-case hex.
+    pub fn finish(mut self) -> String {
+        let bits = self.length.wrapping_mul(8);
+        let mut tail = vec![0x80u8];
+        while (self.buffer.len() + tail.len()) % 64 != 56 {
+            tail.push(0);
+        }
+        tail.extend_from_slice(&bits.to_le_bytes());
+        let length = self.length;
+        self.update(&tail);
+        self.length = length;
+        hex(&self.state.iter().flat_map(|s| s.to_le_bytes()).collect::<Vec<u8>>())
+    }
+}
+
+#[cfg(test)]
+mod md5_tests {
+    use super::Md5;
+
+    #[test]
+    fn rfc_1321_test_suite() {
+        for (input, expected) in [
+            ("", "d41d8cd98f00b204e9800998ecf8427e"),
+            ("a", "0cc175b9c0f1b6a831c399e269772661"),
+            ("abc", "900150983cd24fb0d6963f7d28e17f72"),
+            ("message digest", "f96b697d7cb7938d525a2f31aaf161d0"),
+            ("abcdefghijklmnopqrstuvwxyz", "c3fcd3d76192e4007dfb496cca67e13b"),
+            (
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+                "d174ab98d277d9f5a5611c2c9f419d9f",
+            ),
+            (
+                "12345678901234567890123456789012345678901234567890123456789012345678901234567890",
+                "57edf4a22be3c955ac49da2e2107b67a",
+            ),
+        ] {
+            let mut whole = Md5::default();
+            whole.update(input.as_bytes());
+            assert_eq!(whole.finish(), expected, "{input:?}");
+            // The same digest when fed in uneven pieces.
+            let mut pieces = Md5::default();
+            for chunk in input.as_bytes().chunks(7) {
+                pieces.update(chunk);
+            }
+            assert_eq!(pieces.finish(), expected);
+        }
+    }
+}

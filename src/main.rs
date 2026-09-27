@@ -184,6 +184,23 @@ enum Command {
         #[arg(long, default_value_t = 0)]
         after: usize,
     },
+    /// Build an allele-frequency table from population VCFs (for `score --fill-frequencies`).
+    Frequencies {
+        /// Population VCFs (gzip or bgzip; need not be indexed or sorted).
+        #[arg(long, required = true, num_args = 1..)]
+        vcf: Vec<PathBuf>,
+        /// INFO field holding the frequency of each record's ALT allele, e.g. EUR_AF.
+        #[arg(long)]
+        field: String,
+        /// INFO flag marking records split from a multi-allelic site (1000 Genomes: MULTI_ALLELIC).
+        #[arg(long, default_value = "MULTI_ALLELIC")]
+        multiallelic_flag: String,
+        /// Manifest of `name`, `bytes`, `md5` lines to check each VCF's MD5 against.
+        #[arg(long)]
+        manifest: Option<PathBuf>,
+        #[arg(long)]
+        out: PathBuf,
+    },
     /// Read genotypes from a gVCF at every site the packs need.
     Extract {
         /// Bgzipped single-sample gVCF with a tabix or CSI index.
@@ -363,6 +380,13 @@ fn main() -> ExitCode {
             call_policy,
             after,
         } => evidence(&pack, &genotypes, &reference, call_policy.as_deref(), after),
+        Command::Frequencies {
+            vcf,
+            field,
+            multiallelic_flag,
+            manifest,
+            out,
+        } => frequencies(&vcf, &field, &multiallelic_flag, manifest.as_deref(), &out),
         Command::Fetch(args) => fetch(&args),
         Command::Extract {
             gvcf,
@@ -426,7 +450,21 @@ fn main() -> ExitCode {
             }
             let table = GenotypeTable::open(&genotypes)?;
             let panel = open_panel(&reference, &table)?;
-            score(&table, &packs, &out, terms, bundle, &options, panel.as_ref())
+            let fill = reference
+                .fill_frequencies
+                .as_deref()
+                .map(pgsum::frequencies::FrequencyTable::open)
+                .transpose()?;
+            score(
+                &table,
+                &packs,
+                &out,
+                terms,
+                bundle,
+                &options,
+                panel.as_ref(),
+                fill.as_ref(),
+            )
         }),
         Command::Run {
             gvcf,
@@ -475,6 +513,7 @@ fn main() -> ExitCode {
                 bundle,
                 &options,
                 None,
+                None,
             )
         }),
     };
@@ -502,6 +541,10 @@ struct ReferenceArgs {
     /// The group column of `--reference-groups`.
     #[arg(long = "reference-group-column", default_value = "super_pop")]
     reference_group_column: String,
+    /// Fill each score's missing terms from this allele-frequency table (`pgsum frequencies`); see DESIGN.md,
+    /// "Filling missing terms".
+    #[arg(long = "fill-frequencies")]
+    fill_frequencies: Option<PathBuf>,
 }
 
 fn threads(requested: Option<usize>) -> usize {
@@ -835,7 +878,9 @@ fn score(
     bundle: bool,
     options: &pgsum::score::Options,
     panel: Option<&Panel>,
+    fill: Option<&pgsum::frequencies::FrequencyTable>,
 ) -> Result<()> {
+    let extras = pgsum::score::Extras { fill };
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
     let started = std::time::Instant::now();
     // Blocks load as scoring reaches them; with many packs nearly all are needed, so load them in parallel.
@@ -851,11 +896,11 @@ fn score(
                 let result = if terms {
                     let tsv = out.join(format!("{id}.terms.tsv"));
                     let mut w = BufWriter::new(std::fs::File::create(&tsv).map_err(Error::io(&tsv))?);
-                    let r = pgsum::score::score(&pack, table, options, Some(&mut w))?;
+                    let r = pgsum::score::score_with(&pack, table, options, &extras, Some(&mut w))?;
                     w.flush().map_err(Error::io(&tsv))?;
                     r
                 } else {
-                    pgsum::score::score(&pack, table, options, None)?
+                    pgsum::score::score_with(&pack, table, options, &extras, None)?
                 };
                 let mut result = result;
                 if let Some(p) = panel {
@@ -1001,6 +1046,23 @@ fn write_targets_tsv(table: &GenotypeTable, out: &mut impl Write) -> Result<()> 
             e.phased as u8
         )
         .map_err(io)?;
+    }
+    Ok(())
+}
+
+fn frequencies(vcf: &[PathBuf], field: &str, flag: &str, manifest: Option<&Path>, out: &Path) -> Result<()> {
+    let started = std::time::Instant::now();
+    let header = pgsum::frequencies::build(vcf, field, flag, manifest, out)?;
+    eprintln!(
+        "{}: {} records from {} files, {} blocks ({:.0}s)",
+        out.display(),
+        header.records,
+        header.sources.len(),
+        header.blocks.len(),
+        started.elapsed().as_secs_f64()
+    );
+    for s in header.sources.iter().filter(|s| s.manifest_md5_match == Some(false)) {
+        eprintln!("warning: {} MD5 differs from the manifest", s.name);
     }
     Ok(())
 }

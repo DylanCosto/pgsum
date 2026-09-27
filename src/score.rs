@@ -107,7 +107,7 @@ impl Outcome {
 }
 
 /// The weight applied at an effect-allele dosage: `w × d`, `w × [d > 0]`, `w × [d = 2]` or `dosage_d_weight`.
-fn contribution(model: Model, weights: &[Weight], dosage: u8) -> Option<Contribution> {
+pub(crate) fn contribution(model: Model, weights: &[Weight], dosage: u8) -> Option<Contribution> {
     let (weight, multiplier) = match model {
         Model::Additive => (weights.first()?, dosage as u32),
         Model::Dominant => (weights.first()?, (dosage > 0) as u32),
@@ -410,6 +410,9 @@ pub struct ScoreResult {
     /// The panel group nearest to the sample (`score --reference`).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub ancestry: Option<crate::panel::Ancestry>,
+    /// Missing terms filled from population allele frequencies (`score --fill-frequencies`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fill: Option<crate::fill::Fill>,
     pub inputs: Inputs,
 }
 
@@ -486,6 +489,7 @@ struct Tally {
     /// Terms on chrX and chrY, and how many of them were scorable.
     sex_chromosome_terms: [u64; 2],
     sex_chromosome_scorable: [u64; 2],
+    fill: crate::fill::Tally,
     tsv: Vec<u8>,
 }
 
@@ -493,6 +497,7 @@ fn tally(
     pack: &Pack,
     genotypes: &GenotypeTable,
     options: &Options,
+    extras: &Extras,
     start: (usize, usize),
     end: usize,
     terms: bool,
@@ -522,6 +527,10 @@ fn tally(
             Some(e) => t.effect_all += e,
             None => t.without_weight += 1,
         }
+        let fill = match extras.fill {
+            Some(table) => fill_term(&mut t.fill, pack, table, first + i, &term, &o)?,
+            None => None,
+        };
         if let Some(c) = &o.contribution {
             t.scorable += 1;
             t.effect_scorable += effect.unwrap_or(0.0);
@@ -550,9 +559,84 @@ fn tally(
                 }
             )
             .map_err(io)?;
+            if extras.fill.is_some() {
+                t.tsv.pop();
+                let (outcome, frequency, value) = match &fill {
+                    Some(crate::fill::Outcome::Filled {
+                        method,
+                        frequency,
+                        contribution,
+                    }) => (
+                        format!("filled:{method}"),
+                        frequency.as_str(),
+                        contribution.to_decimal().to_python_string(),
+                    ),
+                    Some(crate::fill::Outcome::Omitted(reason)) => (format!("omitted:{reason}"), "", String::new()),
+                    None => (String::new(), "", String::new()),
+                };
+                writeln!(t.tsv, "\t{outcome}\t{frequency}\t{value}").map_err(io)?;
+            }
         }
     }
     Ok(t)
+}
+
+/// Inputs beyond the pack and genotypes that add to a score's result.
+#[derive(Clone, Copy, Default)]
+pub struct Extras<'a> {
+    /// Fill missing terms from this frequency table (see `fill`).
+    pub fill: Option<&'a crate::frequencies::FrequencyTable>,
+}
+
+/// A term's `|effect weight|` and, if it is missing, its fill.
+fn fill_term(
+    t: &mut crate::fill::Tally,
+    pack: &Pack,
+    table: &crate::frequencies::FrequencyTable,
+    index: usize,
+    term: &TermRecord,
+    o: &Outcome,
+) -> Result<Option<crate::fill::Outcome>> {
+    let abs = match (term.model, term.weights.first()) {
+        (Model::DosageWeights, _) | (_, None) => None,
+        (_, Some(w)) => {
+            contribution(Model::Additive, std::slice::from_ref(w), 1).map(|c| Contribution { negative: false, ..c })
+        }
+    };
+    match &abs {
+        Some(a) => t.abs_total.add(a),
+        None => t.without_effect_weight += 1,
+    }
+    let add = |slot: &mut (u64, ExactSum)| {
+        slot.0 += 1;
+        if let Some(a) = &abs {
+            slot.1.add(a);
+        }
+    };
+    if o.contribution.is_some() {
+        if let Some(a) = &abs {
+            t.abs_scorable.add(a);
+        }
+        return Ok(None);
+    }
+    add(t.by_state.entry(o.status).or_default());
+    let w2 = contribution(Model::Additive, &term.weights, 2);
+    let outcome = crate::fill::resolve(term, pack.alleles(index), table, w2)?;
+    match &outcome {
+        crate::fill::Outcome::Filled {
+            method, contribution, ..
+        } => {
+            add(&mut t.filled);
+            t.fill_sum.add(contribution);
+            t.filled_palindromic += term.palindromic as u64;
+            *t.by_method.entry(method.clone()).or_default() += 1;
+        }
+        crate::fill::Outcome::Omitted(reason) => {
+            add(&mut t.omitted);
+            add(t.by_reason.entry(reason).or_default());
+        }
+    }
+    Ok(Some(outcome))
 }
 
 /// Score one pack. With `terms`, also write one TSV line per term.
@@ -560,6 +644,17 @@ pub fn score(
     pack: &Pack,
     genotypes: &GenotypeTable,
     options: &Options,
+    terms: Option<&mut dyn Write>,
+) -> Result<ScoreResult> {
+    score_with(pack, genotypes, options, &Extras::default(), terms)
+}
+
+/// `score` with extra inputs (see `Extras`).
+pub fn score_with(
+    pack: &Pack,
+    genotypes: &GenotypeTable,
+    options: &Options,
+    extras: &Extras,
     mut terms: Option<&mut dyn Write>,
 ) -> Result<ScoreResult> {
     let h = &pack.header;
@@ -578,8 +673,13 @@ pub fn score(
     if let Some(out) = terms.as_deref_mut() {
         writeln!(
             out,
-            "{}\tstatus\tcall_state\teffect_dosage\tcontribution\tinferred_other_allele\tinformational_description",
-            crate::pack::TSV_HEADER.trim_end()
+            "{}\tstatus\tcall_state\teffect_dosage\tcontribution\tinferred_other_allele\tinformational_description{}",
+            crate::pack::TSV_HEADER.trim_end(),
+            if extras.fill.is_some() {
+                "\tfill\tfill_frequency\tfill_contribution"
+            } else {
+                ""
+            }
         )
         .map_err(io)?;
     }
@@ -592,7 +692,7 @@ pub fn score(
         .enumerate()
         .map(|(i, &start)| {
             let end = starts.get(i + 1).map_or(total_terms, |s| s.1);
-            tally(pack, genotypes, options, start, end, want_tsv)
+            tally(pack, genotypes, options, extras, start, end, want_tsv)
         })
         .collect();
     let mut sum = ExactSum::default();
@@ -602,8 +702,10 @@ pub fn score(
     let mut inferred: BTreeMap<String, u64> = BTreeMap::new();
     let mut informational = 0u64;
     let (mut sex_terms, mut sex_scorable) = ([0u64; 2], [0u64; 2]);
+    let mut fill = crate::fill::Tally::default();
     for t in tallies {
         let t = t?;
+        fill.merge(t.fill);
         informational += t.informational;
         for x in 0..2 {
             sex_terms[x] += t.sex_chromosome_terms[x];
@@ -644,6 +746,9 @@ pub fn score(
         withheld.push("the Catalog does not record that the scoring file matches its publication".into());
     }
     let raw = sum.finish().to_python_string();
+    let fill = extras
+        .fill
+        .map(|table| crate::fill::Fill::from_tally(&fill, table, total, scorable, &sum));
     let palindrome_terms = inferred
         .remove(Inference::StrandConsistentPalindrome.as_str())
         .unwrap_or(0);
@@ -732,6 +837,7 @@ pub fn score(
         },
         reference: None,
         ancestry: None,
+        fill,
         inputs: Inputs {
             pack_records_sha256: h.records_sha256.clone(),
             scoring_file_sha256: h.source.sha256.clone(),

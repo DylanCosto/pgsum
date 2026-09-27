@@ -11,6 +11,8 @@ pub mod digest;
 pub mod evidence;
 pub mod extract;
 pub mod fetch;
+pub mod fill;
+pub mod frequencies;
 pub mod genotype;
 pub mod genotypes;
 pub mod gvcf;
