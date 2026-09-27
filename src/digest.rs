@@ -218,20 +218,22 @@ impl Md5 {
                 self.buffer.clear();
             }
         }
-        let mut chunks = data.chunks_exact(64);
-        for chunk in &mut chunks {
-            self.block(chunk.try_into().expect("64 bytes"));
+        let (blocks, rest) = data.as_chunks::<64>();
+        for block in blocks {
+            self.block(block);
         }
-        self.buffer.extend_from_slice(chunks.remainder());
+        self.buffer.extend_from_slice(rest);
     }
 
     fn block(&mut self, block: &[u8; 64]) {
         let m: Vec<u32> = block
-            .chunks_exact(4)
-            .map(|c| u32::from_le_bytes(c.try_into().expect("4")))
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|c| u32::from_le_bytes(*c))
             .collect();
         let [mut a, mut b, mut c, mut d] = self.state;
-        for i in 0..64 {
+        for (i, &shift) in MD5_SHIFTS.iter().enumerate() {
             let (f, g) = match i / 16 {
                 0 => ((b & c) | (!b & d), i),
                 1 => ((d & b) | (!d & c), (5 * i + 1) % 16),
@@ -239,11 +241,7 @@ impl Md5 {
                 _ => (c ^ (b | !d), (7 * i) % 16),
             };
             let k = ((i as f64 + 1.0).sin().abs() * 4294967296.0) as u32;
-            let rotated = a
-                .wrapping_add(f)
-                .wrapping_add(k)
-                .wrapping_add(m[g])
-                .rotate_left(MD5_SHIFTS[i]);
+            let rotated = a.wrapping_add(f).wrapping_add(k).wrapping_add(m[g]).rotate_left(shift);
             (a, d, c) = (d, c, b);
             b = b.wrapping_add(rotated);
         }
