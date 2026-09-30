@@ -196,7 +196,8 @@ pub struct Distribution {
     pub n_equal: u64,
     pub n_above: u64,
     pub percentile: f64,
-    pub z: f64,
+    /// Undefined (JSON null) for fewer than two reference samples or zero score variance.
+    pub z: Option<f64>,
 }
 
 /// The sample's place among `reference`.
@@ -216,7 +217,7 @@ pub fn distribution(x: f64, reference: &[f64]) -> Distribution {
         n_equal: equal as u64,
         n_above: (n - below - equal) as u64,
         percentile: 100.0 * (below as f64 + 0.5 * equal as f64) / n as f64,
-        z: (x - mean) / sd,
+        z: (n >= 2 && sd > 0.0).then(|| (x - mean) / sd),
     }
 }
 
@@ -352,7 +353,8 @@ pub struct Contributions {
 pub struct SensitivityResult {
     pub reference_shift: String,
     pub percentile: f64,
-    pub z: f64,
+    /// Undefined (JSON null) for fewer than two reference samples or zero score variance.
+    pub z: Option<f64>,
     pub mean: f64,
     pub sd: f64,
 }
@@ -906,5 +908,15 @@ mod tests {
         assert_eq!(d.percentile, 37.5);
         assert_eq!(d.mean, 2.5);
         assert!((d.sd - (5.0f64 / 3.0).sqrt()).abs() < 1e-15);
+        assert!((d.z.unwrap() - (-0.5 / d.sd)).abs() < 1e-15);
+    }
+
+    #[test]
+    fn z_is_undefined_without_reference_variation() {
+        for reference in [&[1.0][..], &[1.0, 1.0][..]] {
+            let d = distribution(2.0, reference);
+            assert_eq!(d.z, None);
+            assert!(serde_json::to_value(&d).unwrap()["z"].is_null());
+        }
     }
 }

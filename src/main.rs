@@ -1040,6 +1040,7 @@ fn score(
                         result.placement = Some(placement);
                     }
                 }
+                result.refresh_imputation();
                 if !bundle {
                     let json_path = out.join(format!("{id}.score.json"));
                     let mut json = serde_json::to_vec_pretty(&result).map_err(|e| Error::Invalid(e.to_string()))?;
