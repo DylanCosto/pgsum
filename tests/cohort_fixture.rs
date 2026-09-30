@@ -294,3 +294,89 @@ fn filled_path_two(text: &str) -> String {
     }
     out
 }
+
+/// Covers packed-byte boundaries and fast/fallback arithmetic against independently extracted samples.
+#[test]
+fn cohort_mixed_models_and_precisions_match_single_samples() {
+    let out = std::env::temp_dir().join(format!("pgsum-cohort-precision-{}", std::process::id()));
+    std::fs::create_dir_all(&out).unwrap();
+    std::fs::write(out.join("ref.fa"), format!(">chr1\n{}\n", "A".repeat(32))).unwrap();
+    std::fs::write(out.join("ref.fa.fai"), "chr1\t32\t6\t32\t33\n").unwrap();
+    let mut weights = String::from(
+        "#pgs_id=PRECISION\n#genome_build=GRCh38\nchr_name\tchr_position\teffect_allele\tother_allele\teffect_weight\tis_dominant\tis_recessive\tdosage_0_weight\tdosage_1_weight\tdosage_2_weight\n",
+    );
+    let values = [
+        "-0.00",
+        "0.125",
+        "-2.50",
+        "1e-1000",
+        "1e100",
+        "123456789012345678901234567890.123",
+    ];
+    for i in 0..32 {
+        let (effect, other) = if i % 2 == 0 { ("G", "A") } else { ("A", "G") };
+        let columns = match (i / 2) % 4 {
+            0 => format!("{}\t\t\t\t\t", values[(i / 8 * 2 + i % 2) % values.len()]),
+            1 => "-0.125\tTRUE\t\t\t\t".into(),
+            2 => "2.50\t\tTRUE\t\t\t".into(),
+            _ if i < 16 => "\t\t\t0.000\t-1.25\t2".into(),
+            _ => "\t\t\t1.00\t-2.00\t3.00".into(),
+        };
+        weights.push_str(&format!("1\t{}\t{effect}\t{other}\t{columns}\n", i + 1));
+    }
+    std::fs::write(out.join("score.tsv"), weights).unwrap();
+    let reference = Reference::open(&out.join("ref.fa")).unwrap();
+    let identity = reference_identity(&reference).unwrap();
+    compile_file(&out.join("score.tsv"), None, &reference, &identity, None, &out).unwrap();
+    let packs = vec![out.join("PRECISION.pgsp")];
+    let header =
+        "##fileformat=VCFv4.2\n##contig=<ID=chr1,length=32>\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t";
+    // Includes an all-reference byte, all-missing byte, mixed calls, and a partial final byte.
+    let mut cohort = format!(
+        "{header}{}\n",
+        (0..17).map(|s| format!("S{s}")).collect::<Vec<_>>().join("\t")
+    );
+    let mut singles: Vec<String> = (0..17).map(|s| format!("{header}S{s}\n")).collect();
+    for i in 0..32 {
+        let shared = format!("chr1\t{}\t.\tA\tG\t.\tPASS\t.\tGT:DP:GQ", i + 1);
+        let calls: Vec<_> = (0..17)
+            .map(|s| {
+                let code = match s {
+                    0..=3 => 0,
+                    4..=7 => 3,
+                    8 => 1,
+                    9 => 2,
+                    _ => (i + s) % 4,
+                };
+                format!("{}:30:60", ["0/0", "0/1", "1/1", "./."][code])
+            })
+            .collect();
+        cohort.push_str(&format!("{shared}\t{}\n", calls.join("\t")));
+        for (single, call) in singles.iter_mut().zip(calls) {
+            single.push_str(&format!("{shared}\t{call}\n"));
+        }
+    }
+    std::fs::write(out.join("cohort.vcf"), cohort).unwrap();
+    let table_path = out.join("cohort.pgsc");
+    extract_cohort(
+        &out.join("cohort.vcf"),
+        &reference,
+        &identity,
+        &packs,
+        &CohortOptions::default(),
+        &table_path,
+    )
+    .unwrap();
+    let table = CohortTable::open(&table_path).unwrap();
+    let pack = Pack::open(&packs[0]).unwrap();
+    let result = score_cohort(&pack, &table, &Default::default()).unwrap();
+    for (s, vcf) in singles.iter().enumerate() {
+        let path = out.join(format!("sample{s}.vcf"));
+        std::fs::write(&path, vcf).unwrap();
+        let (single, _) = extract(&path, &reference, &identity, &packs, &Options::default()).unwrap();
+        let expected = pgsum::score::score(&pack, &single, &Default::default(), None).unwrap();
+        assert_eq!(result.text(s), expected.partial.raw_score, "sample {s}");
+        assert_eq!(result.scorable[s], expected.scorable_terms, "sample {s}");
+    }
+    std::fs::remove_dir_all(out).unwrap();
+}
