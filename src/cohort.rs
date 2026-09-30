@@ -702,8 +702,9 @@ impl CohortScore {
 
 /// Score a pack for every sample: the same terms, rules and exact arithmetic as `score::score`, per sample.
 ///
-/// A term's contribution at code 0 is added once to a shared baseline and removed for the samples that lack a
-/// passing call, so the per-sample work is proportional to the samples that differ from the most common code.
+/// A term's contribution at code 0 is added once to a shared baseline. Packed groups of four code-0
+/// samples are skipped together; other samples apply an exact precomputed difference where possible.
+/// Code 0 is the homozygous-reference dosage, not necessarily the most common code.
 pub fn score_cohort(pack: &Pack, cohort: &CohortTable, options: &Options) -> Result<CohortScore> {
     let h = &pack.header;
     if !cohort
@@ -757,34 +758,52 @@ pub fn score_cohort(pack: &Pack, cohort: &CohortTable, options: &Options) -> Res
             base_effect += e;
             *base_exponents.entry(c.exponent).or_default() += 1;
         }
-        for s in 0..n {
-            let byte = row[s / 4];
+        let negative_base = base.as_ref().map(|c| c.negated());
+        let differences = contributions
+            .each_ref()
+            .map(|c| c.as_ref().zip(base.as_ref()).and_then(|(c, b)| c.small_difference(b)));
+        for (byte_index, &byte) in row.iter().enumerate() {
             if byte == 0 {
-                // Four samples at code 0: all in the baseline already.
+                // Four homozygous-reference samples, already included in the baseline.
                 continue;
             }
-            let code = (byte >> ((s % 4) * 2)) & 3;
-            if code == 0 {
-                continue;
-            }
-            // Leave the baseline for this sample...
-            if let Some(c) = &base {
-                sums[s].add(&c.negated());
-                scorable[s] = scorable[s].wrapping_sub(1);
-                effect_scorable[s] -= e;
-                match left[s].iter_mut().find(|(x, _)| *x == c.exponent) {
-                    Some((_, k)) => *k += 1,
-                    None => left[s].push((c.exponent, 1)),
+            let start = byte_index * 4;
+            let mut codes = byte;
+            for s in start..(start + 4).min(n) {
+                let code = codes & 3;
+                codes >>= 2;
+                if code == 0 {
+                    continue;
                 }
-            }
-            // ...and add what its own code contributes.
-            if code != MISSING
-                && let Some(c) = &contributions[code as usize]
-            {
-                sums[s].add(c);
-                scorable[s] = scorable[s].wrapping_add(1);
-                effect_scorable[s] += e;
-                own_min[s] = own_min[s].min(c.exponent);
+                if code != MISSING
+                    && let Some(delta) = &differences[code as usize]
+                {
+                    sums[s].add(delta);
+                    // Both contributions have the same exponent: retain its baseline count.
+                    // Keep the previous floating-point operation order for byte-identical coverage.
+                    effect_scorable[s] -= e;
+                    effect_scorable[s] += e;
+                    continue;
+                }
+                // Wider coefficients, different dosage-weight exponents, or missing calls use
+                // the general path, including precision tracking when a baseline term is removed.
+                if let Some(c) = &negative_base {
+                    sums[s].add(c);
+                    scorable[s] = scorable[s].wrapping_sub(1);
+                    effect_scorable[s] -= e;
+                    match left[s].iter_mut().find(|(x, _)| *x == c.exponent) {
+                        Some((_, k)) => *k += 1,
+                        None => left[s].push((c.exponent, 1)),
+                    }
+                }
+                if code != MISSING
+                    && let Some(c) = &contributions[code as usize]
+                {
+                    sums[s].add(c);
+                    scorable[s] = scorable[s].wrapping_add(1);
+                    effect_scorable[s] += e;
+                    own_min[s] = own_min[s].min(c.exponent);
+                }
             }
         }
     }

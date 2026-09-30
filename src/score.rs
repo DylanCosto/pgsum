@@ -71,6 +71,24 @@ impl Contribution {
         }
     }
 
+    /// A cheap exact difference when both coefficients fit and use the same exponent.
+    /// Keeping that exponent (even for zero) preserves the reported decimal precision.
+    pub(crate) fn small_difference(&self, base: &Contribution) -> Option<Contribution> {
+        if self.exponent != base.exponent {
+            return None;
+        }
+        let signed = |c: &Contribution| match c.coefficient {
+            Coefficient::Small(v) => i128::try_from(v).ok().map(|v| if c.negative { -v } else { v }),
+            Coefficient::Big(_) => None,
+        };
+        let difference = signed(self)?.checked_sub(signed(base)?)?;
+        Some(Contribution {
+            negative: difference < 0,
+            coefficient: Coefficient::Small(difference.checked_abs()? as u128),
+            exponent: self.exponent,
+        })
+    }
+
     fn signed_big(&self) -> BigInt {
         let magnitude = match &self.coefficient {
             Coefficient::Small(c) => BigInt::from(*c),
