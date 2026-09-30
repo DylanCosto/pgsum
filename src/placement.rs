@@ -407,7 +407,7 @@ struct Observed {
     alt: u8,
     effect: u8,
     /// The sample's effect-allele dosage.
-    dosage: u8,
+    dosage: f64,
     /// `w` (multiplier 1) and the sample's contribution.
     weight: Contribution,
     contribution: Contribution,
@@ -482,7 +482,11 @@ pub fn place(
             ref_allele: r,
             alt: a,
             effect: if effect_is_alt { a } else { r },
-            dosage: o.effect_dosage.unwrap_or(0),
+            dosage: o
+                .expected_effect_dosage
+                .as_ref()
+                .map(|d| d.to_python_string().parse::<f64>().expect("validated dosage"))
+                .unwrap_or_else(|| o.effect_dosage.unwrap_or(0) as f64),
             weight,
             contribution: c,
         });
@@ -507,7 +511,7 @@ pub fn place(
     let (mut matched, mut absent, mut filled) = (0u64, 0u64, 0u64);
     let mut omitted = Vec::new();
     // The sample's ALT dosage on each line a term touches (for `contributions`).
-    let mut sample_alt: HashMap<u32, u8> = HashMap::new();
+    let mut sample_alt: HashMap<u32, f64> = HashMap::new();
     let base = |b: u8| (b as char).to_string();
     for t in &observed {
         let here: &[u32] = panel.by_position.get(&(t.contig, t.pos)).map_or(&[], |v| v.as_slice());
@@ -596,9 +600,9 @@ pub fn place(
                 add(&mut coef, l, &t.weight, true);
                 let other = if t.effect == t.ref_allele { t.alt } else { t.ref_allele };
                 let dose = if panel.lines[l as usize].3 == base(other) {
-                    2 - t.dosage
+                    2.0 - t.dosage
                 } else {
-                    0
+                    0.0
                 };
                 sample_alt.entry(l).or_insert(dose);
             }
@@ -781,7 +785,7 @@ pub fn place(
             continue;
         }
         let (contig, pos, _, _) = &panel.lines[*line as usize];
-        let d = to_f64(&decimal_of(v, *e)) * (x as f64 - alt as f64 / called as f64);
+        let d = to_f64(&decimal_of(v, *e)) * (x - alt as f64 / called as f64);
         total.push(d);
         let w = windows.entry((*contig, pos / WINDOW)).or_default();
         w.0.push(d);

@@ -97,11 +97,17 @@ const SITE_STRIDE: usize = 20;
 /// Assign the sample to the panel group under whose allele frequencies its genotypes are most likely, at
 /// every `SITE_STRIDE`-th SNV target where the sample has a passing call.
 pub fn nearest_group(table: &GenotypeTable, cohort: &CohortTable, groups: &Groups) -> Result<Ancestry> {
+    if cohort.header.policy.dosage_field != crate::dosage::Field::Gt {
+        return invalid!(
+            "quantitative reference panels require a dosage-aware ancestry model; use a GT reference panel"
+        );
+    }
     let k = groups.names.len();
     let per_block: Vec<Result<(Vec<f64>, u64)>> = (0..cohort.header.blocks.len())
         .into_par_iter()
         .map(|b| {
-            let (keys, rows) = cohort.block_rows(b)?;
+            let block = cohort.block_rows(b)?;
+            let (keys, rows) = (block.keys(), block.rows());
             let width = rows.len() / keys.len().max(1);
             let mut ll = vec![0f64; k];
             let mut sites = 0u64;
@@ -248,6 +254,9 @@ pub fn place(
     ancestry: Option<&Ancestry>,
     options: &Options,
 ) -> Result<Placement> {
+    if cohort.header.policy.dosage_field != crate::dosage::Field::Gt {
+        return invalid!("quantitative reference-panel placement is not supported yet; use a GT reference panel");
+    }
     let h = &pack.header;
     if !cohort
         .header
@@ -268,6 +277,7 @@ pub fn place(
     let (mut terms_filled, mut genotypes_filled, mut excluded_low_call_rate_terms) = (0u64, 0u64, 0u64);
     let mut filled = vec![0u32; n];
     let (mut matched, mut total, mut effect_all, mut effect_matched) = (0u64, 0u64, 0f64, 0f64);
+    let mut reader = cohort.reader();
     for term in pack.terms_from(0) {
         let term = term?;
         total += 1;
@@ -281,7 +291,7 @@ pub fn place(
             Plan::Snv { key, effect_is_alt } => (Some(key), effect_is_alt),
             Plan::Sequence { variant, effect_is_alt } => (cohort.sequence_key(term.contig, &variant), effect_is_alt),
         };
-        let Some(row) = key.map(|k| cohort.row(k)).transpose()?.flatten() else {
+        let Some(row) = key.map(|k| reader.row(k)).transpose()?.flatten() else {
             continue;
         };
         // The contribution at each effect-allele dosage; a term whose model leaves one undefined is not used.
@@ -297,7 +307,7 @@ pub fn place(
         let mut called = 0usize;
         let (mut effect_alleles, mut group_called) = (vec![0u64; k], vec![0u64; k]);
         for &s in members {
-            let c = code(row, s);
+            let c = code(&row, s);
             if c != MISSING {
                 let g = groups.of_sample[s].expect("members are listed");
                 called += 1;
@@ -329,7 +339,7 @@ pub fn place(
         ours.add(&c);
         let mut filled_here = 0u64;
         for (i, (&s, sum)) in members.iter().zip(sums.iter_mut()).enumerate() {
-            let c = code(row, s);
+            let c = code(&row, s);
             if c == MISSING {
                 *sum += expected[groups.of_sample[s].expect("members are listed")];
                 filled[i] += 1;

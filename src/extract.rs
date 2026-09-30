@@ -59,6 +59,7 @@ pub enum ScanMode {
 #[derive(Clone, Debug, Default)]
 pub struct Options<'a> {
     /// Target index to reuse when it matches the packs, or to create (`.pgst`).
+    pub dosage_field: crate::dosage::Field,
     pub targets_cache: Option<&'a Path>,
     /// Read haploid chrX/chrY calls (`1`) as homozygous (`1/1`).
     pub haploid_xy_as_homozygous: bool,
@@ -314,6 +315,8 @@ pub(crate) struct ChunkScan {
     pub(crate) offsets: Vec<u64>,
     /// (kept record in this chunk, target) in file order.
     pub(crate) hits: Vec<(u32, u32)>,
+    /// One-based record ordinal within this chunk for each kept record.
+    pub(crate) source_records: Vec<u64>,
     pub(crate) lines: u64,
     records: u64,
     canonical_records: u64,
@@ -381,6 +384,7 @@ fn scan_chunk(chunk: &[u8], c: &Collector) -> std::result::Result<ChunkScan, (u6
                 let id = *kept.get_or_insert_with(|| {
                     keep_line(c.sample_column, line, &mut out.arena);
                     out.offsets.push(out.arena.len() as u64);
+                    out.source_records.push(out.records);
                     (out.offsets.len() - 2) as u32
                 });
                 out.hits.push((id, t as u32));
@@ -411,7 +415,14 @@ fn trim_line_end(line: &mut Vec<u8>) {
 /// (its position for SNVs; indel targets span their REF allele).
 pub fn scan(gvcf: &Path, keys: &[u64], ends: &[u64], options: &Options) -> Result<Extracted> {
     let mode = options.scan;
-    if mode != ScanMode::Full {
+    let bcf = crate::bcf::is_bcf(gvcf)?;
+    if bcf && mode == ScanMode::Indexed {
+        return invalid!(
+            "{}: indexed BCF scans are not yet available; use --scan auto or full for native streaming",
+            gvcf.display()
+        );
+    }
+    if mode != ScanMode::Full && !bcf {
         match plan_indexed(gvcf, keys, ends) {
             Ok(Some((index, chunks, share))) if mode == ScanMode::Indexed || share < INDEXED_SHARE_LIMIT => {
                 eprintln!(
@@ -664,6 +675,9 @@ pub(crate) fn stream_records<'a>(
         };
         (reader, shared)
     };
+    if reader.fill_buf().map_err(Error::io(gvcf))?.starts_with(b"BCF") {
+        reader = Box::new(crate::bcf::TextReader::new(reader).map_err(Error::io(gvcf))?);
+    }
     let at = |line_no: u64, e: Error| Error::Invalid(format!("{}: line {line_no}: {e}", gvcf.display()));
     let mut line = Vec::with_capacity(1 << 16);
     let mut line_no = 0u64;
@@ -674,12 +688,6 @@ pub(crate) fn stream_records<'a>(
         }
         line_no += 1;
         trim_line_end(&mut line);
-        if line_no == 1 && line.starts_with(b"BCF") {
-            return invalid!(
-                "{}: BCF is not supported; convert it with `bcftools view -Oz -o out.vcf.gz` and index it",
-                gvcf.display()
-            );
-        }
         let text = std::str::from_utf8(&line).map_err(|_| at(line_no, Error::Invalid("invalid UTF-8".into())))?;
         if !text.starts_with('#') {
             return Err(at(
@@ -826,6 +834,7 @@ pub fn assess(
                             out.push(CompactCall {
                                 state: genotype::State::RecordsAtPosition,
                                 alt_dosage: None,
+                                measurement: None,
                                 refcall_adapted: false,
                                 phased: false,
                             });
@@ -899,12 +908,13 @@ pub fn extract(
     timings.scan_s = t.elapsed().as_secs_f64();
     check_assembly(gvcf, &scanned.header, reference)?;
     let t = Instant::now();
-    let policy = Policy::for_gvcf(
+    let mut policy = Policy::for_gvcf(
         scanned.header.refcall_defined,
         options.haploid_xy_as_homozygous,
         options.accept_missing_quality,
     )
     .with_merge_split(options.merge_split_records);
+    policy.dosage_field = options.dosage_field;
     let calls = assess(&set.keys, &set.sequences, &scanned, reference, &policy, options.threads)?;
     timings.assess_s = t.elapsed().as_secs_f64();
     let t = Instant::now();
@@ -921,7 +931,7 @@ pub fn extract(
 
 /// A VCF whose `##contig` lengths differ from the reference's is on another assembly (e.g. GRCh37), and every
 /// call would be compared with the wrong bases.
-fn check_assembly(gvcf: &Path, header: &HeaderFacts, reference: &Reference) -> Result<()> {
+pub(crate) fn check_assembly(gvcf: &Path, header: &HeaderFacts, reference: &Reference) -> Result<()> {
     for &(code, length) in &header.contig_lengths {
         let name = CONTIGS[code as usize - 1];
         if let Some(expected) = reference.contig_length(name)

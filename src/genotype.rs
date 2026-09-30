@@ -22,6 +22,8 @@ pub struct Record {
     pub dp: Option<String>,
     pub min_dp: Option<String>,
     pub gq: Option<String>,
+    pub ds: Option<String>,
+    pub gp: Option<String>,
 }
 
 impl Record {
@@ -37,6 +39,7 @@ impl Record {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Policy {
     pub id: &'static str,
+    pub dosage_field: crate::dosage::Field,
     pub min_depth: f64,
     pub min_gq: f64,
     /// Treat DeepVariant `FILTER=RefCall` on a `0/0` record as passing. Set only when the gVCF header
@@ -56,6 +59,7 @@ impl Default for Policy {
     fn default() -> Self {
         Policy {
             id: "pgsum-diploid-dp10-gq20-pass-v1",
+            dosage_field: crate::dosage::Field::Gt,
             min_depth: 10.0,
             min_gq: 20.0,
             refcall_is_reference: false,
@@ -90,6 +94,11 @@ impl Policy {
 }
 
 impl Policy {
+    pub fn with_dosage_field(mut self, field: crate::dosage::Field) -> Self {
+        self.dosage_field = field;
+        self
+    }
+
     /// The same policy, reading split multi-allelic records as one (`merge_split_records`).
     pub fn with_merge_split(mut self, on: bool) -> Policy {
         self.merge_split_records = on;
@@ -225,6 +234,8 @@ pub fn merge_split(records: &[Record], target: &Target<'_>) -> Vec<Record> {
         dp: least(here.iter().map(|r| r.dp.clone())),
         min_dp: least(here.iter().map(|r| r.min_dp.clone())),
         gq: least(here.iter().map(|r| r.gq.clone())),
+        ds: None,
+        gp: None,
     };
     let mut out: Vec<Record> = elsewhere.into_iter().cloned().collect();
     out.push(merged);
@@ -254,10 +265,12 @@ pub enum State {
     ObservedVariant,
     /// A position target (`genotypes::position_key`): its records are kept, no call is made.
     RecordsAtPosition,
+    DosageMissing,
+    InvalidDosage,
 }
 
 impl State {
-    pub const ALL: [State; 18] = [
+    pub const ALL: [State; 20] = [
         State::GenotypeFiltered,
         State::ReferenceAnchorMismatch,
         State::ReferenceMismatch,
@@ -276,6 +289,8 @@ impl State {
         State::ObservedReference,
         State::ObservedVariant,
         State::RecordsAtPosition,
+        State::DosageMissing,
+        State::InvalidDosage,
     ];
 
     pub fn from_code(code: u8) -> Option<State> {
@@ -303,6 +318,8 @@ impl State {
             ObservedReference => "observed_reference",
             ObservedVariant => "observed_variant",
             RecordsAtPosition => "records_at_position",
+            DosageMissing => "dosage_missing",
+            InvalidDosage => "invalid_dosage",
         }
     }
 
@@ -331,6 +348,7 @@ pub struct Call {
     pub state: State,
     /// Copies of the target ALT (0, 1 or 2); set only for passing states.
     pub alt_dosage: Option<u8>,
+    pub measurement: Option<Box<crate::dosage::Measurement>>,
     /// Phase set, kept only when GT is phased and `PS` is numeric.
     pub phase_set: Option<String>,
     /// Whether the DeepVariant `RefCall` convention was applied.
@@ -342,6 +360,7 @@ impl Call {
         Call {
             state,
             alt_dosage: None,
+            measurement: None,
             phase_set: None,
             refcall_adapted: false,
         }
@@ -365,7 +384,7 @@ pub fn assess(
             .iter()
             .map(|r| {
                 let mut r = r.clone();
-                if r.gt.len() == 1 {
+                if r.gt.len() == 1 && (policy.dosage_field == crate::dosage::Field::Gt || r.is_reference_block()) {
                     r.gt.push(r.gt[0]);
                 }
                 r
@@ -376,7 +395,8 @@ pub fn assess(
         records
     };
     let merged: Vec<Record>;
-    let records = if policy.merge_split_records && records.len() > 1 {
+    let records = if policy.merge_split_records && records.len() > 1 && policy.dosage_field == crate::dosage::Field::Gt
+    {
         merged = merge_split(records, target);
         &merged[..]
     } else {
@@ -422,20 +442,22 @@ fn assess_site(
             return Call {
                 state: State::ObservedReference,
                 alt_dosage: Some(0),
+                measurement: None,
                 phase_set: None,
                 refcall_adapted: false,
             };
         }
         _ => return Call::state(State::AmbiguousOverlappingRecords),
     };
-    if record.gt.len() != 2 {
+    let quantitative = policy.dosage_field != crate::dosage::Field::Gt && !record.is_reference_block();
+    if !quantitative && record.gt.len() != 2 {
         return Call::state(State::UnsupportedPloidy);
     }
     let called = record.gt.iter().filter(|a| a.is_some()).count();
-    if called == 0 {
+    if !quantitative && called == 0 {
         return Call::state(State::NoCall);
     }
-    if called < record.gt.len() {
+    if !quantitative && called < record.gt.len() {
         return Call::state(State::PartialNoCall);
     }
     if filters.iter().any(|f| f != "PASS" && f != ".") {
@@ -454,6 +476,45 @@ fn assess_site(
         (Some(_), Some(_)) => {}
         (None, None) if policy.accept_missing_quality && !block => {}
         _ => return Call::state(State::QualityMissing),
+    }
+    if quantitative {
+        // Number=A and Number=G mapping for multi-allelic inputs is handled separately; never
+        // interpret their first value as the dosage for an arbitrary target allele.
+        if record.alts.len() != 1
+            || record.alts[0].starts_with('<')
+            || record.alts[0] == "*"
+            || record.pos != target.pos
+            || record.ref_allele != target.ref_allele
+            || target.alt.is_some_and(|a| a != record.alts[0])
+        {
+            return Call::state(State::UnsupportedAlleleRepresentation);
+        }
+        if record.gt.len() != 2 && record.gt != [None] {
+            return Call::state(State::UnsupportedPloidy);
+        }
+        let raw = match policy.dosage_field {
+            crate::dosage::Field::Ds => record.ds.as_deref(),
+            crate::dosage::Field::Gp => record.gp.as_deref(),
+            crate::dosage::Field::Gt => unreachable!(),
+        };
+        let Some(raw) = raw.filter(|s| *s != ".") else {
+            return Call::state(State::DosageMissing);
+        };
+        let Some(measurement) = crate::dosage::Measurement::parse(policy.dosage_field, raw) else {
+            return Call::state(State::InvalidDosage);
+        };
+        let state = if measurement.alt_dosage().coefficient == "0" {
+            State::ObservedReference
+        } else {
+            State::ObservedVariant
+        };
+        return Call {
+            state,
+            alt_dosage: None,
+            measurement: Some(Box::new(measurement)),
+            phase_set: None,
+            refcall_adapted: false,
+        };
     }
     let indices: Vec<u32> = record.gt.iter().map(|a| a.expect("no-calls handled above")).collect();
     let dosage = if block {
@@ -498,6 +559,7 @@ fn assess_site(
             State::ObservedVariant
         },
         alt_dosage: Some(dosage),
+        measurement: None,
         phase_set: if phased { record.phase_set.clone() } else { None },
         refcall_adapted: false,
     }
@@ -589,6 +651,8 @@ mod tests {
             dp: Some("30".into()),
             min_dp: None,
             gq: Some("40".into()),
+            ds: None,
+            gp: None,
         }
     }
 
@@ -606,6 +670,8 @@ mod tests {
             dp: None,
             min_dp: Some("25".into()),
             gq: Some("50".into()),
+            ds: None,
+            gp: None,
         }
     }
 
@@ -678,6 +744,8 @@ mod tests {
             dp: Some("30".into()),
             min_dp: None,
             gq: Some("40".into()),
+            ds: None,
+            gp: None,
         }
     }
 
