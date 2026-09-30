@@ -275,3 +275,177 @@ The independent integer oracle also passed. gVCF end-to-end times were approxima
 (0.151 to 0.153 s at one thread); this optimization targets cohort scoring. Cohort extraction still takes
 0.26–0.57 s here, so complete-workflow gains are smaller than scoring-only gains. Peak cohort scoring RSS
 remained below 33 MiB for both binaries; no memory reduction is claimed.
+
+### Quantitative inputs
+
+Add `--quantitative` to `performance.py` to include DS and GP cohort workloads. Both use deterministic
+integer probability units and a separate integer scoring oracle, including missing values and reversed
+effect alleles. The runner checks all sample scores and coverage and compares exact output at every
+thread count. Large enough runs cross quantitative block boundaries. Report their extraction/scoring
+time and peak memory separately from GT; exact probability storage currently costs substantially more.
+CI exercises these workloads as correctness gates, without enforcing shared-runner timing thresholds.
+
+## Missingness report overhead
+
+`missingness.py` measures scoring and complete `run` execution for fully called and 50%-missing single
+samples, each with two additive scores. An independent integer oracle verifies every partial sum and
+both missing-contribution extrema. With `--baseline`, all pre-existing score-result fields must agree
+exactly. New diagnostic fields are checked separately, including deterministic rankings/evidence across
+thread counts. Times include writing score JSON and, for `run`, the execution manifest.
+
+```sh
+python3 bench/missingness.py --binary target/release/pgsum --baseline /path/to/previous/pgsum \
+  --output /path/to/new-results-directory --terms 500000 --threads 1 4 --repeats 5
+```
+
+The baseline for initial development was commit `1521f9f`. Record hashes of the actual binaries (included
+in `results.json`), not only their version string. If building different checkouts with a shared Cargo
+target directory, ensure the candidate artifact is rebuilt for the intended source. Run benchmarks after
+compilation/tests finish so concurrent builds do not distort the comparison. These are synthetic
+workloads; they do not establish real-genome throughput or cross-tool scientific agreement.
+
+On the Linux development host, two 500,000-term scores, five measured repetitions after warmup:
+
+| Input | Threads | Previous end-to-end median | With reports | Change |
+|---|---:|---:|---:|---:|
+| complete | 1 | 0.9259 s | 0.9237 s | -0.2% |
+| complete | 4 | 0.3887 s | 0.3932 s | +1.2% |
+| half-missing | 1 | 0.9098 s | 0.9509 s | +4.5% |
+| half-missing | 4 | 0.3905 s | 0.4112 s | +5.3% |
+
+At 50% missingness, scoring alone increased about 16% at one thread and 8% at four threads;
+peak scoring memory was about 95.6/125.7 MiB versus 95.3/125.4 MiB for the baseline. Fully called
+scoring remained within about 2% in these runs. These timings describe added diagnostic work, not a
+speedup. All pre-existing result fields matched exactly, and the new bounds passed the independent
+oracle. Local run record: `work/missingness-performance-500k/results.json` (not shipped in the repo).
+
+
+## Optional cohort diagnostics
+
+`performance.py --cohort-missingness` also measures candidate `score --missingness` runs and independently
+checks every sample's additive missing-contribution envelope, consequential-term ranking and original
+record ordinals. It verifies that numeric TSVs are unchanged and reports are identical across thread
+counts. `--quantitative` extends this oracle to DS and GP. CI runs the 10,000-term/65-sample smoke.
+
+```sh
+python3 bench/performance.py --binary target/release/pgsum --baseline /path/to/previous/pgsum \
+  --output /tmp/cohort-diagnostics --terms 200000 --samples 65 --threads 1 4 --repeats 5 --cohort-missingness
+```
+
+Local synthetic measurement: two additive scores, 200,000 targets, 65 samples, five measured runs after
+one warm-up per command. These are cache-warm synthetic measurements, not real-genome throughput.
+The baseline is `1521f9f`; candidate includes v3 diagnostics and optional reports. Values below are
+median seconds / maximum RSS MiB, at four threads:
+
+| Workload | Previous extraction | v3 extraction | Previous scoring | v3 scoring | v3 scoring + report |
+|---|---:|---:|---:|---:|---:|
+| Sparse GT | 0.291 / 115.7 | 0.342 / 122.1 | 0.0475 / 45.8 | 0.0477 / 46.3 | 0.255 / 75.9 |
+| Dense GT | 0.304 / 111.0 | 0.350 / 115.2 | 0.0697 / 43.5 | 0.0681 / 45.6 | 0.278 / 75.7 |
+
+Preserving exclusion reasons/source ordinals added 12–13% extraction time at one thread and 15–18%
+at four threads. Ordinary scoring changed by roughly −2% to +3% across these GT runs. The optional
+report substantially increases score-stage time and memory, so it is explicitly requested.
+
+The 10,000-target/65-sample DS/GP comparison (three repeats) preserved numeric output and passed the
+same report oracle. At four threads DS ordinary scoring was 0.357 s / 161.2 MiB versus 0.356 s /
+161.3 MiB previously; GP was 0.635 s / 280.3 MiB versus 0.630 s / 280.5 MiB. Optional reports brought
+these to 0.865 s / 161.4 MiB and 1.771 s / 280.7 MiB respectively. The report pass is currently serial;
+it does not scale with the scoring thread count. Quantitative storage and its unbounded decoded cache
+remain substantial memory costs independent of diagnostics.
+
+Exact measured binary hashes:
+
+- Baseline: `89f6d3367a1629f068aaf6cd91af107cde93c1d5ae575e930c5847db0cd82528`.
+- Candidate: `d21e2208ed4723e26a58364e5e0ea6d92a21cb2ca78c22ff481dfe1497aa2244`.
+
+Local run records are `work/cohort-diagnostics-performance-200k/results.json` and
+`work/cohort-diagnostics-performance/results.json`; each records individual runs, input hashes and
+harness/binary hashes. They are not shipped in the repository. A subsequent guard rejects duplicate
+score IDs before report publication; final-binary smoke validation is recorded separately in
+`work/cohort-diagnostics-final-smoke/results.json`.
+
+
+## Bounded cohort storage and shared quantitative passes
+
+The cohort-memory changes replace permanent decoded-block retention and eager preloading with a
+payload-target cache. Block-ordered quantitative scores share decoded waves; unordered scores use
+the independent source-order cache path. GT retains its parallel pack schedule. The report path
+reuses validated metadata and gathers evidence in key order, avoiding repeated probability decoding.
+
+[The measurement bundle](results/cohort-memory-synthetic.json) includes every timed run, medians,
+peak RSS, hardware/compiler details, source/input/binary hashes, verified output/report digests and
+execution/cache counters. It compares against `dc29124`, before these changes. These are synthetic
+additive workloads on one machine, with three measured repetitions after a warm-up and warm OS
+caches; they do not establish real-genome performance or a total process memory cap.
+
+For two 50,000-term GP scores and 65 samples (3.25 million probability cells), using the default
+128 MiB decoded-payload target:
+
+| Threads | Previous scoring time / peak RSS | New scoring time / peak RSS | New scoring + diagnostics time / peak RSS |
+|---|---:|---:|---:|
+| 1 | 6.614 s / 731.5 MiB | 6.585 s / 132.5 MiB | 10.856 s / 333.1 MiB |
+| 4 | 2.502 s / 912.1 MiB | 3.084 s / 456.5 MiB | 7.356 s / 497.3 MiB |
+
+The shared pass decoded 13 blocks total for both scores, with one active block at one thread and
+waves of up to three at four threads. One-thread peak RSS fell about 82% without a material time
+change; four-thread peak RSS fell about 50% at a 23% scoring-time cost. Decoder workspaces and other
+allocations explain why process RSS exceeds the payload target. Reports add another pass and have
+separate costs. Scores and report contents were identical across thread counts, with independent
+integer/decimal checks of the scores, coverage, bounds and rankings.
+
+The hard-call regression used two 200,000-term scores, 65 samples, three repetitions and 1/4 threads.
+Sparse GT scoring changed from 0.0846/0.0494 s to 0.0750/0.0459 s, and dense GT from 0.1251/0.0696 s
+to 0.1360/0.0727 s. Thus dense scoring added 3–11 ms while sparse scoring improved; all numerical
+outputs were unchanged. A separate 10,000-term GT/DS/GP smoke with a 16 MiB target passed the same
+oracles under forced eviction and is now the CI configuration.
+
+Reproduce the larger comparison, with a release binary from each version:
+
+```sh
+python3 bench/performance.py --binary target/release/pgsum --baseline /path/to/previous/pgsum \
+  --output /tmp/cohort-gp --terms 50000 --samples 65 --threads 1 4 --repeats 3 \
+  --workloads gp --cohort-missingness
+```
+
+Use `--cohort-cache-mib` to vary the candidate's payload target. `--workloads` restricts the measured
+workloads without changing their generator/oracle. A very small target retains at least one block;
+wave sizes use previously observed decoded sizes, so larger later blocks can exceed their estimate.
+Scores with targets jumping between blocks can incur substantial redecoding. General shared
+scheduling for unordered packs and a total-memory budget remain open work.
+
+## Migration comparison check
+
+```sh
+cargo build --release
+python3 bench/compare_plink.py --pgsum target/release/pgsum --plink2 /path/to/plink2 --out /new/comparison-run
+```
+
+The runner generates 48 biallelic diploid autosomal variants across 32 synthetic samples, with missing
+calls, ref/alt effect alleles and additive/dominant/recessive scores. A fourth additive score uses exact
+high-precision weights. It runs both programs, invokes `pgsum compare --fail-on-difference`, and checks
+every result independently with Python Decimal. Missing genotypes are not imputed in either program.
+The output retains generated inputs, all commands/logs, tool versions, binary/input/runner hashes and
+comparison reports. Neither executable nor data is downloaded by the runner.
+
+The checked [synthetic measurement record](results/compare-plink-synthetic.json) used PLINK 2
+v2.0.0-a.7.10LM (29 Sep 2026). All 128 sample/score pairs passed the independent oracle. 97 reported
+values matched exactly; 31 high-precision score outputs matched with absolute tolerance 0.00001 plus
+relative tolerance 0.000005. The three rational-weight models used zero tolerance. These are correctness
+checks, not performance measurements or justification for a general numerical tolerance.
+
+This test does not validate public real data, pgsc_calc execution, DS/GP, gVCF reference blocks,
+multiallelic variants, indels or sex chromosomes. Those cross-tool validation requirements remain open.
+
+## Public chromosome 22 validation
+
+The [public-data validation](../docs/public-validation.md) runs pgsum, the unmodified pgsc_calc v2.3.0
+scoring workflow and a separate PLINK 2 run on 32 real public samples. It preserves all 1,059,079 chr22
+records and all chr22 terms from PGS001229 (849) and PGS000018 (26,529), with original-row maps and pinned
+source hashes. See `public_chr22.py`, its pinned requirements, and the reproduction commands in the guide.
+
+Default policies differ in 62/64 reported scores. All 64 shared-term scores agree within explicit
+rendering tolerances; independent exact arithmetic checks all 853,312 retained default pgsum
+contributions and reconstructs every external sum. All default gaps reconcile to term eligibility
+choices, primarily overlapping-record handling. The full [measurement record](results/public-chr22-validation.json)
+retains per-sample results; this is a correctness check on partial chromosome contributions, not a
+runtime benchmark or complete PGS validation.
