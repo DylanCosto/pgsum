@@ -1,15 +1,16 @@
 # pgsum
 
-Polygenic score calculation from gVCFs, exact and without imputation.
+Polygenic score calculation from gVCFs, with exact observed scores and optional population-frequency filling.
 
-**Status: v0.3, early development.** The full pipeline works; genotype calls are validated against GIAB truth
-sets on seven genomes, reference blocks on four of them (see [Validation](#validation)).
+**Status: early development; latest tagged release v0.5.1.** The full pipeline works; genotype calls are
+validated against GIAB truth sets on seven genomes, reference blocks on four of them (see [Validation](#validation)).
 
 ## What's different
 
 Most PGS tools score a VCF and treat a site with no variant record as missing, then fill it with a mean
 dosage. A gVCF says more than that: a passing reference block is a confident homozygous-reference call.
-pgsum reads the gVCF directly and uses those blocks, and it never imputes.
+pgsum reads the gVCF directly and uses those blocks. Its strict and partial scores use observed calls only;
+optional filling and reference-panel comparisons are reported separately.
 
 Every score gets two answers:
 
@@ -23,7 +24,8 @@ Every score gets two answers:
 The strict score is rarely available: for HG002, 189 of 6,990 Catalog scores have every term usable by
 default (329 with every opt-in), because most large scores include a few sites a genome can't call. In
 practice, use the **partial score when it covers at least 99% of the terms and 99% of the total weight**
-(`partial.meets_coverage_guideline`, and the `meets_coverage_guideline` column of `scores.tsv`). For HG002
+(`partial.meets_coverage_guideline`, and the `meets_coverage_guideline` column of `scores.tsv`). This is a
+completeness guideline, not a guarantee of percentile stability or predictive validity. For HG002
 that is 1,950 scores by default and 4,120 with every opt-in. Below that, the missing terms can move the
 score noticeably.
 
@@ -111,7 +113,9 @@ pgsum score --genotypes cohort.pgsc --pack packs/ --out cohort-results/   # coho
 
 A partial score only means something next to scores over the same terms. Given a panel extracted with the
 same packs and its sample groups, `score` places each score among the panel's scores computed over exactly
-the terms scorable in your genome and in every panel sample, and assigns your genome the nearest group:
+the terms scorable in your genome and called in at least 99% of listed panel samples, and assigns your genome
+the nearest group. Remaining missing panel calls are filled from group frequencies. Terms below that call
+rate are excluded from both sides and count against matched coverage:
 
 ```sh
 pgsum extract --gvcf 1kgp.vcf.gz --all-samples --accept-missing-quality --reference GRCh38.fa --pack packs/ --out 1kgp.pgsc
@@ -119,16 +123,18 @@ pgsum score --genotypes sample.pgsg --pack packs/ --out results/ \
     --reference-panel 1kgp.pgsc --reference-groups integrated_call_samples_v3.20130502.ALL.panel
 ```
 
-Which panel: 1000 Genomes phase 3 lifted to GRCh38 and the NYGC 30× release (native GRCh38, called like a
-modern WGS genome) place scores about equally well, and their percentiles agree closely (`bench/README.md`,
-"Reference panels"). Extract the 30× release with `--skip-structural-alleles --merge-split-records`, since it
-carries structural variants and splits multi-allelic sites.
+Panel inputs include 1000 Genomes phase 3 lifted to GRCh38 and the NYGC 30× release (native GRCh38, called
+like a modern WGS genome). Extract the 30× release with `--skip-structural-alleles --merge-split-records`, since
+it carries structural variants and splits multi-allelic sites. The comparisons in `bench/README.md` used
+earlier panel rules; coverage and percentile agreement need revalidation under the current exclusion rule.
 
-Each result then has `reference` (matched terms and coverage, percentile among all panel samples and within
-each group, group mean, SD and z-score) and `ancestry` (the nearest group), and `scores.tsv` gains the
+Each result then has `reference` (matched terms and coverage, `excluded_low_call_rate_terms`, percentile
+among all panel samples and within each group, group mean, SD and z-score) and `ancestry` (the nearest group), and `scores.tsv` gains the
 percentile in the nearest group. Read a percentile only when `reference.meets_coverage_guideline` is set (the
-matched terms hold at least 99% of the terms and of the weight); below that it places a subset of the score. For HG002 against 1000 Genomes this takes 33 s for 100 scores and assigns
-EUR. Percentiles are uncalibrated: no ancestry adjustment beyond the choice of group, and no absolute risk.
+matched terms hold at least 99% of the terms and of the weight); below that it places a subset of the score.
+If no terms remain, no percentile is reported. Z-scores are `null` when the reference group has fewer than
+two samples or zero score variance. Percentiles are uncalibrated: no ancestry adjustment beyond the choice
+of group, and no absolute risk.
 
 ### Filling missing terms and placing within one group
 
@@ -159,6 +165,12 @@ from the group mean in the top 1 Mb window and each region given). `<PGS_ID>.ref
 panel sample's exact score. For HG002 and HG003, 28 scores (27 million terms) take about 20 s including the
 fill, placement and regions. `--karyotype XX|XY --x-dosage-model` reads chrX by sex (DESIGN.md, "Sex
 chromosomes"). See DESIGN.md, "Filling missing terms" and "Placing within a reference group".
+
+JSON output uses `pgsum-score-v3`. `imputation.observed_scores` is always false;
+`imputation.sample_fill` reports frequency-based contributions in `fill`, including when `filled_score` is
+withheld, and `imputation.reference_panel` reports expected contributions used in a panel comparison.
+`imputation_performed` is true when either kind of filling occurs, including zero-valued fills. The observed
+`raw_score` and `partial.raw_score` never include those fills. See DESIGN.md for the v2 migration notes.
 
 ### Inputs
 
@@ -199,9 +211,19 @@ On a 12-core Mac with the packs on a USB SSD and a 36-million-record HG002 gVCF:
 
 Without an index, `extract` reads the whole file on all cores: 5 s for a 154-million-record GATK gVCF.
 
+For repeatable local performance checks with synthetic gVCFs and cohort VCFs, see
+[the performance runner](bench/README.md#reproducible-performance-checks). Upcoming changes and the score
+JSON migration are described in [release notes](RELEASE_NOTES.md).
+
 ## Validation
 
 What has been checked, and against what:
+
+- **Public, hand-calculated reference checks.** `cargo test --locked --test reference_validation` creates
+  tiny synthetic inputs and checks the 99% panel call-rate boundary, missingness sensitivity, withheld
+  percentiles, zero-variance Z-scores, and filling metadata. No external data or private implementation is
+  required. See `bench/README.md`, "Reproducible reference checks". These regression checks do not establish
+  calibration on real genomes.
 
 - **Genotype calls against truth sets, on seven genomes.** At every score site on chr1–22 inside each GIAB
   v4.2.1 benchmark region (about 40 million sites per genome; `bench/giab_concordance.py`):

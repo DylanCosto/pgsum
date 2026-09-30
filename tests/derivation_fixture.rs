@@ -93,6 +93,8 @@ fn missing_terms_are_filled_or_omitted_by_the_rules() {
     };
     let mut tsv = Vec::new();
     let result = score_with(&pack, &table, &ScoreOptions::default(), &extras, Some(&mut tsv)).unwrap();
+    assert!(result.imputation_performed && result.imputation.sample_fill);
+    assert!(!result.imputation.observed_scores && !result.imputation.reference_panel);
     let fill = result.fill.unwrap();
     // Term 7: 0.7 × 2 × 0.25. Term 8: effect is the ALT, so the multi-allelic flag does not matter: 0.8 × 2 × 0.1.
     // Term 9 (pos 9, effect C on A): one of the two records there carries C/A: 0.9 × 2 × 0.3.
@@ -268,5 +270,11 @@ fn placement_scores_every_panel_sample_exactly() {
     let reference = [scores["R1"], scores["R2"], r3];
     let d = pgsum::placement::distribution(p.reference.mean + 0.0, &reference);
     assert!((p.reference.mean - d.mean).abs() < 1e-12);
+    let mut result = pgsum::score::score(&pack, &table, &ScoreOptions::default(), None).unwrap();
+    assert!(!result.imputation_performed);
+    result.placement = Some(p);
+    result.refresh_imputation();
+    assert!(result.imputation_performed && result.imputation.reference_panel);
+    assert!(!result.imputation.observed_scores && !result.imputation.sample_fill);
     std::fs::remove_dir_all(&out).unwrap();
 }

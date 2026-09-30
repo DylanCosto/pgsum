@@ -25,16 +25,24 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - name: Check release tag matches package version
+        shell: bash
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')
+          test "$GITHUB_REF_NAME" = "v$version"
       # Cross-compiled targets are built but not tested (the same code is tested on the native targets).
       - if: ${{ !matrix.cross }}
-        run: cargo test --release --target ${{ matrix.target }}
+        run: cargo test --release --locked --target ${{ matrix.target }}
       - run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Smoke test release binary
+        if: ${{ !matrix.cross }}
+        run: target/${{ matrix.target }}/release/pgsum --version
       - name: Package
         shell: bash
         run: |
           name=pgsum-${GITHUB_REF_NAME}-${{ matrix.target }}
           mkdir "$name"
-          cp target/${{ matrix.target }}/release/pgsum README.md DESIGN.md LICENSE-APACHE LICENSE-MIT "$name"/
+          cp target/${{ matrix.target }}/release/pgsum README.md DESIGN.md RELEASE_NOTES.md LICENSE-APACHE LICENSE-MIT "$name"/
           tar czf "$name.tar.gz" "$name"
           shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
       - uses: actions/upload-artifact@v4
@@ -45,6 +53,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
@@ -56,9 +65,10 @@ jobs:
           pgsum @TAG@ (early development). See the README for what pgsum does, what has been
           validated and its limitations, and the commit history for what changed.
 
-          Each archive holds the `pgsum` binary, README, DESIGN and licences; check it against its `.sha256`.
+          Each archive holds the `pgsum` binary, README, DESIGN, release notes and licences; check it against its `.sha256`.
           Scoring files are not included: download them from the PGS Catalog (`pgsum fetch`).
           NOTES
+          cat RELEASE_NOTES.md >> notes.md
           sed -i "s/@TAG@/$GITHUB_REF_NAME/" notes.md
           gh release create "$GITHUB_REF_NAME" pgsum-*.tar.gz* --repo "$GITHUB_REPOSITORY" \
             --title "pgsum $GITHUB_REF_NAME" --notes-file notes.md

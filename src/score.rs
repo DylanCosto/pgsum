@@ -23,7 +23,7 @@ use crate::pack::{Inference, Oriented, Pack, TermRecord, Waivers, Weight};
 use crate::term::{CONTIGS, Model, Reason};
 use crate::{Result, invalid};
 
-pub const SCHEMA: &str = "pgsum-score-v2";
+pub const SCHEMA: &str = "pgsum-score-v3";
 
 /// A contribution's coefficient: a weight's 64-bit coefficient times a dosage multiplier fits in 128 bits;
 /// wider weights use arbitrary precision.
@@ -69,6 +69,24 @@ impl Contribution {
             negative: !self.negative,
             ..self.clone()
         }
+    }
+
+    /// A cheap exact difference when both coefficients fit and use the same exponent.
+    /// Keeping that exponent (even for zero) preserves the reported decimal precision.
+    pub(crate) fn small_difference(&self, base: &Contribution) -> Option<Contribution> {
+        if self.exponent != base.exponent {
+            return None;
+        }
+        let signed = |c: &Contribution| match c.coefficient {
+            Coefficient::Small(v) => i128::try_from(v).ok().map(|v| if c.negative { -v } else { v }),
+            Coefficient::Big(_) => None,
+        };
+        let difference = signed(self)?.checked_sub(signed(base)?)?;
+        Some(Contribution {
+            negative: difference < 0,
+            coefficient: Coefficient::Small(difference.checked_abs()? as u128),
+            exponent: self.exponent,
+        })
     }
 
     fn signed_big(&self) -> BigInt {
@@ -394,7 +412,10 @@ pub struct ScoreResult {
     pub matches_publication: Option<bool>,
     pub inventory_consistent: bool,
     pub formula: String,
+    /// Any expected contribution was computed for sample filling or used in a reference comparison.
+    /// The observed strict and partial scores never include imputation; see `imputation` for scope.
     pub imputation_performed: bool,
+    pub imputation: Imputation,
     pub calibration: String,
     /// Whether scoring was allowed to use inferred other alleles, and how many scorable terms did.
     pub inferred_other_allele: InferredUse,
@@ -420,6 +441,36 @@ pub struct ScoreResult {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub fill: Option<crate::fill::Fill>,
     pub inputs: Inputs,
+}
+
+/// Which outputs include expected contributions rather than only observed genotypes.
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+pub struct Imputation {
+    /// Always false: `raw_score` and `partial.raw_score` sum observed calls only.
+    pub observed_scores: bool,
+    /// `fill` contains at least one frequency-based contribution, even if its final score is withheld.
+    pub sample_fill: bool,
+    /// A reference comparison uses expected contributions (missing panel calls or shared filled terms).
+    pub reference_panel: bool,
+}
+
+impl ScoreResult {
+    /// Refresh the summary after attaching `reference` or `placement` results.
+    /// Counts, rather than sums, detect fills even when their contributions are zero or cancel out.
+    pub fn refresh_imputation(&mut self) {
+        let sample_fill = self.fill.as_ref().is_some_and(|f| f.filled.part.terms > 0);
+        let reference_panel = self.reference.as_ref().is_some_and(|p| p.fills.genotypes_filled > 0)
+            || self
+                .placement
+                .as_ref()
+                .is_some_and(|p| p.missing_genotypes.total > 0 || p.terms.absent_filled > 0 || sample_fill);
+        self.imputation = Imputation {
+            observed_scores: false,
+            sample_fill,
+            reference_panel,
+        };
+        self.imputation_performed = sample_fill || reference_panel;
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -814,7 +865,7 @@ pub fn score_with(
     } else {
         effect_scorable / effect_all
     };
-    Ok(ScoreResult {
+    let mut result = ScoreResult {
         schema: SCHEMA.into(),
         pgsum_version: env!("CARGO_PKG_VERSION").into(),
         pgs_id: h.pgs_id.clone(),
@@ -852,7 +903,8 @@ pub fn score_with(
         inventory_consistent: h.inventory.consistent,
         formula: "Sum of published per-term contributions at the observed effect-allele dosage".into(),
         imputation_performed: false,
-        calibration: "uncalibrated: no percentile or absolute risk".into(),
+        imputation: Imputation::default(),
+        calibration: "uncalibrated: raw scores and optional reference-panel percentiles; no absolute risk".into(),
         inferred_other_allele: InferredUse {
             allowed: options.allow_inferred_other_allele,
             scorable_terms: inferred,
@@ -900,7 +952,9 @@ pub fn score_with(
             genotypes_body_sha256: genotypes.header.body_sha256.clone(),
             reference_fasta_sha256: genotypes.header.reference.fasta_sha256.clone(),
         },
-    })
+    };
+    result.refresh_imputation();
+    Ok(result)
 }
 
 #[cfg(test)]

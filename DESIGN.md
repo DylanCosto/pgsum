@@ -1,20 +1,20 @@
 # pgsum design
 
-Status: draft for v0. Everything here is open to change until the parity test passes.
+Status: early development. Current scoring output is `pgsum-score-v3`; see the output migration notes below.
 
 ## Goal
 
-Calculate polygenic scores from **one sample's gVCF**, for many scores at once, fast, and with genotype
-rules that treat a passing reference block as a confident homozygous-reference call rather than a missing
-genotype.
+Calculate polygenic scores from gVCFs, for many scores at once, fast, and with genotype rules that treat a
+passing reference block as a confident homozygous-reference call rather than a missing genotype.
 
-## Non-goals (v0)
+## Scope
 
-- No imputation. A term without a usable call is never filled in with a mean or reference dosage.
+- Strict and partial raw scores use observed calls only. Optional population-frequency fills are separate
+  derived results; reference-panel comparisons may fill missing panel calls. Each kind is labelled.
 - No silent partial scores. The strict raw score exists only when every term is scorable; a partial sum is
   reported separately, labelled, with its coverage (see [Completeness](#completeness)).
-- No percentiles, ancestry projection or absolute risk. Output is a raw, uncalibrated score.
-- No clinical interpretation.
+- Optional percentiles are relative to the supplied panel, with no ancestry adjustment beyond choosing a
+  group. No absolute risk or clinical interpretation is supplied.
 - GRCh38 only.
 
 ## Pipeline
@@ -129,20 +129,28 @@ extracting and scoring that sample alone.
 
 A partial score is only comparable with scores over the same terms. With `--reference-panel panel.pgsc
 --reference-groups labels.tsv`, each score is placed among the panel's scores computed over exactly the terms
-scorable in the sample and called in the panel. Panel calls are filled where missing, for the comparison
-only (the sample's own calls never are): at a term called in at least 99% of the listed panel samples, a
-missing call takes the expected contribution under Hardy–Weinberg at the effect-allele frequency among its
-group's called samples (for additive terms 2 × f × w); a term called in fewer gives every panel sample that
-group expectation, so it cannot move anyone within a group; a term with no panel call is left out on both
-sides. `reference.fills` records the terms filled, the genotypes filled, the constant terms and every panel
-sample's filled count, and the note says so. The results show: `reference.matched_terms` and their share of terms and
+scorable in the sample and called in at least 99% of listed panel samples. A term below that call rate is
+excluded from **both** the sample and panel sums and increments `reference.excluded_low_call_rate_terms`.
+It does not count toward matched term or weight coverage. If no terms remain, percentiles are withheld.
+Replacing only the panel's contributions with a constant would erase its variation while retaining the
+sample's deviation, so that earlier behavior is no longer used.
+
+For retained terms, missing panel calls are filled for the comparison only (the sample's own calls never
+are): a missing call takes the expected contribution under Hardy–Weinberg at the effect-allele frequency
+among its group's called samples (for additive terms 2 × f × w). If the group has no called sample, the
+frequency among all called panel samples is used. `reference.fills` records the terms filled, the genotypes
+filled and every panel sample's filled count. The results show matched terms and their share of terms and
 weight, the sample's exact sum over them, its mid-rank percentile among all panel samples, and per group the
-mean, SD, percentile and z-score. `reference.meets_coverage_guideline` applies the 99% rule to the matched
-terms (terms and weight); below it the note says the percentile places a subset of the score. The panel must be
-extracted with the same packs. Panel samples the groups file does not list (for example relatives in the
-3,202-sample 1000 Genomes release) are left out of every comparison. Panel sums are accumulated in floating point, so two panel samples with
-identical exact sums could fall either side of the sample's value in the tie count; the effect on a mid-rank
-percentile is at most half a sample.
+mean, SD, percentile and z-score. Z is `null` for groups with fewer than two samples or zero score variance.
+`reference.meets_coverage_guideline` applies the 99% rule to matched terms and weight. This is a completeness
+check, not a guarantee of percentile stability or predictive validity.
+
+The panel must be extracted with the same packs. Panel samples the groups file does not list (for example
+relatives in the 3,202-sample 1000 Genomes release) are left out of every comparison. Panel sums are
+accumulated in floating point; ties can therefore differ from those obtained with exact arithmetic.
+The public synthetic checks in `tests/reference_validation.rs` use hand-calculated sums and ranks. Earlier
+real-genome panel benchmarks used different missingness rules and need rerunning before their coverage or
+percentile agreement can be claimed for this version.
 
 The sample is assigned the nearest group (`ancestry.nearest_group`, e.g. a 1000 Genomes superpopulation) by
 the likelihood of its genotypes under each group's allele frequencies (Hardy–Weinberg, frequencies clamped to
@@ -486,7 +494,7 @@ the reference implementation's, trailing zeros included (e.g. `1332.647502000000
 
 Coverage fractions are floating point; they describe the sum and never enter it.
 
-## Output (`pgsum-score-v2`)
+## Output (`pgsum-score-v3`)
 
 One JSON object per score (`src/score.rs`, `ScoreResult`):
 
@@ -498,8 +506,28 @@ One JSON object per score (`src/score.rs`, `ScoreResult`):
   convention when there are any
 - `required_terms`, `scorable_terms`, `states` (term status → count)
 - `weight_type` (Catalog), `license`, `matches_publication`, `inventory_consistent`
-- `imputation_performed: false`, `calibration: "uncalibrated: …"`
+- `imputation`: `observed_scores` (always false), `sample_fill` (at least one expected contribution in `fill`,
+  even if `filled_score` is withheld), and `reference_panel` (expected contributions used in either panel
+  comparison, including missing panel calls and shared frequency-filled terms)
+- `imputation_performed`: true if `sample_fill` or `reference_panel` is true; counts detect filling even when
+  contributions are zero or cancel. This flag describes the whole result, not the observed scores.
+- `calibration`: raw scores and optional panel percentiles are uncalibrated; no absolute risk
 - `inputs`: SHA-256 of the pack records, the scoring file, the gVCF, the genotype table body and the FASTA
+
+### Migrating from v2
+
+Consumers should recognize `schema: "pgsum-score-v3"`:
+
+- `reference.fills.terms_constant` is removed. Low-call-rate terms are now excluded from both sides and
+  counted in `reference.excluded_low_call_rate_terms`; matched coverage may decrease, and percentiles may
+  change or become unavailable. Recompute previous panel comparisons to use the corrected rule.
+- `reference.groups[].z`, `placement.reference.z`, and
+  `placement.sensitivity_absent_as_homozygous_reference.z` are numbers or `null` when undefined. Do not
+  interpret a missing Z as zero deviation.
+- The top-level `imputation_performed` is no longer always false. Use `imputation` to distinguish observed
+  scores, sample filling, and reference comparisons. Library callers attaching `reference` or `placement`
+  to a `ScoreResult` must call `refresh_imputation()` before serializing; the CLI does this automatically.
+- Pack and genotype file formats are unchanged. Existing extracted inputs can be reused.
 
 Per-term TSV (`--terms`): the `inspect` columns, then status, call state, effect dosage and contribution.
 

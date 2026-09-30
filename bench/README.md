@@ -64,6 +64,11 @@ sites written as one record, which plink2 cannot match to `chr:pos:ref:alt` IDs.
 
 ## Reference panels (2026-09-26)
 
+**Historical results:** these measurements predate the `pgsum-score-v3` correction. Current `.pgsc` panel
+comparisons exclude terms called in fewer than 99% of listed panel samples from both sides, count them
+against coverage, and report undefined Z-scores as null. The coverage and percentile comparisons below
+have not been rerun under this rule; they are not validation of the current behavior.
+
 HG002 placed among the 2,504 unrelated 1000 Genomes samples for the same 100 scores, with two versions of
 the panel: phase 3 lifted to GRCh38 (low coverage, imputed) and the NYGC 30× release (native GRCh38,
 `20220422_3202_phased_SNV_INDEL_SV`). A term is used only if it is scorable in HG002 and in every panel
@@ -170,3 +175,103 @@ which rows are included, not in arithmetic: pgsum's review rules exclude rows pg
 (`variant_description` in PGS000667, missing other alleles pgsum cannot infer, ambiguous overlapping gVCF
 records), and pgsc_calc only sees sites present in the VCF it was given, which for effect-allele-only scores
 misses sites pgsum infers (e.g. PGS000054, whose effect allele is the reference at every site).
+
+## Reproducible reference checks
+
+From a checkout with Rust 1.88 or later:
+
+```sh
+cargo test --locked --test reference_validation
+```
+
+This public validation suite needs no downloads beyond the pinned Cargo dependencies, no private Python
+implementation, and no real genome. Its complete synthetic input generator and expected answers are
+versioned in `tests/reference_validation.rs`. It exercises the compiled CLI, including JSON and bundled
+output. Temporary inputs and outputs are removed after each test.
+
+The reference sequence is `ACGT`. Two additive terms have weight 1: chr1:1 A>G and chr1:4 T>C. The sample
+has dosages 1 and 2. There are 100 panel samples, all in one group. At the first term, 34 have dosage 0,
+33 have dosage 1 and 33 have dosage 2. At the second term every called sample has dosage 1. The suite
+varies the number called at that second term:
+
+| Called at term 2 | Matched terms | Sample comparison score | Mid-rank percentile | Coverage | Filled panel calls |
+|---|---|---|---|---|---|
+| 100/100 | 2 | 3 | 83.5 | 100% | 0 |
+| 99/100 | 2 | 3 | 83.5 | 100% | 1 |
+| 98/100 | 1 | 1 | 50.5 | 50% | 0 |
+| 0/100 | 1 | 1 | 50.5 | 50% | 0 |
+
+With both terms, 67 panel scores are below 3 and 33 equal it: `100 × (67 + 33/2) / 100 = 83.5`.
+After excluding term 2, 34 are below 1 and 33 equal it: `100 × (34 + 33/2) / 100 = 50.5`. Changing the
+sample's excluded dosage from 2 to 0 must leave the entire reference result unchanged while changing its
+observed score. These answers come from counting dosages, independently of the scoring implementation.
+
+Additional cases cover exclusion of the only term (no percentile), a constant retained panel (`z: null`),
+and a zero-frequency sample fill (reported as filling even though its contribution is zero and the final
+filled score is withheld). The full suite also checks PLINK zero-variance Z-scores and panel-fill metadata:
+
+```sh
+cargo test --locked
+```
+
+These are regression and arithmetic checks. They do not validate ancestry assignment, real-data
+calibration, or broad percentile stability. The next real-data validation should rerun the two panel
+comparisons above with pinned source manifests and per-score outputs, including missingness sensitivity.
+
+## Reproducible performance checks
+
+Build a release binary and run the deterministic synthetic workload generator. It needs Python 3,
+`zstd`, and GNU `time` (`/usr/bin/time` on Linux; `gtime` on macOS). It downloads no genomes or weights.
+Use a new output directory for each run; inputs and logs are retained with `results.json`.
+
+```sh
+cargo build --release --locked
+python3 bench/performance.py --output bench/results/local \
+  --terms 100000 --samples 257 --threads 1 4 --repeats 5
+```
+
+The runner measures compilation separately, then extraction and scoring for a single gVCF with reference
+blocks and for sparse and dense joint VCFs. It also measures the combined gVCF `run` command. Two scores
+use opposite effect alleles, signed weights, and zero weights. Cohorts include missing calls; 257 samples
+exercise a partial packed byte. All sums and cohort coverage are checked against an independent integer
+calculation, and full scoring outputs are compared across thread counts (excluding the version field).
+The existing Rust tests separately cover indexed reads, non-additive models, very wide decimal weights,
+indels, and other input policies. Synthetic throughput does not predict whole-genome throughput.
+
+For a before/after comparison, retain the previous release binary outside `target/`, then pass it explicitly:
+
+```sh
+python3 bench/performance.py --baseline /path/to/previous/pgsum \
+  --binary target/release/pgsum --output bench/results/comparison \
+  --terms 100000 --samples 257 --threads 1 4 --repeats 5
+```
+
+Both binaries process the same generated inputs. Output differences fail the run; use comparable schema
+versions. Each command gets one unmeasured warm-up and the requested number of timed runs. The report
+records each run's wall time, CPU time, peak resident memory, binary/input hashes, environment, and output
+hashes. OS caches are not flushed; compilation and extraction are not included in isolated scoring times.
+Baseline runs precede candidate runs, so repeat on an idle machine if temperature/load drift matters.
+
+On a dedicated host, `--max-score-slowdown 1.15` also fails if any scoring median exceeds 115% of its baseline.
+Choose sufficiently large workloads and multiple repetitions for this gate. CI uses a small release-mode
+run to gate correctness and uploads the measurements, without treating noisy shared-host timing as a gate.
+
+### Cohort optimization measurement
+
+Measured on Linux x86-64, Intel Core i5-12600K, using 100,000 terms per score, two scores, 257 samples,
+five measured runs after warm-up. Baseline: PR #1 commit `1f41987`, before the cohort-loop optimization.
+Candidate: packed-byte skipping and precomputed exact contribution differences. These are synthetic
+measurements and are separate from the earlier real-genome benchmarks above.
+
+| Scoring workload | Threads | Baseline median | Optimized median | Time reduction |
+|---|---:|---:|---:|---:|
+| Sparse cohort | 1 | 0.0913 s | 0.0692 s | 24% |
+| Dense cohort | 1 | 0.3795 s | 0.1960 s | 48% |
+| Sparse cohort | 4 | 0.0553 s | 0.0431 s | 22% |
+| Dense cohort | 4 | 0.2045 s | 0.1072 s | 48% |
+
+All cohort output bytes and single-sample score JSON matched across the two binaries and thread counts.
+The independent integer oracle also passed. gVCF end-to-end times were approximately unchanged
+(0.151 to 0.153 s at one thread); this optimization targets cohort scoring. Cohort extraction still takes
+0.26–0.57 s here, so complete-workflow gains are smaller than scoring-only gains. Peak cohort scoring RSS
+remained below 33 MiB for both binaries; no memory reduction is claimed.

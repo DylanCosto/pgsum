@@ -1,10 +1,10 @@
 //! Reference distributions: a sample's score placed among a panel's scores over the same terms.
 //!
 //! A partial score is only comparable with scores computed over the same terms. For each score, the terms used
-//! are those scorable in the sample and called in the panel (missing panel calls filled; see `place`); the panel is a cohort file from
-//! `extract --all-samples` (for example 1000 Genomes) extracted with the same packs. The sample's sum over
-//! those terms and every panel sample's sum over them are exact; percentiles and moments are computed from
-//! them. Panel samples belong to groups (for 1000 Genomes, superpopulations), and the sample is assigned the
+//! are those scorable in the sample and called in at least 99% of the panel (remaining missing panel calls
+//! filled; see `place`). The panel is a cohort file from `extract --all-samples` extracted with the same packs.
+//! The sample's sum is exact; panel sums, percentiles and moments use floating point.
+//! Panel samples belong to groups (for 1000 Genomes, superpopulations), and the sample is assigned the
 //! nearest group by the likelihood of its genotypes under each group's allele frequencies at a subset of the
 //! panel's SNV targets.
 
@@ -174,7 +174,8 @@ pub struct GroupPlacement {
     pub sd: f64,
     /// Mid-rank percentile of the sample's score among the group's scores (0–100).
     pub percentile: f64,
-    pub z: f64,
+    /// Undefined (JSON null) when the group has fewer than two samples or zero score variance.
+    pub z: Option<f64>,
 }
 
 /// A score placed among the panel's scores over the same terms.
@@ -182,9 +183,11 @@ pub struct GroupPlacement {
 pub struct Placement {
     pub panel: String,
     pub panel_samples: u64,
-    /// Terms scorable in the sample and called in at least one panel sample, and their share of all terms and
+    /// Terms scorable in the sample and called in at least 99% of panel samples, and their share of all terms and
     /// weight (panel calls missing at them are filled; see `fills`).
     pub matched_terms: u64,
+    /// Scorable sample terms excluded from both sides because fewer than 99% of panel samples have calls.
+    pub excluded_low_call_rate_terms: u64,
     pub matched_term_fraction: f64,
     pub matched_weight_fraction: f64,
     /// Whether the matched terms reach `score::COVERAGE_GUIDELINE` of both terms and weight. Below it the
@@ -192,7 +195,7 @@ pub struct Placement {
     pub meets_coverage_guideline: bool,
     /// The sample's exact sum over the matched terms.
     pub score: String,
-    /// Absent when no term is scorable in both the sample and every panel sample.
+    /// Absent when no term is scorable in the sample and meets the panel call-rate threshold.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub percentile_all: Option<f64>,
     pub groups: Vec<GroupPlacement>,
@@ -216,8 +219,6 @@ pub struct PanelFills {
     /// sample-term pairs, each filled with its group's expected contribution.
     pub terms_filled: u64,
     pub genotypes_filled: u64,
-    /// Terms called in fewer panel samples: every panel sample given its group's expected contribution.
-    pub terms_constant: u64,
     pub max_per_sample: u32,
     pub samples_filled: u64,
     /// Filled terms per panel sample, in the order of the groups file's listed samples in the panel.
@@ -264,7 +265,7 @@ pub fn place(
     let mut sums = vec![0f64; n];
     let as_f64 = |c: &crate::score::Contribution| c.to_f64();
     let k = groups.names.len();
-    let (mut terms_filled, mut genotypes_filled, mut terms_constant) = (0u64, 0u64, 0u64);
+    let (mut terms_filled, mut genotypes_filled, mut excluded_low_call_rate_terms) = (0u64, 0u64, 0u64);
     let mut filled = vec![0u32; n];
     let (mut matched, mut total, mut effect_all, mut effect_matched) = (0u64, 0u64, 0f64, 0f64);
     for term in pack.terms_from(0) {
@@ -304,7 +305,10 @@ pub fn place(
                 effect_alleles[g] += effect_dosage(c) as u64;
             }
         }
-        if called == 0 {
+        if (called as f64) < PANEL_CALL_RATE * n as f64 {
+            // Keep the same informative terms on both sides. Replacing only the panel's contributions
+            // with constants would retain the sample's deviation while erasing the panel's variation.
+            excluded_low_call_rate_terms += 1;
             continue;
         }
         let all_frequency = effect_alleles.iter().sum::<u64>() as f64 / (2 * called) as f64;
@@ -323,16 +327,6 @@ pub fn place(
         matched += 1;
         effect_matched += effect.unwrap_or(0.0);
         ours.add(&c);
-        let well_called = called as f64 >= PANEL_CALL_RATE * n as f64;
-        if !well_called {
-            // Too few panel calls: the group's expected contribution for everyone, so the term cannot move
-            // anyone within a group.
-            terms_constant += 1;
-            for ((&s, sum), _) in members.iter().zip(sums.iter_mut()).zip(0..) {
-                *sum += expected[groups.of_sample[s].expect("members are listed")];
-            }
-            continue;
-        }
         let mut filled_here = 0u64;
         for (i, (&s, sum)) in members.iter().zip(sums.iter_mut()).enumerate() {
             let c = code(row, s);
@@ -353,7 +347,6 @@ pub fn place(
     let fills = PanelFills {
         terms_filled,
         genotypes_filled,
-        terms_constant,
         max_per_sample: filled.iter().copied().max().unwrap_or(0),
         samples_filled: filled.iter().filter(|&&f| f > 0).count() as u64,
         per_sample: filled,
@@ -365,6 +358,7 @@ pub fn place(
             panel: panel_name.to_owned(),
             panel_samples: n as u64,
             matched_terms: 0,
+            excluded_low_call_rate_terms,
             matched_term_fraction: 0.0,
             matched_weight_fraction: 0.0,
             meets_coverage_guideline: false,
@@ -374,7 +368,7 @@ pub fn place(
             nearest_group: ancestry.map(|a| a.nearest_group.clone()),
             nearest_group_percentile: None,
             fills,
-            note: "No term is scorable in the sample and called in the panel, so the score cannot be placed.".into(),
+            note: "No scorable sample term reaches the 99% panel call-rate threshold, so the score cannot be placed. Low-call-rate terms are excluded from both sides.".into(),
         });
     }
     let mut placements = Vec::new();
@@ -392,7 +386,7 @@ pub fn place(
             mean,
             sd,
             percentile: percentile(v, &in_group),
-            z: if sd > 0.0 { (v - mean) / sd } else { 0.0 },
+            z: (in_group.len() >= 2 && sd > 0.0).then(|| (v - mean) / sd),
         });
     }
     placements.sort_by(|a, b| a.group.cmp(&b.group));
@@ -410,17 +404,22 @@ pub fn place(
     let meets =
         term_fraction >= crate::score::COVERAGE_GUIDELINE && weight_fraction >= crate::score::COVERAGE_GUIDELINE;
     let mut note = String::from(
-        "Percentiles compare the sample's sum with each panel sample's sum over the same terms (those scorable in \
-         the sample and in every panel sample). They are uncalibrated: no ancestry adjustment beyond choosing the \
-         group, and no absolute risk.",
+        "Percentiles compare sums over the same terms: scorable in the sample and called in at least 99% of \
+         panel samples. They are uncalibrated: no ancestry adjustment beyond choosing the group, and no absolute \
+         risk. Coverage is a completeness check, not a guarantee of percentile stability. Z is null for a group \
+         with fewer than two samples or zero score variance.",
     );
-    if fills.terms_filled > 0 || fills.terms_constant > 0 {
+    if fills.terms_filled > 0 {
         note.push_str(&format!(
             " Panel calls were filled for the comparison only: {} genotypes at {} terms took their group's expected \
-             contribution (2 × the effect-allele frequency among called samples, Hardy–Weinberg), and {} terms \
-             called in under 99% of the panel gave every panel sample that expectation; at most {} terms were \
+             contribution under Hardy–Weinberg at the effect-allele frequency among called samples; at most {} terms were \
              filled for one panel sample.",
-            fills.genotypes_filled, fills.terms_filled, fills.terms_constant, fills.max_per_sample
+            fills.genotypes_filled, fills.terms_filled, fills.max_per_sample
+        ));
+    }
+    if excluded_low_call_rate_terms > 0 {
+        note.push_str(&format!(
+            " {excluded_low_call_rate_terms} low-call-rate terms were excluded from both the sample and panel sums and count against matched coverage."
         ));
     }
     if !meets {
@@ -435,6 +434,7 @@ pub fn place(
         panel: panel_name.to_owned(),
         panel_samples: n as u64,
         matched_terms: matched,
+        excluded_low_call_rate_terms,
         matched_term_fraction: term_fraction,
         matched_weight_fraction: weight_fraction,
         meets_coverage_guideline: meets,

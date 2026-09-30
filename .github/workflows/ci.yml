@@ -3,14 +3,43 @@ on:
   push:
     branches: [main]
   pull_request:
+permissions:
+  contents: read
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            rust: stable
+          - os: ubuntu-latest
+            rust: 1.88.0
+          - os: macos-14
+            rust: stable
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
+          toolchain: ${{ matrix.rust }}
           components: rustfmt, clippy
-      - run: cargo fmt --check
-      - run: cargo clippy --all-targets -- -D warnings
-      - run: cargo test
+      - if: matrix.rust == 'stable'
+        run: cargo fmt --check
+      - if: matrix.rust == 'stable'
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+  performance-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y zstd time
+      - run: cargo build --release --locked
+      # Correctness is a gate; noisy shared-runner timings are retained for inspection.
+      - run: python3 bench/performance.py --output target/performance-smoke --terms 10000 --samples 65 --threads 1 4 --repeats 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-smoke
+          path: target/performance-smoke/
