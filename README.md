@@ -211,6 +211,10 @@ On a 12-core Mac with the packs on a USB SSD and a 36-million-record HG002 gVCF:
 
 Without an index, `extract` reads the whole file on all cores: 5 s for a 154-million-record GATK gVCF.
 
+For repeatable local performance checks with synthetic gVCFs and cohort VCFs, see
+[the performance runner](bench/README.md#reproducible-performance-checks). Upcoming changes and the score
+JSON migration are described in [release notes](RELEASE_NOTES.md).
+
 ## Validation
 
 What has been checked, and against what:
