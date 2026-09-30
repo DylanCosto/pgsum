@@ -105,7 +105,7 @@ fn cohort_matches_single_samples() {
                 _ => MISSING,
             };
             let row = cohort.row(e.key).unwrap().expect("target in the cohort file");
-            assert_eq!(code(row, s), expected, "sample {s} at {:?}", key_position(e.key));
+            assert_eq!(code(&row, s), expected, "sample {s} at {:?}", key_position(e.key));
             targets += 1;
         }
         assert!(targets > 20);

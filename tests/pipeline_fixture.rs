@@ -14,6 +14,7 @@ use pgsum::extract::{Options, ScanMode, extract};
 
 fn opts(targets_cache: Option<&Path>, haploid_xy_as_homozygous: bool, scan: ScanMode) -> Options<'_> {
     Options {
+        dosage_field: pgsum::dosage::Field::Gt,
         targets_cache,
         haploid_xy_as_homozygous,
         accept_missing_quality: false,
@@ -809,7 +810,7 @@ fn input_variants_read_alike() {
     );
     assert!(calls(&multi, &reference, &identity, &packs, Some("NOBODY")).is_err());
 
-    // Another assembly's contig lengths, and BCF, are refused.
+    // Another assembly's contig lengths and malformed BCF are refused.
     let other = out.join("other_assembly.vcf");
     std::fs::write(
         &other,
@@ -825,7 +826,7 @@ fn input_variants_read_alike() {
     let err = calls(&bcf, &reference, &identity, &packs, None)
         .unwrap_err()
         .to_string();
-    assert!(err.contains("BCF is not supported"), "{err}");
+    assert!(err.contains("empty input"), "{err}");
 
     // `1` and `X` in the VCF and the reference FASTA and index.
     let unprefixed = |s: &str| s.replace("\nchr", "\n").replace("ID=chr", "ID=").replace(">chr", ">");
