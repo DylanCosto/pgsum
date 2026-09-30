@@ -64,6 +64,11 @@ sites written as one record, which plink2 cannot match to `chr:pos:ref:alt` IDs.
 
 ## Reference panels (2026-09-26)
 
+**Historical results:** these measurements predate the `pgsum-score-v3` correction. Current `.pgsc` panel
+comparisons exclude terms called in fewer than 99% of listed panel samples from both sides, count them
+against coverage, and report undefined Z-scores as null. The coverage and percentile comparisons below
+have not been rerun under this rule; they are not validation of the current behavior.
+
 HG002 placed among the 2,504 unrelated 1000 Genomes samples for the same 100 scores, with two versions of
 the panel: phase 3 lifted to GRCh38 (low coverage, imputed) and the NYGC 30× release (native GRCh38,
 `20220422_3202_phased_SNV_INDEL_SV`). A term is used only if it is scorable in HG002 and in every panel
@@ -170,3 +175,45 @@ which rows are included, not in arithmetic: pgsum's review rules exclude rows pg
 (`variant_description` in PGS000667, missing other alleles pgsum cannot infer, ambiguous overlapping gVCF
 records), and pgsc_calc only sees sites present in the VCF it was given, which for effect-allele-only scores
 misses sites pgsum infers (e.g. PGS000054, whose effect allele is the reference at every site).
+
+## Reproducible reference checks
+
+From a checkout with Rust 1.88 or later:
+
+```sh
+cargo test --locked --test reference_validation
+```
+
+This public validation suite needs no downloads beyond the pinned Cargo dependencies, no private Python
+implementation, and no real genome. Its complete synthetic input generator and expected answers are
+versioned in `tests/reference_validation.rs`. It exercises the compiled CLI, including JSON and bundled
+output. Temporary inputs and outputs are removed after each test.
+
+The reference sequence is `ACGT`. Two additive terms have weight 1: chr1:1 A>G and chr1:4 T>C. The sample
+has dosages 1 and 2. There are 100 panel samples, all in one group. At the first term, 34 have dosage 0,
+33 have dosage 1 and 33 have dosage 2. At the second term every called sample has dosage 1. The suite
+varies the number called at that second term:
+
+| Called at term 2 | Matched terms | Sample comparison score | Mid-rank percentile | Coverage | Filled panel calls |
+|---|---|---|---|---|---|
+| 100/100 | 2 | 3 | 83.5 | 100% | 0 |
+| 99/100 | 2 | 3 | 83.5 | 100% | 1 |
+| 98/100 | 1 | 1 | 50.5 | 50% | 0 |
+| 0/100 | 1 | 1 | 50.5 | 50% | 0 |
+
+With both terms, 67 panel scores are below 3 and 33 equal it: `100 × (67 + 33/2) / 100 = 83.5`.
+After excluding term 2, 34 are below 1 and 33 equal it: `100 × (34 + 33/2) / 100 = 50.5`. Changing the
+sample's excluded dosage from 2 to 0 must leave the entire reference result unchanged while changing its
+observed score. These answers come from counting dosages, independently of the scoring implementation.
+
+Additional cases cover exclusion of the only term (no percentile), a constant retained panel (`z: null`),
+and a zero-frequency sample fill (reported as filling even though its contribution is zero and the final
+filled score is withheld). The full suite also checks PLINK zero-variance Z-scores and panel-fill metadata:
+
+```sh
+cargo test --locked
+```
+
+These are regression and arithmetic checks. They do not validate ancestry assignment, real-data
+calibration, or broad percentile stability. The next real-data validation should rerun the two panel
+comparisons above with pinned source manifests and per-score outputs, including missingness sensitivity.
