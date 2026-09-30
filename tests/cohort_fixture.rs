@@ -161,7 +161,7 @@ fn cohort_matches_single_samples() {
     assert!((placed.groups[0].mean - (va + vb) / 2.0).abs() < 1e-9);
 
     assert_eq!(
-        (placed.fills.terms_filled, placed.fills.terms_constant),
+        (placed.fills.terms_filled, placed.excluded_low_call_rate_terms),
         (0, 0),
         "A and B are called everywhere"
     );
@@ -228,7 +228,7 @@ fn cohort_matches_single_samples() {
     );
     assert!(with_fill.note.contains("filled for the comparison only"));
 
-    // With only 2 samples one missing call is under 99%: the term gives both the group's expectation.
+    // With only 2 samples one missing call is under 99%: exclude the term from both sides.
     let one_missing: String = filled_path_two(&text);
     let two_missing_path = out.join("two_missing.vcf");
     std::fs::write(&two_missing_path, one_missing).unwrap();
@@ -245,11 +245,11 @@ fn cohort_matches_single_samples() {
     let tm = CohortTable::open(&two_missing_panel).unwrap();
     std::fs::write(out.join("labels_az.tsv"), "sample\tsuper_pop\nA\tX\nZ\tX\n").unwrap();
     let groups_az = pgsum::panel::read_groups(&out.join("labels_az.tsv"), &tm, "super_pop").unwrap();
-    let constant = pgsum::panel::place(&pack, &table_a, &tm, "two", &groups_az, None, &Default::default()).unwrap();
+    let excluded = pgsum::panel::place(&pack, &table_a, &tm, "two", &groups_az, None, &Default::default()).unwrap();
     assert!(
-        constant.fills.terms_constant >= 1 && constant.fills.terms_filled == 0,
+        excluded.excluded_low_call_rate_terms >= 1 && excluded.fills.terms_filled == 0,
         "{:?}",
-        constant.fills
+        excluded
     );
 
     // A panel sample the groups file does not list is left out.
