@@ -1,6 +1,6 @@
 # pgsum design
 
-Status: early development. Current scoring output is `pgsum-score-v3`; see the output migration notes below.
+Status: early development. Current scoring output is `pgsum-score-v4`; see the output migration notes below.
 
 ## Goal
 
@@ -49,7 +49,9 @@ Done once per PGS Catalog release, independent of any sample.
 - Input: a gVCF or VCF (bgzipped, plain gzip or uncompressed; one sample, or one chosen with `--sample`), the
   reference FASTA and `.fai`, and packs compiled against that same reference (checked by digest). Contigs may
   be named `chr1` or `1` (`chrM` or `MT`) in the VCF, its index and the FASTA. A VCF whose `##contig` lengths
-  differ from the reference's is refused as another assembly; BCF is refused with a conversion hint.
+  differ from the reference's is refused as another assembly. BCF is decoded one record at a time into
+  the shared VCF scanner; no converted file is written. Original bytes are hashed. BCF indexed scanning
+  and uncommon codec encodings remain unsupported; the latter return an input error.
 - Targets: every distinct oriented SNV `(contig, pos, REF, ALT)` from a pack term with no review reasons and a
   resolved orientation. Packs are read in parallel, decoding only the columns that identify targets (not the
   weights), and the union is deduplicated whenever it doubles.
@@ -75,7 +77,7 @@ Done once per PGS Catalog release, independent of any sample.
   variants at its position (up to 32,768). The Catalog needs more than the 128 an earlier 8-bit layout
   allowed: after left-alignment, PGS004753, PGS004784, PGS004785, PGS004787 and PGS004799 each have 161
   distinct indels at chr1:109219262. Tables written with the earlier layout (v1, v2) are converted on reading.
-- Output: a genotype table (`pgsum-genotypes-v4`, `.pgsg`) with each target's state, ALT dosage and flags, the
+- Output: a genotype table (`pgsum-genotypes-v5`, `.pgsg`) with each target's state, ALT dosage and flags, the
   kept gVCF lines each call was made from, and a header with the gVCF, reference and pack digests, the
   sample ID, the DeepVariant version, whether the header defines `RefCall`, and counts per state. Targets are
   stored in independently compressed blocks of 65,536, each with the records its targets need and the
@@ -114,9 +116,20 @@ single-sample run. In a genotype-only VCF a record has a handful of distinct sam
 `1|1`, …), so each distinct field is assessed once per target and the call reused for every sample that has
 it. The call is stored as a 2-bit code: the ALT dosage of a passing call, or missing.
 
-The cohort file (`pgsum-cohort-v1`, `.pgsc`) holds the codes in blocks of 65,536 targets (four samples to a
-byte), written as the scan finishes each contig so memory holds only records still needed, with the sequence
-targets and a header footer listing every frame's SHA-256.
+The cohort file (`pgsum-cohort-v3`, `.pgsc`) holds codes in blocks of at most 65,536 targets (four samples
+to a byte), written as the scan finishes each contig. GT blocks additionally cap at 8,388,608 sample-target
+cells; quantitative blocks cap at 262,144 cells, with one row as the minimum. Quantitative blocks retain
+the v2 measurement tail. The sequence targets and header footer identify every frame by SHA-256.
+Readers still accept v1/v2, whose packed missing code cannot recover per-sample exclusion reasons.
+
+Each v3 genotype block has a separate diagnostic frame in the same target order. Missing-call states
+use uniform, sparse-run or dense encodings; passing cells need no additional state. Source references
+are one-based original record ordinals, including ignored records but excluding headers. They refer to
+the hashed original VCF/BCF and do not duplicate full cohort records. The body digest covers the sequence
+frame, genotype frames in key order, then diagnostic frames in key order. Diagnostic frames are verified
+against their digests and cross-checked with packed calls on first access, with an eight-frame LRU cache. Ordinary raw scoring
+loads no diagnostic frames. Genotype/measurement frames use a separate byte-weighted LRU cache, defaulting to 128 MiB of estimated
+decoded payload. This cache does not establish a total process memory budget.
 
 `score` on a cohort file writes `cohort-scores.tsv.zst`: per sample and score, the exact partial sum, scorable
 terms and coverage. A term's contribution at the commonest code is added once to a shared baseline and
@@ -494,7 +507,7 @@ the reference implementation's, trailing zeros included (e.g. `1332.647502000000
 
 Coverage fractions are floating point; they describe the sum and never enter it.
 
-## Output (`pgsum-score-v3`)
+## Output (`pgsum-score-v4`)
 
 One JSON object per score (`src/score.rs`, `ScoreResult`):
 
@@ -506,13 +519,37 @@ One JSON object per score (`src/score.rs`, `ScoreResult`):
   convention when there are any
 - `required_terms`, `scorable_terms`, `states` (term status → count)
 - `weight_type` (Catalog), `license`, `matches_publication`, `inventory_consistent`
-- `imputation`: `observed_scores` (always false), `sample_fill` (at least one expected contribution in `fill`,
+- `imputation`: `observed_scores` (raw/partial scores use input DS/GP expectations), `sample_fill` (at least one expected contribution in `fill`,
   even if `filled_score` is withheld), and `reference_panel` (expected contributions used in either panel
   comparison, including missing panel calls and shared frequency-filled terms)
-- `imputation_performed`: true if `sample_fill` or `reference_panel` is true; counts detect filling even when
+- `imputation_performed`: true if any of `observed_scores`, `sample_fill`, or `reference_panel` is true; counts detect filling even when
   contributions are zero or cancel. This flag describes the whole result, not the observed scores.
 - `calibration`: raw scores and optional panel percentiles are uncalibrated; no absolute risk
 - `inputs`: SHA-256 of the pack records, the scoring file, the gVCF, the genotype table body and the FASTA
+
+### Migrating from v3
+
+Score JSON is `pgsum-score-v4`. `dosage_field` records the selected input field and
+`expected_genotype_terms` counts DS/GP terms actually included in the score. `imputation.observed_scores`
+is now true for these expectations, even when their contribution is zero. No missing selected field is
+replaced with GT. Per-term TSV dosage may be fractional; evidence JSON adds exact-text
+`expected_effect_dosage` while retaining the integer `effect_dosage` for hard calls.
+
+New genotype tables use v5: each v4-layout block has an appended u64 byte length and a JSON array of
+`[entry_ordinal, measurement]` pairs. Measurements hold exact Decimal coefficients/exponents and are
+validated on reading. Old v1–v4 tables remain readable. Older pgsum versions reject v5 tables; regenerate
+or keep old tables when running an older executable. The block digest includes the extension.
+
+DS supports additive expectation only. GP currently requires exact unit probability mass and supports
+expectation over all three per-genotype contributions. Reference blocks retain GT rules even when DS/GP
+is selected. Quantitative inputs are currently restricted to biallelic diploid records.
+Cohort v2 blocks append JSON row/sample measurements after the existing packed rows. Their packed
+slots are marked MISSING and overridden by the stored expectation during scoring. GT-only cohorts
+still use v1. Quantitative extraction uses at most 262,144 sample-target cells per block (one row
+for wider cohorts); this limits temporary extraction work, not the total scoring cache.
+Cohort TSVs append `dosage_field` and `expected_genotype_terms`; a metadata sidecar records provenance.
+The accumulator stores arbitrary-precision overflow per exponent so dosage-weight products do not
+underflow a fixed decimal floor.
 
 ### Migrating from v2
 
@@ -771,3 +808,135 @@ DeepTrio on Illumina WGS of HG002 (Google `deepvariant` case study). MD5s matche
   question it is right 99.97% of the time. It affects only indel targets, which are scored only with
   `--allow-inferred-indels`.
 - Whether to add frequency-supported orientation for palindromic SNVs, and from which reference panel.
+
+
+## Catalog-driven execution and batch provenance
+
+`run --ids` and `batch --ids` resolve through the verified Catalog cache when no explicit packs are
+provided. The namespace includes the actual reference FASTA/index identities, pack schema and compile
+rules. Each ID has content-addressed pack generations and an atomically replaced current receipt.
+Receipt paths are constrained to valid SHA-256 hex strings; full pack-file hashes are checked on reuse.
+Newly compiled packs also undergo body/inventory validation. A per-namespace OS lock prevents competing
+writers. Refresh leaves previous generations available; offline mode fails on missing or damaged packs.
+Cache reuse intentionally does not check Catalog freshness; refresh is explicit. The original score file
+hash and Catalog metadata are retained in the pack, while temporary downloads are removed.
+
+Single-run preflight validates header sample selection and compares available contig lengths, then
+checks pack/reference agreement. The explicit `--preflight` mode also decodes pack bodies. It does not
+scan every genotype or infer a missing genome build. A successful run atomically writes
+`pgsum-execution-v1` provenance after extraction and scoring. Its output map includes only files
+produced by that invocation. An output lock prevents concurrent single-run writes. Old completion
+markers are removed before a rerun; an interrupted run has no new completion marker.
+
+Batch signatures include content hashes of unique source files, reference and packs, executable hash,
+settings, and the selected sample. Hashes are recomputed before deciding to reuse a result, including
+when size and timestamps have not changed. The total thread count is divided among at most `--jobs`
+child processes. Each child receives a shared target index and writes into a private staging directory.
+The parent verifies input/pack provenance, hashes outputs, writes `pgsum-sample-run-v1`, and renames the
+sample generation into place. Only complete, hash-verified generations can be reused. A damaged old
+generation is retained under an invalid-generation name; failures retain their staging logs. Completion
+is per sample, not an all-or-nothing transaction for a whole batch. The batch index includes the aggregate
+score file hash so interrupted aggregate/index publication can be detected. Memory limits beyond worker
+concurrency and shared decoding across separate input files are not yet implemented.
+
+
+## Missing-contribution envelopes
+
+Single-sample `pgsum-score-v4` results add optional `missingness` with schema `pgsum-missingness-v1`.
+Older v4 results without this field still deserialize. Each scoring chunk accumulates exact minima and
+maxima for unscored terms and retains only its 20 highest-impact bounded terms and 20 earliest unbounded
+examples. Chunk merging uses exact decimal ordering and source ordinal tie breaks; rankings are
+independent of thread count. Evidence is materialized only for retained examples, with at most three
+records and 1,024 characters of text per record. Hashes cover full retained selected-sample VCF text,
+not the truncated display or byte ranges in the source file.
+
+For each unscored term with a defined contribution function f, the domain is {0,1,2}, or {0,k} on XY
+non-PAR chrX under an explicit dosage convention. Its interval is [min f(d), max f(d)]; the impact ranking
+uses max(abs(min), abs(max)). Summing the intervals contains every permitted completion, including
+expected contributions from distributions over these genotypes. Correlation and repeated loci can
+only make this independent-term envelope wider than the feasible set. Known scored contributions
+remain fixed. Decimal comparison ignores precision/sign-of-zero differences and never uses floats.
+
+Position/orientation review reasons do not invalidate a known contribution function. Unsupported
+model flags, interactions, ambiguous descriptions, duplicate-source-term ambiguity, invalid weights,
+and unsupported ploidy cannot receive a bound. An informational description already recognized by the
+compiler does not invalidate the model. Whole-score completion bounds require all missing terms to be
+bounded, a consistent inventory, and publication agreement for Catalog scores. The bounded subset's
+interval is explicitly separate and is never presented as a bound for unbounded terms. These reports
+are independent of optional frequency fills and reference-panel calculations. `--terms` adds the
+per-term intervals and unavailable reason; optional fill columns stay last.
+
+
+`score --missingness` on a cohort streams `pgsum-cohort-missingness-v1` JSON lines (one per pack/sample)
+into `cohort-missingness.jsonl.zst`, with its digest in the score metadata. It reuses the single-sample
+bound/ranking logic and independently checks missing-term counts against scored counts. Working
+rankings are bounded per sample; reports are serialized sample by sample. The detailed pass is
+O(terms × samples), in addition to numeric scoring. Source evidence lists at most three record ordinals
+per retained term. Unsupported model positions have no source evidence unless separately extracted.
+Legacy missing codes produce `missing_reason_not_retained`, not an invented filter/ploidy diagnosis;
+those terms withhold complete-score bounds. Tests compare GT/DS/GP reports with selected-sample
+extractions, exercise genuine pre-v3 files, check chunk-spanning ordinals and BCF references, and reject
+corrupt or inconsistent diagnostic frames without making numeric scoring load them.
+
+
+## Bounded decoded cohort storage
+
+`CohortTable` retains genotype/measurement blocks in a byte-weighted LRU, rather than a permanent
+`OnceLock` for every block. Cache payload estimates include vector capacities, decimal coefficient
+string capacities and an estimated map-entry allowance. The cache retains at most its capacity or
+one oversized block. Decoding is serialized under the cache lock to avoid concurrent duplicate
+allocations; temporary compressed/decompressed buffers are additional to the retained payload.
+
+Each scoring worker uses a `CohortReader` holding its current shared block. Consecutive terms in that
+block borrow a row view without a cache lock or atomic reference-count update. Eviction removes the cache's ownership; active readers keep their blocks
+alive until they advance or return. This preserves term order, exact arithmetic, precision and the
+floating-point coverage operation order. Scores with random target order can revisit evicted blocks;
+the budget trades memory for redecoding, and cache statistics expose that cost. Ordinary scoring no
+longer preloads all blocks. `preload()` still validates every block but only retains the final cache
+contents, and is no longer called by the cohort scoring or panel-opening CLI paths.
+
+Library callers now receive a `CohortBlock` from `block_rows()` and a `CohortRow` from `row()`; these
+shared handles expose `keys()/rows()` or dereference to the packed row respectively. Quantitative
+values are available as `row.measurements()`. Drop handles promptly to allow eviction to release
+storage. A reader's current block, other live handles, diagnostics, mapped pages and per-sample score
+accumulators are outside the cache budget. A global memory scheduler for batch/scoring is still a
+separate outstanding requirement.
+
+
+Quantitative packs whose scorable targets advance monotonically through cohort blocks can share a
+streaming pass. A preliminary order check reads terms without retaining them. The CLI opens two to
+eight packs together (bounded by thread count, with a minimum of two); library `score_cohorts` groups
+at most eight. Each pack has one prepared term and an accumulator. Leading, intervening and trailing
+excluded terms are counted in their original order, as are all floating-point coverage operations.
+A group decodes each required block once, then advances every eligible pack through it. Reverse or
+otherwise non-monotone packs use the independent reader/cache path. GT retains its existing parallel
+pack schedule to avoid the extra order-check cost for inexpensive packed calls.
+
+The first streaming wave loads one block to measure decoded payload. Subsequent waves contain at most
+`min(threads, max(1, target_bytes / largest_observed_block_bytes))` blocks, decoded in parallel. Waves
+are released before advancing, and their largest actual payload/count are recorded separately from
+resident LRU entries. The target is an estimate, not a strict allocation cap: larger later blocks can
+exceed a wave's estimate; decoder buffers, allocator overhead and packs are additional. The number of
+active blocks stays bounded by the configured thread count. A global memory scheduler remains open.
+
+Diagnostic cache entries also retain their small key index so source lookup does not require reopening
+a probability block. Before emitting cohort reports, retained candidates' evidence is gathered in key
+order, once per unique target, with at most three source ordinals per candidate. This avoids repeated
+large genotype decodes for each sample's ranked terms while preserving report contents. Tests use
+valid small frames to span 24 blocks, force eviction, exercise both scoring paths and parallel waves,
+and bound the number of block decodes needed for reports.
+
+
+Successful genotype and diagnostic validation is remembered with per-block flags for the lifetime of
+the immutable mapped input. Numeric block reloads still verify the full frame digest; matching bytes
+can reuse the previous probability-range/mass validation. A measurement's DS/GP type must match the
+selected cohort policy. Failed validation never sets a flag. Diagnostic reloads verify their own
+frame digest; after prior cross-validation, a source-reference lookup reads only the authenticated
+genotype frame's key prefix instead of parsing probabilities again. Modifying mapped input is already
+unsupported by the reader contract. This retains bounded block/key storage rather than retaining a
+per-variant index for the entire cohort.
+
+For report generation, valid GP measurements with all three model contributions defined, and valid
+additive DS measurements, are already known to contribute to the numeric score. Their expectations
+are not recalculated just to discover that they are absent from the missing-term report. Unsupported
+DS models and partially undefined contribution models retain their existing exclusion handling.
