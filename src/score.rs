@@ -23,7 +23,7 @@ use crate::pack::{Inference, Oriented, Pack, TermRecord, Waivers, Weight};
 use crate::term::{CONTIGS, Model, Reason};
 use crate::{Result, invalid};
 
-pub const SCHEMA: &str = "pgsum-score-v3";
+pub const SCHEMA: &str = "pgsum-score-v4";
 
 /// A contribution's coefficient: a weight's 64-bit coefficient times a dosage multiplier fits in 128 bits;
 /// wider weights use arbitrary precision.
@@ -104,6 +104,8 @@ pub struct Outcome {
     pub status: &'static str,
     pub call_state: &'static str,
     pub effect_dosage: Option<u8>,
+    /// Exact expected dosage when scoring DS or GP.
+    pub expected_effect_dosage: Option<Decimal>,
     pub contribution: Option<Contribution>,
     /// Set when the term was oriented with an inferred other allele.
     pub inferred: Option<Inference>,
@@ -117,6 +119,7 @@ impl Outcome {
             status,
             call_state: "",
             effect_dosage: None,
+            expected_effect_dosage: None,
             contribution: None,
             inferred: None,
             informational_description_accepted: false,
@@ -237,7 +240,12 @@ pub fn outcome(t: &TermRecord, genotypes: &GenotypeTable, options: &Options) -> 
 }
 
 /// The outcome of a term from its target's entry in the genotype table.
-fn called(t: &TermRecord, entry: Option<&Entry>, effect_is_alt: bool, inferred: Option<Inference>) -> Result<Outcome> {
+pub(crate) fn called(
+    t: &TermRecord,
+    entry: Option<&Entry>,
+    effect_is_alt: bool,
+    inferred: Option<Inference>,
+) -> Result<Outcome> {
     let Some(entry) = entry else {
         return invalid!(
             "the genotype table has no call for {}:{}; extract with this pack",
@@ -250,10 +258,26 @@ fn called(t: &TermRecord, entry: Option<&Entry>, effect_is_alt: bool, inferred: 
         status,
         call_state: state,
         effect_dosage,
+        expected_effect_dosage: None,
         contribution,
         inferred,
         informational_description_accepted: false,
     };
+    if entry.state.is_passing()
+        && let Some(measurement) = &entry.measurement
+    {
+        let contribution = measurement.contribution(t.model, &t.weights, effect_is_alt);
+        let status = if contribution.is_some() {
+            "scorable_observation"
+        } else if matches!(measurement.as_ref(), crate::dosage::Measurement::DS(_)) && t.model != Model::Additive {
+            "genotype_probabilities_required"
+        } else {
+            "model_term_requires_review"
+        };
+        let mut result = outcome(status, None, contribution);
+        result.expected_effect_dosage = Some(measurement.effect_dosage(effect_is_alt));
+        return Ok(result);
+    }
     match entry.alt_dosage {
         Some(alt) if entry.state.is_passing() => {
             let dosage = if effect_is_alt { alt } else { 2 - alt };
@@ -266,15 +290,12 @@ fn called(t: &TermRecord, entry: Option<&Entry>, effect_is_alt: bool, inferred: 
     }
 }
 
-/// Overflowed amounts are kept at exponent −2000, below any accepted weight exponent (≥ −1127).
-const FLOOR: i64 = -2000;
-
 /// Exact running sum. Contributions are grouped by exponent in 128-bit accumulators and combined once at the
 /// end; the result's exponent is the smallest exponent added (and at most 0), as for `Decimal(0) + …`.
 #[derive(Clone, Default)]
 pub struct ExactSum {
     buckets: Vec<(i64, i128)>,
-    overflow: BigInt,
+    overflow: BTreeMap<i64, BigInt>,
     min_exponent: i64,
 }
 
@@ -307,7 +328,7 @@ impl ExactSum {
     }
 
     fn add_big(&mut self, exponent: i64, value: BigInt) {
-        self.overflow += value * BigInt::from(10u8).pow((exponent - FLOOR) as u32);
+        *self.overflow.entry(exponent).or_default() += value;
     }
 
     /// Add another sum into this one (for sums computed in parallel).
@@ -316,13 +337,18 @@ impl ExactSum {
         for (e, v) in other.buckets {
             self.add_small(e, v);
         }
-        self.overflow += other.overflow;
+        for (exponent, value) in other.overflow {
+            self.add_big(exponent, value);
+        }
     }
 
     pub fn finish(&self) -> Decimal {
-        let floor = FLOOR;
+        let floor = self.min_exponent;
         let ten = BigInt::from(10u8);
-        let mut total = self.overflow.clone();
+        let mut total = BigInt::zero();
+        for (&e, value) in &self.overflow {
+            total += value * ten.pow((e - floor) as u32);
+        }
         for &(e, acc) in &self.buckets {
             total += BigInt::from(acc) * ten.pow((e - floor) as u32);
         }
@@ -398,12 +424,19 @@ pub struct ScoreResult {
     pub pgs_id: String,
     pub sample_id: String,
     pub policy: String,
+    #[serde(default)]
+    pub dosage_field: crate::dosage::Field,
+    #[serde(default)]
+    pub expected_genotype_terms: u64,
     /// `complete_uncalibrated_score` or `score_withheld`.
     pub status: String,
     /// Present only with `complete_uncalibrated_score`.
     pub raw_score: Option<String>,
     pub withheld_because: Vec<String>,
     pub partial: Partial,
+    /// Missing-contribution envelopes and the most consequential unscored terms (added in v4).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub missingness: Option<crate::missingness::Report>,
     pub required_terms: u64,
     pub scorable_terms: u64,
     pub states: BTreeMap<String, u64>,
@@ -413,7 +446,7 @@ pub struct ScoreResult {
     pub inventory_consistent: bool,
     pub formula: String,
     /// Any expected contribution was computed for sample filling or used in a reference comparison.
-    /// The observed strict and partial scores never include imputation; see `imputation` for scope.
+    /// Includes expected contributions from DS/GP input; see `imputation` for scope.
     pub imputation_performed: bool,
     pub imputation: Imputation,
     pub calibration: String,
@@ -446,7 +479,7 @@ pub struct ScoreResult {
 /// Which outputs include expected contributions rather than only observed genotypes.
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct Imputation {
-    /// Always false: `raw_score` and `partial.raw_score` sum observed calls only.
+    /// Raw/partial scores use at least one input DS or GP expected contribution.
     pub observed_scores: bool,
     /// `fill` contains at least one frequency-based contribution, even if its final score is withheld.
     pub sample_fill: bool,
@@ -465,11 +498,11 @@ impl ScoreResult {
                 .as_ref()
                 .is_some_and(|p| p.missing_genotypes.total > 0 || p.terms.absent_filled > 0 || sample_fill);
         self.imputation = Imputation {
-            observed_scores: false,
+            observed_scores: self.expected_genotype_terms > 0,
             sample_fill,
             reference_panel,
         };
-        self.imputation_performed = sample_fill || reference_panel;
+        self.imputation_performed = self.imputation.observed_scores || sample_fill || reference_panel;
     }
 }
 
@@ -538,6 +571,7 @@ struct Tally {
     states: BTreeMap<&'static str, u64>,
     total: u64,
     scorable: u64,
+    expected_genotypes: u64,
     without_weight: u64,
     effect_all: f64,
     effect_scorable: f64,
@@ -547,6 +581,7 @@ struct Tally {
     sex_chromosome_terms: [u64; 2],
     sex_chromosome_scorable: [u64; 2],
     fill: crate::fill::Tally,
+    missingness: crate::missingness::Tally,
     tsv: Vec<u8>,
 }
 
@@ -568,6 +603,7 @@ fn tally(
     for (i, term) in pack.terms_from(offset).take(end - first).enumerate() {
         let term = term?;
         let o = by_karyotype(&term, outcome(&term, genotypes, options)?, extras.sex);
+        t.missingness.add(first + i + 1, &term, &o, extras.sex);
         t.total += 1;
         let sex_chromosome = match term.contig {
             23 => Some(0),
@@ -590,6 +626,7 @@ fn tally(
         };
         if let Some(c) = &o.contribution {
             t.scorable += 1;
+            t.expected_genotypes += o.expected_effect_dosage.is_some() as u64;
             t.effect_scorable += effect.unwrap_or(0.0);
             t.sum.add(c);
             if let Some(kind) = o.inferred {
@@ -604,8 +641,13 @@ fn tally(
                 "\t{}\t{}\t{}\t{}\t{}\t{}",
                 o.status,
                 o.call_state,
-                o.effect_dosage.map(|d| d.to_string()).unwrap_or_default(),
+                o.expected_effect_dosage
+                    .as_ref()
+                    .map(Decimal::to_python_string)
+                    .or_else(|| o.effect_dosage.map(|d| d.to_string()))
+                    .unwrap_or_default(),
                 o.contribution
+                    .as_ref()
                     .map(|c| c.to_decimal().to_python_string())
                     .unwrap_or_default(),
                 o.inferred.map_or("", Inference::as_str),
@@ -616,6 +658,9 @@ fn tally(
                 }
             )
             .map_err(io)?;
+            let [lower, upper, why] = crate::missingness::tsv_fields(&term, &o, extras.sex);
+            t.tsv.pop();
+            writeln!(t.tsv, "\t{lower}\t{upper}\t{why}").map_err(io)?;
             if extras.fill.is_some() {
                 t.tsv.pop();
                 let (outcome, frequency, value) = match &fill {
@@ -672,10 +717,18 @@ fn by_karyotype(term: &TermRecord, o: Outcome, sex: Option<Sex>) -> Outcome {
     if !sex.xy || term.contig != 23 || in_par(term.pos) {
         return o;
     }
+    if o.expected_effect_dosage.is_some() {
+        return Outcome {
+            status: "quantitative_hemizygous_model_requires_review",
+            contribution: None,
+            ..o
+        };
+    }
     match o.effect_dosage {
         Some(1) if o.contribution.is_some() => Outcome {
             status: "heterozygous_call_in_hemizygous_region",
             effect_dosage: None,
+            expected_effect_dosage: None,
             contribution: None,
             ..o
         },
@@ -772,7 +825,7 @@ pub fn score_with(
     if let Some(out) = terms.as_deref_mut() {
         writeln!(
             out,
-            "{}\tstatus\tcall_state\teffect_dosage\tcontribution\tinferred_other_allele\tinformational_description{}",
+            "{}\tstatus\tcall_state\teffect_dosage\tcontribution\tinferred_other_allele\tinformational_description\tmissing_contribution_lower\tmissing_contribution_upper\tmissing_bounds_unavailable_because{}",
             crate::pack::TSV_HEADER.trim_end(),
             if extras.fill.is_some() {
                 "\tfill\tfill_frequency\tfill_contribution"
@@ -795,6 +848,7 @@ pub fn score_with(
         })
         .collect();
     let mut sum = ExactSum::default();
+    let mut expected_genotypes = 0;
     let mut states: BTreeMap<String, u64> = BTreeMap::new();
     let (mut total, mut scorable, mut without_weight) = (0u64, 0u64, 0u64);
     let (mut effect_all, mut effect_scorable) = (0f64, 0f64);
@@ -802,9 +856,11 @@ pub fn score_with(
     let mut informational = 0u64;
     let (mut sex_terms, mut sex_scorable) = ([0u64; 2], [0u64; 2]);
     let mut fill = crate::fill::Tally::default();
+    let mut missingness = crate::missingness::Tally::default();
     for t in tallies {
         let t = t?;
         fill.merge(t.fill);
+        missingness.merge(t.missingness);
         informational += t.informational;
         for x in 0..2 {
             sex_terms[x] += t.sex_chromosome_terms[x];
@@ -819,6 +875,7 @@ pub fn score_with(
         }
         total += t.total;
         scorable += t.scorable;
+        expected_genotypes += t.expected_genotypes;
         without_weight += t.without_weight;
         effect_all += t.effect_all;
         effect_scorable += t.effect_scorable;
@@ -871,6 +928,8 @@ pub fn score_with(
         pgs_id: h.pgs_id.clone(),
         sample_id: genotypes.header.sample.sample_id.clone(),
         policy: genotypes.header.policy.id.clone(),
+        dosage_field: genotypes.header.policy.dosage_field,
+        expected_genotype_terms: expected_genotypes,
         status: if withheld.is_empty() {
             "complete_uncalibrated_score"
         } else {
@@ -890,10 +949,11 @@ pub fn score_with(
                 terms_without_weight: without_weight,
             },
             meets_coverage_guideline: term_fraction >= COVERAGE_GUIDELINE && weight_fraction >= COVERAGE_GUIDELINE,
-            note: "Sum of scorable terms only. Unscorable terms contribute nothing; no genotype is imputed. Not \
+            note: "Sum of scorable terms only. Unscorable terms contribute nothing. Selected DS/GP values represent expected genotypes. Not \
                    comparable with complete scores or reference distributions unless their coverage matches."
                 .into(),
         },
+        missingness: Some(missingness.finish(pack, genotypes, options, &sum)?),
         required_terms: total,
         scorable_terms: scorable,
         states,
@@ -901,7 +961,7 @@ pub fn score_with(
         license: h.license.clone(),
         matches_publication: h.matches_publication,
         inventory_consistent: h.inventory.consistent,
-        formula: "Sum of published per-term contributions at the observed effect-allele dosage".into(),
+        formula: if expected_genotypes > 0 { "Sum of published contributions using the selected input dosage or genotype probabilities; reference blocks use confident reference calls" } else { "Sum of published per-term contributions at the observed effect-allele dosage" }.into(),
         imputation_performed: false,
         imputation: Imputation::default(),
         calibration: "uncalibrated: raw scores and optional reference-panel percentiles; no absolute risk".into(),
@@ -1058,6 +1118,7 @@ mod tests {
             status: "scorable_observation",
             call_state: "observed_variant",
             effect_dosage: Some(d),
+            expected_effect_dosage: None,
             contribution: contribution(t.model, &t.weights, d),
             inferred: None,
             informational_description_accepted: false,

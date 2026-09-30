@@ -60,8 +60,14 @@ impl HeaderFacts {
                 self.contig_lengths.push((code, length));
             }
         }
-        if line == REFCALL_DEFINITION {
-            self.refcall_defined = true;
+        // BCF headers commonly attach IDX and can reorder attributes. Match the known
+        // DeepVariant definition semantically instead of comparing the whole header line.
+        if let Some(fields) = line.strip_prefix("##FILTER=<").and_then(|s| s.strip_suffix('>')) {
+            let fields: Vec<_> = fields.split(',').collect();
+            if fields.contains(&"ID=RefCall") {
+                self.refcall_defined = fields.iter().filter(|f| f.starts_with("Description=")).count() == 1
+                    && fields.contains(&"Description=\"Genotyping model thinks this site is reference.\"");
+            }
         }
         if line.starts_with("#CHROM\t") {
             let fields: Vec<&str> = line.split('\t').collect();
@@ -234,12 +240,27 @@ pub fn parse_record(line: &str) -> Result<Record> {
         dp: sample("DP"),
         min_dp: sample("MIN_DP"),
         gq: sample("GQ"),
+        ds: sample("DS"),
+        gp: sample("GP"),
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn refcall_definition_allows_bcf_indices_without_trusting_other_descriptions() {
+        let mut header = HeaderFacts::default();
+        header
+            .read_line("##FILTER=<IDX=7,Description=\"Genotyping model thinks this site is reference.\",ID=RefCall>")
+            .unwrap();
+        assert!(header.refcall_defined);
+        header
+            .read_line("##FILTER=<ID=RefCall,Description=\"An unrelated filter\",IDX=7>")
+            .unwrap();
+        assert!(!header.refcall_defined);
+    }
 
     #[test]
     fn structural_alleles() {

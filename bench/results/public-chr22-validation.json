@@ -1,0 +1,2888 @@
+{
+  "schema": "pgsum-public-chr22-validation-v1",
+  "preparation": {
+    "schema": "pgsum-public-chr22-preparation-v1",
+    "sources": {
+      "chr22.vcf.gz": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr22.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "sha256": "dc2b718c00d1a8220f19561bc647eea08fc25ce641c8f2c12e540fb31f073f88",
+        "bytes": 185517414
+      },
+      "chr22.fa.gz": {
+        "url": "https://hgdownload.soe.ucsc.edu/goldenPath/hg38/chromosomes/chr22.fa.gz",
+        "sha256": "05f9d97d6fbfd08a44ca45b50837ca2ae9c471f35ba79dffec04d2cb5eaaf695",
+        "bytes": 12255678
+      },
+      "PGS001229.txt.gz": {
+        "url": "https://ftp.ebi.ac.uk/pub/databases/spot/pgs/scores/PGS001229/ScoringFiles/Harmonized/PGS001229_hmPOS_GRCh38.txt.gz",
+        "sha256": "35620a9b1c6c640698f85c84a183d130e6c56ef61d697c31a7c9590ff133ef58",
+        "bytes": 1154830
+      },
+      "PGS000018.txt.gz": {
+        "url": "https://ftp.ebi.ac.uk/pub/databases/spot/pgs/scores/PGS000018/ScoringFiles/Harmonized/PGS000018_hmPOS_GRCh38.txt.gz",
+        "sha256": "ed5dcd5359213364a182dd7972edf524cc3e161f8332ca54ca5515c95cbf8d2a",
+        "bytes": 37129288
+      }
+    },
+    "scores": {
+      "PGS001229": {
+        "original_terms": 51209,
+        "chr22_terms": 849,
+        "source_metadata": {
+          "format_version": "2.0",
+          "pgs_id": "PGS001229",
+          "pgs_name": "GBE_INI50",
+          "trait_reported": "Standing height",
+          "trait_mapped": "body height",
+          "trait_efo": "OBA_VT0001253",
+          "genome_build": "GRCh37",
+          "variants_number": "51209",
+          "weight_type": "NR",
+          "pgp_id": "PGP000244",
+          "citation": "Tanigawa Y et al. PLoS Genet (2022). doi:10.1371/journal.pgen.1010105",
+          "HmPOS_build": "GRCh38",
+          "HmPOS_date": "2023-10-10",
+          "HmPOS_match_chr": "{\"True\": null, \"False\": null}",
+          "HmPOS_match_pos": "{\"True\": null, \"False\": null}"
+        }
+      },
+      "PGS000018": {
+        "original_terms": 1745179,
+        "chr22_terms": 26529,
+        "source_metadata": {
+          "format_version": "2.0",
+          "pgs_id": "PGS000018",
+          "pgs_name": "metaGRS_CAD",
+          "trait_reported": "Coronary artery disease",
+          "trait_mapped": "coronary artery disorder",
+          "trait_efo": "MONDO_0005010",
+          "genome_build": "hg19",
+          "variants_number": "1745180",
+          "weight_type": "NR",
+          "pgp_id": "PGP000007",
+          "citation": "Inouye M et al. J Am Coll Cardiol (2018). doi:10.1016/j.jacc.2018.07.079",
+          "HmPOS_build": "GRCh38",
+          "HmPOS_date": "2022-07-29",
+          "HmPOS_match_chr": "{\"True\": null, \"False\": null}",
+          "HmPOS_match_pos": "{\"True\": null, \"False\": null}"
+        }
+      }
+    },
+    "source_samples": 2548,
+    "samples": [
+      "HG00096",
+      "HG00236",
+      "HG00345",
+      "HG00565",
+      "HG00982",
+      "HG01198",
+      "HG01447",
+      "HG01628",
+      "HG01845",
+      "HG01982",
+      "HG02139",
+      "HG02317",
+      "HG02501",
+      "HG02697",
+      "HG02946",
+      "HG03132",
+      "HG03419",
+      "HG03644",
+      "HG03786",
+      "HG03931",
+      "HG04152",
+      "NA12044",
+      "NA18530",
+      "NA18636",
+      "NA18973",
+      "NA19084",
+      "NA19324",
+      "NA19669",
+      "NA20274",
+      "NA20755",
+      "NA20873",
+      "NA21144"
+    ],
+    "sample_selection": "32 evenly spaced source-header indices, floor(i*(n-1)/31), i=0..31",
+    "records": 1059079,
+    "pysam_version": "0.24.1",
+    "outputs_sha256": {
+      "chr22.fa": "ce3ee1ca39356238f7aee438a40a88b4f1b9d80b316b263e16fb12402212d10f",
+      "samplesheet.csv": "e7831809b98f5aeb2087514253aea021c91035d12cd58cec0fb8897f0fc9bdcd",
+      "chr22.fa.fai": "26356feb528bad613ba1637331b248f7fb5b09cd3e94a9f85f5166d268817fda",
+      "CHR22_PGS001229.txt": "c4515050a540c1f8a79a22061daf2f00aeebe3800a071043207941b94f22d31c",
+      "CHR22_PGS000018.source-ordinals.tsv": "15c830e666d4d587a024e7e01ce57abf406b1f2340dc008bbbac55a24959ac05",
+      "CHR22_PGS000018.txt": "3a64ae58c31953c13567caad3678c93364e0911c32e2307a6e929d4a77072ff9",
+      "CHR22_PGS001229.source-ordinals.tsv": "913284fc44cfb7c4684af718871b2b3fcfd815daea80eb0417ea21b1f6a3c9a1",
+      "public32.vcf.gz": "9c55c09e17a08e7d1b2f53e89ee5ecfb49be23ca77dae4e739a9e6da0bdef8f6",
+      "public32.vcf.gz.tbi": "df2c42de95a8771b01ed3a51d09c15a08ce5ea5b5bd78112032dee91696611f0"
+    },
+    "scope": "All chr22 records retained; all published chr22 terms retained. No complete PGS or population-performance claim."
+  },
+  "native_identity": {
+    "executable_sha256": "d13070f8347cd4a1611cd61991ca6271c6246d91737fc61fefa794f9a580345e",
+    "sample": "HG00096",
+    "version": "pgsum 0.5.1"
+  },
+  "pgsc_identity": {
+    "pipeline_commit": "72ee54f2119d2fe65ac671327342dfc412bd0a3b",
+    "plink_sha256": "72da90d499615cb90c5aac74bc05f9d676c565a94e9ef53f3bf025f75fad4ae9",
+    "nextflow_launcher_sha256": "e848918fb9b85762822c078435d9ff71979a88cccff81ce5babd75d5eee52fe6",
+    "plink_version": "PLINK v2.0.0-a.7.10LM 64-bit Intel (29 Sep 2026)",
+    "packages": [
+      "annotated-types==0.8.0",
+      "anyio==4.15.1",
+      "backports.zstd==1.7.0",
+      "certifi==2026.7.22",
+      "cloudpickle==3.1.2",
+      "h11==0.16.0",
+      "httpcore==1.0.9",
+      "httpx==0.28.1",
+      "idna==3.20",
+      "isal==1.8.0",
+      "joblib==1.6.0",
+      "narwhals==2.26.0",
+      "natsort==8.4.0",
+      "numpy==1.26.4",
+      "pandas==2.2.3",
+      "pgscatalog-utils==2.0.4",
+      "pgscatalog.calc==0.3.1",
+      "pgscatalog.core==1.1.1",
+      "pgscatalog.match==0.4.0",
+      "polars==0.20.30",
+      "pyarrow==15.0.2",
+      "pydantic==2.13.5",
+      "pydantic_core==2.46.5",
+      "pyliftover==0.4.1",
+      "pysam==0.24.1",
+      "python-dateutil==2.9.0.post0",
+      "pytz==2026.4",
+      "PyYAML==6.0.3",
+      "scikit-learn==1.9.1",
+      "scipy==1.17.1",
+      "six==1.17.0",
+      "tenacity==9.1.4",
+      "threadpoolctl==3.7.0",
+      "tqdm==4.70.1",
+      "typing-inspection==0.4.4",
+      "typing_extensions==4.16.0",
+      "tzdata==2026.4",
+      "xopen==2.1.0",
+      "zlib-ng==1.0.0",
+      "zstandard==0.25.0"
+    ]
+  },
+  "scores": {
+    "PGS001229": {
+      "source_terms": 849,
+      "pgsc_matched_terms": 775,
+      "single_sample": "HG00096",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "exact_delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.002239692",
+        "pgsum_excluded:unresolved_orientation": "0"
+      },
+      "native_single_sum": "0.464297034716",
+      "external_exact_single_sum": "0.462057342716",
+      "common_terms": 769,
+      "common_comparison": {
+        "different": 0,
+        "exact": 0,
+        "identity_mismatch": 0,
+        "left_only": 0,
+        "right_only": 0,
+        "rows": 32,
+        "unavailable": 0,
+        "within_tolerance": 32
+      }
+    },
+    "PGS000018": {
+      "source_terms": 26529,
+      "pgsc_matched_terms": 26047,
+      "single_sample": "HG00096",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "exact_delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.005558252886",
+        "pgsc_calc_not_scored": "0.001237332"
+      },
+      "native_single_sum": "0.016987548083",
+      "external_exact_single_sum": "0.023783132969",
+      "common_terms": 25896,
+      "common_comparison": {
+        "different": 0,
+        "exact": 0,
+        "identity_mismatch": 0,
+        "left_only": 0,
+        "right_only": 0,
+        "rows": 32,
+        "unavailable": 0,
+        "within_tolerance": 32
+      }
+    }
+  },
+  "default_policy_oracle": {
+    "sample_score_pairs": 64,
+    "native_contributions_checked": 853312,
+    "both_scored_different": 0,
+    "results_sha256": "5866162737e3f7ab762c8cc7506b1c87a628e539888282263345b061652e9b9a",
+    "differences_sha256": "511ba9151efad8da86aea52be0e44586f98f8be55e730f2ee1cd4349c99ae069",
+    "term_exports_sha256": "421dcf2fd3ce794675b7bc5099969e5f9ee8cd726dbd1f3b6b004b5801f7483d"
+  },
+  "default_comparison": {
+    "different": 62,
+    "exact": 0,
+    "identity_mismatch": 0,
+    "left_only": 0,
+    "right_only": 0,
+    "rows": 64,
+    "unavailable": 0,
+    "within_tolerance": 2
+  },
+  "oracle": "Python Decimal over original retained VCF GT and verified source weights; checks all external sums and all common-set native/PLINK sums; default call contributions independently checked and policy differences reconciled per term for all 32 samples.",
+  "scope": "Chromosome-22 partial contributions only. 32 selected public samples. Default policies differ; common-set agreement is conditional on identical retained terms. No full-genome, ancestry, DS/GP or gVCF validation.",
+  "runner_sha256": "4a1559a35c4413bca353ae6f3306b6c104935c295da00bf2e6d1819e27368e36",
+  "outputs_sha256": {
+    "plink-PGS000018.sscore": "d4e68f8c58bf0461366c1a323f5edd9363a28f0e9716288c2ad5d9ac718810bf",
+    "command-30.log": "731f3bd34ca369339f6dd17cf6266b084e89fcd30363b6e433e47940bce787cc",
+    "command-16.log": "d0b272fd12e4e84d79a2ec9e9529e1bbb66c9a1aa077f2160d55fc6bb8cdfc39",
+    "command-10.log": "a70d8c38d5ac6fd2b64110622057cf379dce036b7609e60cf2641ec68d0fe4e8",
+    "command-04.log": "0282228f1c862338d60e83d0613933db6004c848878150db23fe501277f5989a",
+    "command-14.log": "2376537ae14d252e31daa8c425b28c53bf4f4a447d2032c399d46c655f884903",
+    "command-01.log": "6566e9858413ab32ad59509a778372fc44ccaf71266d1f52c0f9c28a44e5ff94",
+    "command-12.log": "9e9c99b3248b1617ceabc412ccc4ab8321907611eb2234c20e3b79acf620951a",
+    "command-29.log": "784df649126ce15be14ad703158ee08d665385c47b0b5726eef1bf9b91382000",
+    "command-26.log": "fbdd54c603f3e5d45e4428ece839c7e1c6f32f625c1a319dc85da9007e017dc3",
+    "COMMON_PGS000018.pgsc": "ef36a9a9aa3d05cc04ea485a898adaaaab0a5dec4da2233540ba0fbaec54a3a7",
+    "external-single.tsv": "9467733cc0295165fbe2f3639a4a799d3d606bb2cce259aaf2087be4eb2a876b",
+    "command-23.log": "c7a49a2f50e3397c721ad2dab737593491a40b1e602ed93046d9a7c1f6e53bff",
+    "command-35.log": "8916edb992bd0985d6286bd9a3dd246cc2ff6cc704952244b6e09a3b41a6c9e6",
+    "command-24.log": "d0a391c6fd4b84c1d300ce135e569153588d3230eaff463937d4503bf79dae59",
+    "command-13.log": "8bc0517c59174fc037f4f40cedcece3343bb2bf0bde58dc76dd11cae905816b7",
+    "COMMON_PGS001229.txt": "adf1566faf1a354df97b305a02fe471d926cae67387d71599d039cba20d26eeb",
+    "command-27.log": "0745fee67801be3276e8cc73b3c4b388081fe74f87e3c8f0098f1f4ca876ada4",
+    "COMMON_PGS000018.ordinals.txt": "47893ddd21dc5a20f12c89020a4f4b94a1e560cde94e1634958228fd013091ea",
+    "command-43.log": "b5ae576f593f7cbf8979ac8e35a1bf5f8a92d0a8f8af7e061e4d0be782ed6374",
+    "command-32.log": "3896e41f8b6978c3029d94612a3b8c762d69e1f74b61364f8fdfb8f109254c13",
+    "COMMON_PGS000018.weights": "d93d8271de5e73e326f2cfe711c0be31877062ad1cf3c62c66f2122b9b2a4d51",
+    "command-09.log": "a914a9409ea1d6b2b3682b98d13ecdf35621fca8a70348ca3eaa33af054ec09b",
+    "default-term-file-hashes.json": "421dcf2fd3ce794675b7bc5099969e5f9ee8cd726dbd1f3b6b004b5801f7483d",
+    "command-22.log": "ae71c88f7edd480755b59db3330c19242420f312984581828386491a4f5fc3f5",
+    "command-36.log": "cb43a8079f82822eb0cf76a5a6e44a4e8a1ecd328efed6e941782f980ce7662c",
+    "command-25.log": "eb020691bd411d1b13f182c746cd2cb3098df34a3607cfbc6bbde0a0c01c85ca",
+    "oracle-scores.json": "15d7af699e074b8b9f7ddb0a9461af9225490c0a78ff1a5f63d1b8db35148aa4",
+    "command-20.log": "f9848e25a14c4de961237906aa374fe9f037b5f920ba36f9b0e50ef56a2f9ccc",
+    "command-42.log": "c049815ebe996eeebb26a293b394ff8c942ba881c6603603cddd8cf99d20c14d",
+    "command-08.log": "99eeda778db96b31b779d2d482977477f3806e173b885bd2430569b7146837e3",
+    "plink-PGS001229.log": "383b89903e228b7dd77aaae4cfda88738e95ba3ff3e0f2f7f61c4438ef099f35",
+    "command-21.log": "e65b182613d980e5d72e7420a6b78b9cad31845188586cc259a1a2f560205a9b",
+    "COMMON_PGS001229.pgsc": "5f2156a95a01700f56692888d6489c2ef13d9a07d7983a900a4ef0801546e80d",
+    "command-38.log": "7a963d8a5b912f53f4803922faf606ebce8c074cbb7864e03f25b7ddbb7d5bea",
+    "COMMON_PGS001229.weights": "4a8b7ac468889ca96c89392f910bb5e4bf153ef57d09a45a32570bbb27da77d1",
+    "command-44.log": "4b9046457d8a130d6676dcaeebcb133a06be49375fbf8802f23c8d1f729ede4b",
+    "command-19.log": "8ada954916ae23ea2d8df5e908af388b746153069f683775a87cbf8ffc5f1535",
+    "CHR22_PGS000018.external-terms.tsv": "d08a1e7cdc9814b2a52cc0dfb625a5f785b793f0c5e199b2845bf6153a3e3636",
+    "command-05.log": "9a65763e6ce74517ea2686b339e0bc3e7bad35da39df6da2788ae4be15612fbc",
+    "command-33.log": "786e965a5a634e972141c24f177171ccd639f3406de73dd129772337bbebee48",
+    "command-07.log": "8bc0517c59174fc037f4f40cedcece3343bb2bf0bde58dc76dd11cae905816b7",
+    "command-06.log": "cac03933ef0d32513ad4a931b8cd77f3021d7ea0580c6d6d494ffc639df623ff",
+    "plink-PGS001229.sscore": "24d817a6dff97e2539c9b0429b06e8cefb8197abdb088a6b4030b9738bef339e",
+    "command-18.log": "47d04af3a5da4061d738f7a18733d5126b8c0f4f21570d94c6a01ebc51e9b644",
+    "command-11.log": "9a65763e6ce74517ea2686b339e0bc3e7bad35da39df6da2788ae4be15612fbc",
+    "command-15.log": "9d3b7aed17463d8030d24ff1adda87a0c6f303cbc1c133832dc796abc9fea5d3",
+    "command-39.log": "81a2775cd5326cf15582678bace6a1a87575d4ed4c5fb35ba96ac76b58a673ad",
+    "COMMON_PGS000018.txt": "ad0412f9a17de3ebb9c12de9c4cca151eea4767ad987cf36fcd411e22baae0bc",
+    "command-34.log": "b731f1e81d989adcbfa396bb1dce4db6aef7bc5ddc50442cfbeff870dadacdf5",
+    "default-term-differences.tsv": "511ba9151efad8da86aea52be0e44586f98f8be55e730f2ee1cd4349c99ae069",
+    "commands.json": "d58937a0f7dde12be39c31171e1df9b975ab0b24d12dee547c8d004c45d7a626",
+    "COMMON_PGS001229.ordinals.txt": "9010b2fce41b81ce682268d4cbf71cc60ecce509b79a9c025e9f447c42b97485",
+    "command-40.log": "6b060f6b57c41e08ea371ec83fdf63090fe26d79ce3392db147f1d11aacc5a6a",
+    "command-37.log": "a355c05312327ca28c67e252432d96ec63285c898ec47b680376b5bb2801ff4f",
+    "default-policy-oracle.json": "5866162737e3f7ab762c8cc7506b1c87a628e539888282263345b061652e9b9a",
+    "command-31.log": "a48eef391c9fdf73357f30b66bc2e9025800f230cce8ee22438968d53ef70218",
+    "plink-PGS000018.log": "17eda6ea05d6b07b16b66e5c5203c551c918ce5a407e06165d07ebf2e0fdb823",
+    "command-28.log": "ebcbc61fcf88284360b681808e55fa2e2483196115aec5f6675c32e029a18ff6",
+    "command-03.log": "c56a8d6e3eacb1db76057ec46a7d57ac0aa03d187612018e317d2a91f215fc8f",
+    "CHR22_PGS001229.external-terms.tsv": "4f603422020c0af43974bb841bb033a412a45e3824a29d23b354bddf02fab857",
+    "command-02.log": "99eeda778db96b31b779d2d482977477f3806e173b885bd2430569b7146837e3",
+    "command-41.log": "2d237c3a3b4e62e412d74f41faf42759a19f38e968fb6b1f9dbb427f6ec26ebd",
+    "command-17.log": "3cd0846bbfac8d4ff6bd0379168c5c74f9349687884b24c7c2cf4d7b68f06bf3"
+  },
+  "oracle_scores": [
+    {
+      "sample": "HG00096",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.462057342716",
+      "external_reported_sum": "0.462057",
+      "native_reported_sum": "0.464297034716",
+      "reported_difference": "-0.002240034716"
+    },
+    {
+      "sample": "HG00236",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.686276638958",
+      "external_reported_sum": "0.6862768",
+      "native_reported_sum": "0.688516330958",
+      "reported_difference": "-0.002239530958"
+    },
+    {
+      "sample": "HG00345",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.263911932098",
+      "external_reported_sum": "0.263912",
+      "native_reported_sum": "0.270713159098",
+      "reported_difference": "-0.006801159098"
+    },
+    {
+      "sample": "HG00565",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.837257763240",
+      "external_reported_sum": "0.83725807",
+      "native_reported_sum": "0.842939144240",
+      "reported_difference": "-0.005681074240"
+    },
+    {
+      "sample": "HG00982",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.648776202410",
+      "external_reported_sum": "0.648776",
+      "native_reported_sum": "0.659019118410",
+      "reported_difference": "-0.010243118410"
+    },
+    {
+      "sample": "HG01198",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.564123575648",
+      "external_reported_sum": "0.564124",
+      "native_reported_sum": "0.591130846648",
+      "reported_difference": "-0.027006846648"
+    },
+    {
+      "sample": "HG01447",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.507090843450",
+      "external_reported_sum": "0.507091",
+      "native_reported_sum": "0.526606903450",
+      "reported_difference": "-0.019515903450"
+    },
+    {
+      "sample": "HG01628",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.059611353476",
+      "external_reported_sum": "0.059611",
+      "native_reported_sum": "0.043006083476",
+      "reported_difference": "0.016604916524"
+    },
+    {
+      "sample": "HG01845",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.549595743626",
+      "external_reported_sum": "0.5495953",
+      "native_reported_sum": "0.573673338626",
+      "reported_difference": "-0.024078038626"
+    },
+    {
+      "sample": "HG01982",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "-0.016449082572",
+      "external_reported_sum": "-0.01644899999999999",
+      "native_reported_sum": "0.004186823428",
+      "reported_difference": "-0.02063582342799999"
+    },
+    {
+      "sample": "HG02139",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.251792230248",
+      "external_reported_sum": "0.251792",
+      "native_reported_sum": "0.256353765248",
+      "reported_difference": "-0.004561765248"
+    },
+    {
+      "sample": "HG02317",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "1.435651166190",
+      "external_reported_sum": "1.435651",
+      "native_reported_sum": "1.466689073190",
+      "reported_difference": "-0.031038073190"
+    },
+    {
+      "sample": "HG02501",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.663413888560",
+      "external_reported_sum": "0.663414",
+      "native_reported_sum": "0.712688924560",
+      "reported_difference": "-0.049274924560"
+    },
+    {
+      "sample": "HG02697",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.637630042310",
+      "external_reported_sum": "0.6376297",
+      "native_reported_sum": "0.661195624310",
+      "reported_difference": "-0.023565924310"
+    },
+    {
+      "sample": "HG02946",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "1.417772464490",
+      "external_reported_sum": "1.417773",
+      "native_reported_sum": "1.429135226490",
+      "reported_difference": "-0.011362226490"
+    },
+    {
+      "sample": "HG03132",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.861771052700",
+      "external_reported_sum": "0.8617710000000001",
+      "native_reported_sum": "0.886968493700",
+      "reported_difference": "-0.0251974936999999"
+    },
+    {
+      "sample": "HG03419",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.750310282078",
+      "external_reported_sum": "0.7503099999999999",
+      "native_reported_sum": "0.762933089078",
+      "reported_difference": "-0.0126230890780001"
+    },
+    {
+      "sample": "HG03644",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "1.026384547048",
+      "external_reported_sum": "1.0263844",
+      "native_reported_sum": "1.048140299048",
+      "reported_difference": "-0.021755899048"
+    },
+    {
+      "sample": "HG03786",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "1.201337961498",
+      "external_reported_sum": "1.201338",
+      "native_reported_sum": "1.207019342498",
+      "reported_difference": "-0.005681342498"
+    },
+    {
+      "sample": "HG03931",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.549587270978",
+      "external_reported_sum": "0.549588",
+      "native_reported_sum": "0.538663381978",
+      "reported_difference": "0.010924618022"
+    },
+    {
+      "sample": "HG04152",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.901337493916",
+      "external_reported_sum": "0.90134",
+      "native_reported_sum": "0.927654780916",
+      "reported_difference": "-0.026314780916"
+    },
+    {
+      "sample": "NA12044",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.398199406320",
+      "external_reported_sum": "0.39819910000000003",
+      "native_reported_sum": "0.398805077320",
+      "reported_difference": "-0.00060597731999997"
+    },
+    {
+      "sample": "NA18530",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.612296129478",
+      "external_reported_sum": "0.6122963",
+      "native_reported_sum": "0.612296129478",
+      "reported_difference": "1.70522E-7"
+    },
+    {
+      "sample": "NA18636",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.719042703936",
+      "external_reported_sum": "0.7190423",
+      "native_reported_sum": "0.744930128936",
+      "reported_difference": "-0.025887828936"
+    },
+    {
+      "sample": "NA18973",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.172008872988",
+      "external_reported_sum": "0.172009",
+      "native_reported_sum": "0.185759238988",
+      "reported_difference": "-0.013750238988"
+    },
+    {
+      "sample": "NA19084",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.314680139128",
+      "external_reported_sum": "0.31467999999999996",
+      "native_reported_sum": "0.314680139128",
+      "reported_difference": "-1.3912800004E-7"
+    },
+    {
+      "sample": "NA19324",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "1.185040771440",
+      "external_reported_sum": "1.185041",
+      "native_reported_sum": "1.203352672440",
+      "reported_difference": "-0.018311672440"
+    },
+    {
+      "sample": "NA19669",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.797181425610",
+      "external_reported_sum": "0.797181",
+      "native_reported_sum": "0.837333391610",
+      "reported_difference": "-0.040152391610"
+    },
+    {
+      "sample": "NA20274",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "-0.003953360922",
+      "external_reported_sum": "-0.003952999999999984",
+      "native_reported_sum": "0.000077275078",
+      "reported_difference": "-0.004030275077999984"
+    },
+    {
+      "sample": "NA20755",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.553632961268",
+      "external_reported_sum": "0.5536333999999999",
+      "native_reported_sum": "0.543988003268",
+      "reported_difference": "0.0096453967319999"
+    },
+    {
+      "sample": "NA20873",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.630258689506",
+      "external_reported_sum": "0.6302582999999999",
+      "native_reported_sum": "0.614773265506",
+      "reported_difference": "0.0154850344939999"
+    },
+    {
+      "sample": "NA21144",
+      "score": "CHR22_PGS001229",
+      "exact_external_contribution_sum": "0.867811423260",
+      "external_reported_sum": "0.8678118",
+      "native_reported_sum": "0.906843543260",
+      "reported_difference": "-0.039031743260"
+    },
+    {
+      "sample": "HG00096",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.023783132969",
+      "external_reported_sum": "0.023783096",
+      "native_reported_sum": "0.016987548083",
+      "reported_difference": "0.006795547917"
+    },
+    {
+      "sample": "HG00236",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.093481805434",
+      "external_reported_sum": "0.093481757",
+      "native_reported_sum": "0.088158901552",
+      "reported_difference": "0.005322855448"
+    },
+    {
+      "sample": "HG00345",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.126618679955",
+      "external_reported_sum": "0.12661862000000002",
+      "native_reported_sum": "0.121096389713",
+      "reported_difference": "0.00552223028700002"
+    },
+    {
+      "sample": "HG00565",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.051598116271",
+      "external_reported_sum": "0.051598126",
+      "native_reported_sum": "0.052767222779",
+      "reported_difference": "-0.001169096779"
+    },
+    {
+      "sample": "HG00982",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.069053210066",
+      "external_reported_sum": "0.069053177",
+      "native_reported_sum": "0.067201427964",
+      "reported_difference": "0.001851749036"
+    },
+    {
+      "sample": "HG01198",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.173179321246",
+      "external_reported_sum": "0.173179272",
+      "native_reported_sum": "0.165401507354",
+      "reported_difference": "0.007777764646"
+    },
+    {
+      "sample": "HG01447",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.058909340457",
+      "external_reported_sum": "0.058909291",
+      "native_reported_sum": "0.050728478745",
+      "reported_difference": "0.008180812255"
+    },
+    {
+      "sample": "HG01628",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.112813484893",
+      "external_reported_sum": "0.11281382200000001",
+      "native_reported_sum": "0.102405240951",
+      "reported_difference": "0.01040858104900001"
+    },
+    {
+      "sample": "HG01845",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.009139424269",
+      "external_reported_sum": "0.009139428",
+      "native_reported_sum": "0.009127071137",
+      "reported_difference": "0.000012356863"
+    },
+    {
+      "sample": "HG01982",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.106205978988",
+      "external_reported_sum": "0.106205527",
+      "native_reported_sum": "0.102724413136",
+      "reported_difference": "0.003481113864"
+    },
+    {
+      "sample": "HG02139",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.030705042254",
+      "external_reported_sum": "0.030705079",
+      "native_reported_sum": "0.029395797562",
+      "reported_difference": "0.001309281438"
+    },
+    {
+      "sample": "HG02317",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.120897797089",
+      "external_reported_sum": "0.120898244",
+      "native_reported_sum": "0.112008010423",
+      "reported_difference": "0.008890233577"
+    },
+    {
+      "sample": "HG02501",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.095707635109",
+      "external_reported_sum": "0.095707616",
+      "native_reported_sum": "0.088401813117",
+      "reported_difference": "0.007305802883"
+    },
+    {
+      "sample": "HG02697",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.134110722646",
+      "external_reported_sum": "0.134110313",
+      "native_reported_sum": "0.127154268254",
+      "reported_difference": "0.006956044746"
+    },
+    {
+      "sample": "HG02946",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.085954847200",
+      "external_reported_sum": "0.08595483699999999",
+      "native_reported_sum": "0.079183040668",
+      "reported_difference": "0.00677179633199999"
+    },
+    {
+      "sample": "HG03132",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.095899577214",
+      "external_reported_sum": "0.095899619",
+      "native_reported_sum": "0.088523303528",
+      "reported_difference": "0.007376315472"
+    },
+    {
+      "sample": "HG03419",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.053372628573",
+      "external_reported_sum": "0.053372615",
+      "native_reported_sum": "0.047511570687",
+      "reported_difference": "0.005861044313"
+    },
+    {
+      "sample": "HG03644",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "-0.027652689948",
+      "external_reported_sum": "-0.027652678",
+      "native_reported_sum": "-0.031388962060",
+      "reported_difference": "0.003736284060"
+    },
+    {
+      "sample": "HG03786",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.118785749388",
+      "external_reported_sum": "0.11878594099999999",
+      "native_reported_sum": "0.113919154396",
+      "reported_difference": "0.00486678660399999"
+    },
+    {
+      "sample": "HG03931",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.078959210678",
+      "external_reported_sum": "0.078959162",
+      "native_reported_sum": "0.074681056846",
+      "reported_difference": "0.004278105154"
+    },
+    {
+      "sample": "HG04152",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.001513260408",
+      "external_reported_sum": "0.0015132599999999998",
+      "native_reported_sum": "-0.001322437892",
+      "reported_difference": "0.0028356978919999998"
+    },
+    {
+      "sample": "NA12044",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.109113939792",
+      "external_reported_sum": "0.109114142",
+      "native_reported_sum": "0.102642948896",
+      "reported_difference": "0.006471193104"
+    },
+    {
+      "sample": "NA18530",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.055822068609",
+      "external_reported_sum": "0.055822026999999996",
+      "native_reported_sum": "0.056325494607",
+      "reported_difference": "-0.000503467607000004"
+    },
+    {
+      "sample": "NA18636",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.145856514101",
+      "external_reported_sum": "0.145856728",
+      "native_reported_sum": "0.143396731409",
+      "reported_difference": "0.002459996591"
+    },
+    {
+      "sample": "NA18973",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.051740720127",
+      "external_reported_sum": "0.051740728",
+      "native_reported_sum": "0.051981040505",
+      "reported_difference": "-0.000240312505"
+    },
+    {
+      "sample": "NA19084",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.007564143951",
+      "external_reported_sum": "0.007564146000000001",
+      "native_reported_sum": "0.007025464739",
+      "reported_difference": "0.000538681261000001"
+    },
+    {
+      "sample": "NA19324",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.118446578600",
+      "external_reported_sum": "0.118446272",
+      "native_reported_sum": "0.109373644138",
+      "reported_difference": "0.009072627862"
+    },
+    {
+      "sample": "NA19669",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.062097578660",
+      "external_reported_sum": "0.062097622000000005",
+      "native_reported_sum": "0.053666132588",
+      "reported_difference": "0.008431489412000005"
+    },
+    {
+      "sample": "NA20274",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.009126547185",
+      "external_reported_sum": "0.009126542999999999",
+      "native_reported_sum": "0.003202546339",
+      "reported_difference": "0.005923996660999999"
+    },
+    {
+      "sample": "NA20755",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.118595616417",
+      "external_reported_sum": "0.118595762",
+      "native_reported_sum": "0.112745254305",
+      "reported_difference": "0.005850507695"
+    },
+    {
+      "sample": "NA20873",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.112361010722",
+      "external_reported_sum": "0.112360817",
+      "native_reported_sum": "0.104703892376",
+      "reported_difference": "0.007656924624"
+    },
+    {
+      "sample": "NA21144",
+      "score": "CHR22_PGS000018",
+      "exact_external_contribution_sum": "0.091451730336",
+      "external_reported_sum": "0.091451727",
+      "native_reported_sum": "0.086958586344",
+      "reported_difference": "0.004493140656"
+    }
+  ],
+  "default_policy_checks": [
+    {
+      "sample": "HG00096",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.464297034716",
+      "external_exact": "0.462057342716",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.002239692",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "HG00096",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.016987548083",
+      "external_exact": "0.023783132969",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.005558252886",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG00236",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.688516330958",
+      "external_exact": "0.686276638958",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.002239692",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "HG00236",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.088158901552",
+      "external_exact": "0.093481805434",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.004085571882",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG00345",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.270713159098",
+      "external_exact": "0.263911932098",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.002239692",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG00345",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.121096389713",
+      "external_exact": "0.126618679955",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.004284958242",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG00565",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.842939144240",
+      "external_exact": "0.837257763240",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.001119846",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG00565",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.052767222779",
+      "external_exact": "0.051598116271",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.002406438508",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG00982",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.659019118410",
+      "external_exact": "0.648776202410",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.001119846",
+        "pgsum_excluded:unresolved_orientation": "-0.009123070"
+      }
+    },
+    {
+      "sample": "HG00982",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.067201427964",
+      "external_exact": "0.069053210066",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.000614450102",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG01198",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.591130846648",
+      "external_exact": "0.564123575648",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.022445736",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG01198",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.165401507354",
+      "external_exact": "0.173179321246",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.006540481892",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG01447",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.526606903450",
+      "external_exact": "0.507090843450",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.01951606",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "HG01447",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.050728478745",
+      "external_exact": "0.058909340457",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.006943529712",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG01628",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.043006083476",
+      "external_exact": "0.059611353476",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.01660527",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "HG01628",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.102405240951",
+      "external_exact": "0.112813484893",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.009170911942",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG01845",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.573673338626",
+      "external_exact": "0.549595743626",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.01951606",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG01845",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.009127071137",
+      "external_exact": "0.009139424269",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.001224978868",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG01982",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.004186823428",
+      "external_exact": "-0.016449082572",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.020635906",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "HG01982",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.102724413136",
+      "external_exact": "0.106205978988",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.002244233852",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG02139",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.256353765248",
+      "external_exact": "0.251792230248",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG02139",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.029395797562",
+      "external_exact": "0.030705042254",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.000071912692",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG02317",
+      "score": "CHR22_PGS001229",
+      "native_exact": "1.466689073190",
+      "external_exact": "1.435651166190",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.026476372",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG02317",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.112008010423",
+      "external_exact": "0.120897797089",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.007652454666",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG02501",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.712688924560",
+      "external_exact": "0.663413888560",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.040151966",
+        "pgsum_excluded:unresolved_orientation": "-0.009123070"
+      }
+    },
+    {
+      "sample": "HG02501",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.088401813117",
+      "external_exact": "0.095707635109",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.006068489992",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG02697",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.661195624310",
+      "external_exact": "0.637630042310",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.023565582",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "HG02697",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.127154268254",
+      "external_exact": "0.134110722646",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.005719122392",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG02946",
+      "score": "CHR22_PGS001229",
+      "native_exact": "1.429135226490",
+      "external_exact": "1.417772464490",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.002239692",
+        "pgsum_excluded:unresolved_orientation": "-0.009123070"
+      }
+    },
+    {
+      "sample": "HG02946",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.079183040668",
+      "external_exact": "0.085954847200",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.005534474532",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG03132",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.886968493700",
+      "external_exact": "0.861771052700",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-10",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.020635906",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG03132",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.088523303528",
+      "external_exact": "0.095899577214",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.006138941686",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG03419",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.762933089078",
+      "external_exact": "0.750310282078",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.008061272",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG03419",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.047511570687",
+      "external_exact": "0.053372628573",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.004623725886",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG03644",
+      "score": "CHR22_PGS001229",
+      "native_exact": "1.048140299048",
+      "external_exact": "1.026384547048",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.021755752",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "HG03644",
+      "score": "CHR22_PGS000018",
+      "native_exact": "-0.031388962060",
+      "external_exact": "-0.027652689948",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.002498940112",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG03786",
+      "score": "CHR22_PGS001229",
+      "native_exact": "1.207019342498",
+      "external_exact": "1.201337961498",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.001119846",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG03786",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.113919154396",
+      "external_exact": "0.118785749388",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.003629262992",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG03931",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.538663381978",
+      "external_exact": "0.549587270978",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.015485424",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG03931",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.074681056846",
+      "external_exact": "0.078959210678",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.003040821832",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "HG04152",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.927654780916",
+      "external_exact": "0.901337493916",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.021755752",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "HG04152",
+      "score": "CHR22_PGS000018",
+      "native_exact": "-0.001322437892",
+      "external_exact": "0.001513260408",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.00159836630",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA12044",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.398805077320",
+      "external_exact": "0.398199406320",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.003955864",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "NA12044",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.102642948896",
+      "external_exact": "0.109113939792",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.005233658896",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA18530",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.612296129478",
+      "external_exact": "0.612296129478",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "NA18530",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.056325494607",
+      "external_exact": "0.055822068609",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.001740757998",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA18636",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.744930128936",
+      "external_exact": "0.719042703936",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.02132589",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "NA18636",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.143396731409",
+      "external_exact": "0.145856514101",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.001222450692",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA18973",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.185759238988",
+      "external_exact": "0.172008872988",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.013750366",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "NA18973",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.051981040505",
+      "external_exact": "0.051740720127",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.001477652378",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA19084",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.314680139128",
+      "external_exact": "0.314680139128",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "NA19084",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.007025464739",
+      "external_exact": "0.007564143951",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.000698652788",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA19324",
+      "score": "CHR22_PGS001229",
+      "native_exact": "1.203352672440",
+      "external_exact": "1.185040771440",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.013750366",
+        "pgsum_excluded:unresolved_orientation": "-0.004561535"
+      }
+    },
+    {
+      "sample": "NA19324",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.109373644138",
+      "external_exact": "0.118446578600",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.007835602462",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA19669",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.837333391610",
+      "external_exact": "0.797181425610",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.040151966",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "NA19669",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.053666132588",
+      "external_exact": "0.062097578660",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.007194114072",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA20274",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.000077275078",
+      "external_exact": "-0.003953360922",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.004030636",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "NA20274",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.003202546339",
+      "external_exact": "0.009126547185",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.004686668846",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA20755",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.543988003268",
+      "external_exact": "0.553632961268",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.009644958",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "NA20755",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.112745254305",
+      "external_exact": "0.118595616417",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.004613030112",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA20873",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.614773265506",
+      "external_exact": "0.630258689506",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.015485424",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "NA20873",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.104703892376",
+      "external_exact": "0.112361010722",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.006419786346",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    },
+    {
+      "sample": "NA21144",
+      "score": "CHR22_PGS001229",
+      "native_exact": "0.906843543260",
+      "external_exact": "0.867811423260",
+      "categories": {
+        "both_scored_equal": 769,
+        "neither_scored": 74,
+        "pgsum_excluded:ambiguous_overlapping_records": 5,
+        "pgsum_excluded:unresolved_orientation": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-11",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "-0.03903212",
+        "pgsum_excluded:unresolved_orientation": "0"
+      }
+    },
+    {
+      "sample": "NA21144",
+      "score": "CHR22_PGS000018",
+      "native_exact": "0.086958586344",
+      "external_exact": "0.091451730336",
+      "categories": {
+        "both_scored_equal": 25896,
+        "neither_scored": 481,
+        "pgsum_excluded:ambiguous_overlapping_records": 151,
+        "pgsc_calc_not_scored": 1
+      },
+      "delta_by_category": {
+        "both_scored_equal": "0E-12",
+        "neither_scored": "0",
+        "pgsum_excluded:ambiguous_overlapping_records": "0.003255811992",
+        "pgsc_calc_not_scored": "0.001237332"
+      }
+    }
+  ],
+  "tested_pgsum_source_commit": "300f90c94f710c0e2a4e38b9a398e9cef931b1dc",
+  "source_files_sha256": {
+    "bench/public_chr22.py": "4a1559a35c4413bca353ae6f3306b6c104935c295da00bf2e6d1819e27368e36",
+    "bench/public_chr22.requirements.txt": "2f035331a6f0b9d11f88351bc1b95542054731672a7896d18203a066dfd0a2e9",
+    "src/compare.rs": "91ae2dbdee624aa21995c83fe1f478bca171457445b36f0c53f8af1c50dedf11",
+    "src/cohort.rs": "04f3642b18c1a2124bb5b1529c423717bcd6f087fced0ec7d6ed178500b70f36",
+    "src/genotype.rs": "6dc8421b2f4d9c5bd8c006f7ce452fbfd2269b4219cee328fcfe64691a625ba5",
+    "src/score.rs": "df9b3818cfbdf0892b53710d9ad3c535d36faed6781e0dc59c4f60345f131b4f",
+    "Cargo.lock": "739937b37ed8fa3ed71341f3ab52fb47b67f618c28c8f42c6bc7c4408de8971f"
+  },
+  "commands": {
+    "$NATIVE": [
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "compile",
+        "$INPUTS/CHR22_PGS001229.txt",
+        "$INPUTS/CHR22_PGS000018.txt",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--out",
+        "$NATIVE/packs"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "extract",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--all-samples",
+        "--accept-missing-quality",
+        "--out",
+        "$NATIVE/cohort.pgsc"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "score",
+        "--genotypes",
+        "$NATIVE/cohort.pgsc",
+        "--pack",
+        "$NATIVE/packs",
+        "--out",
+        "$NATIVE/scores"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG00096",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$NATIVE/single"
+      ]
+    ],
+    "$PGSC": [
+      [
+        "$NEXTFLOW",
+        "run",
+        "$PIPELINE/main.nf",
+        "-c",
+        "$PGSC/local.config",
+        "--input",
+        "$INPUTS/samplesheet.csv",
+        "--scorefile",
+        "$INPUTS/CHR22_*.txt",
+        "--target_build",
+        "GRCh38",
+        "--outdir",
+        "$PGSC/results",
+        "--only_score",
+        "--max_cpus",
+        "2",
+        "--max_memory",
+        "4.GB",
+        "--max_time",
+        "2.h",
+        "-ansi-log",
+        "false"
+      ]
+    ],
+    "$ANALYSIS": [
+      [
+        "$PGSUM",
+        "compare",
+        "--left",
+        "$NATIVE/scores/cohort-scores.tsv.zst",
+        "--right",
+        "$PGSC/work/bc/0b3f290186ebcbb282e90049913472/aggregated_scores.txt.gz",
+        "--right-format",
+        "pgsc-calc",
+        "--right-sampleset",
+        "public32",
+        "--out",
+        "$ANALYSIS/default-comparison",
+        "--absolute-tolerance",
+        "0.00001",
+        "--relative-tolerance",
+        "0.000005"
+      ],
+      [
+        "$PGSUM",
+        "compare",
+        "--left",
+        "$NATIVE/single/scores.tsv",
+        "--left-sample",
+        "HG00096",
+        "--right",
+        "$ANALYSIS/external-single.tsv",
+        "--right-format",
+        "pgsc-calc",
+        "--left-terms",
+        "$NATIVE/single/CHR22_PGS001229.terms.tsv",
+        "--right-terms",
+        "$ANALYSIS/CHR22_PGS001229.external-terms.tsv",
+        "--term-sample",
+        "HG00096",
+        "--term-score",
+        "CHR22_PGS001229",
+        "--out",
+        "$ANALYSIS/terms-PGS001229",
+        "--absolute-tolerance",
+        "0.00001",
+        "--relative-tolerance",
+        "0.000005"
+      ],
+      [
+        "$PGSUM",
+        "compile",
+        "$ANALYSIS/COMMON_PGS001229.txt",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--out",
+        "$ANALYSIS/common-packs"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "extract",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$ANALYSIS/common-packs/COMMON_PGS001229.pgsp",
+        "--all-samples",
+        "--accept-missing-quality",
+        "--out",
+        "$ANALYSIS/COMMON_PGS001229.pgsc"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "score",
+        "--genotypes",
+        "$ANALYSIS/COMMON_PGS001229.pgsc",
+        "--pack",
+        "$ANALYSIS/common-packs/COMMON_PGS001229.pgsp",
+        "--out",
+        "$ANALYSIS/COMMON_PGS001229"
+      ],
+      [
+        "$PLINK2",
+        "--threads",
+        "2",
+        "--vcf",
+        "$INPUTS/public32.vcf.gz",
+        "--set-all-var-ids",
+        "@:#:$r:$a",
+        "--new-id-max-allele-len",
+        "1000",
+        "--max-alleles",
+        "2",
+        "--extract",
+        "$ANALYSIS/COMMON_PGS001229.weights",
+        "--score",
+        "$ANALYSIS/COMMON_PGS001229.weights",
+        "1",
+        "2",
+        "3",
+        "header-read",
+        "no-mean-imputation",
+        "cols=+scoresums",
+        "--out",
+        "$ANALYSIS/plink-PGS001229"
+      ],
+      [
+        "$PGSUM",
+        "compare",
+        "--left",
+        "$ANALYSIS/COMMON_PGS001229/cohort-scores.tsv.zst",
+        "--right",
+        "$ANALYSIS/plink-PGS001229.sscore",
+        "--right-format",
+        "plink2",
+        "--right-score-column",
+        "COMMON_PGS001229_SUM",
+        "--right-score-id",
+        "COMMON_PGS001229",
+        "--out",
+        "$ANALYSIS/common-PGS001229",
+        "--fail-on-difference",
+        "--absolute-tolerance",
+        "0.00001",
+        "--relative-tolerance",
+        "0.000005"
+      ],
+      [
+        "$PGSUM",
+        "compare",
+        "--left",
+        "$NATIVE/single/scores.tsv",
+        "--left-sample",
+        "HG00096",
+        "--right",
+        "$ANALYSIS/external-single.tsv",
+        "--right-format",
+        "pgsc-calc",
+        "--left-terms",
+        "$NATIVE/single/CHR22_PGS000018.terms.tsv",
+        "--right-terms",
+        "$ANALYSIS/CHR22_PGS000018.external-terms.tsv",
+        "--term-sample",
+        "HG00096",
+        "--term-score",
+        "CHR22_PGS000018",
+        "--out",
+        "$ANALYSIS/terms-PGS000018",
+        "--absolute-tolerance",
+        "0.00001",
+        "--relative-tolerance",
+        "0.000005"
+      ],
+      [
+        "$PGSUM",
+        "compile",
+        "$ANALYSIS/COMMON_PGS000018.txt",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--out",
+        "$ANALYSIS/common-packs"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "extract",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$ANALYSIS/common-packs/COMMON_PGS000018.pgsp",
+        "--all-samples",
+        "--accept-missing-quality",
+        "--out",
+        "$ANALYSIS/COMMON_PGS000018.pgsc"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "score",
+        "--genotypes",
+        "$ANALYSIS/COMMON_PGS000018.pgsc",
+        "--pack",
+        "$ANALYSIS/common-packs/COMMON_PGS000018.pgsp",
+        "--out",
+        "$ANALYSIS/COMMON_PGS000018"
+      ],
+      [
+        "$PLINK2",
+        "--threads",
+        "2",
+        "--vcf",
+        "$INPUTS/public32.vcf.gz",
+        "--set-all-var-ids",
+        "@:#:$r:$a",
+        "--new-id-max-allele-len",
+        "1000",
+        "--max-alleles",
+        "2",
+        "--extract",
+        "$ANALYSIS/COMMON_PGS000018.weights",
+        "--score",
+        "$ANALYSIS/COMMON_PGS000018.weights",
+        "1",
+        "2",
+        "3",
+        "header-read",
+        "no-mean-imputation",
+        "cols=+scoresums",
+        "--out",
+        "$ANALYSIS/plink-PGS000018"
+      ],
+      [
+        "$PGSUM",
+        "compare",
+        "--left",
+        "$ANALYSIS/COMMON_PGS000018/cohort-scores.tsv.zst",
+        "--right",
+        "$ANALYSIS/plink-PGS000018.sscore",
+        "--right-format",
+        "plink2",
+        "--right-score-column",
+        "COMMON_PGS000018_SUM",
+        "--right-score-id",
+        "COMMON_PGS000018",
+        "--out",
+        "$ANALYSIS/common-PGS000018",
+        "--fail-on-difference",
+        "--absolute-tolerance",
+        "0.00001",
+        "--relative-tolerance",
+        "0.000005"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG00236",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG00236"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG00345",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG00345"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG00565",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG00565"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG00982",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG00982"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG01198",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG01198"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG01447",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG01447"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG01628",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG01628"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG01845",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG01845"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG01982",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG01982"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG02139",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG02139"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG02317",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG02317"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG02501",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG02501"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG02697",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG02697"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG02946",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG02946"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG03132",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG03132"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG03419",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG03419"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG03644",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG03644"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG03786",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG03786"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG03931",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG03931"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "HG04152",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/HG04152"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA12044",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA12044"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA18530",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA18530"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA18636",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA18636"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA18973",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA18973"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA19084",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA19084"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA19324",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA19324"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA19669",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA19669"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA20274",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA20274"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA20755",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA20755"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA20873",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA20873"
+      ],
+      [
+        "$PGSUM",
+        "--threads",
+        "2",
+        "run",
+        "--gvcf",
+        "$INPUTS/public32.vcf.gz",
+        "--reference",
+        "$INPUTS/chr22.fa",
+        "--pack",
+        "$NATIVE/packs",
+        "--sample",
+        "NA21144",
+        "--accept-missing-quality",
+        "--terms",
+        "--out",
+        "$ANALYSIS/default-samples/NA21144"
+      ]
+    ]
+  },
+  "execution": "Actual unmodified pgsc_calc v2.3.0 --only_score pipeline; Nextflow 24.10.0; local pinned Python dependencies. All scoring and analysis gates passed.",
+  "command_path_placeholders": "Commands replace local absolute paths with named placeholders; output digests refer to original raw files."
+}

@@ -4,10 +4,16 @@
 //! and `score` (packs × genotypes → one result per score). See `DESIGN.md` for the rules.
 
 pub mod alleles;
+pub mod batch;
+pub mod bcf;
+pub mod catalog_cache;
 pub mod cohort;
+mod cohort_diagnostics;
+pub mod compare;
 pub mod compile;
 pub mod decimal;
 pub mod digest;
+pub mod dosage;
 pub mod evidence;
 pub mod extract;
 pub mod fetch;
@@ -56,3 +62,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 macro_rules! invalid {
     ($($arg:tt)*) => { Err($crate::Error::Invalid(format!($($arg)*))) };
 }
+
+pub mod workflow;
+
+pub mod missingness;

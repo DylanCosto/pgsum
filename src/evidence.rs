@@ -295,9 +295,18 @@ pub fn write_rows(
             "status": mine.status,
             "call": null,
             "effect_dosage": mine.effect_dosage,
+            "expected_effect_dosage": mine.expected_effect_dosage.as_ref().map(crate::decimal::Decimal::to_python_string),
+            "dosage_field": table.header.policy.dosage_field,
             "contribution": mine.contribution.as_ref().map(|c| c.to_decimal().to_python_string()),
             "source_records": &records,
         });
+        if table.header.policy.dosage_field != crate::dosage::Field::Gt {
+            row["pgsum_call_not_rebuilt"] = Value::Bool(true);
+            serde_json::to_writer(&mut *out, &row).map_err(|e| crate::Error::Invalid(e.to_string()))?;
+            writeln!(out).map_err(crate::Error::io("stdout"))?;
+            n += 1;
+            continue;
+        }
         match plan(&term, &options).0 {
             Plan::Unscorable(_) => {}
             Plan::Sequence { .. } => row["pgsum_call_not_rebuilt"] = Value::Bool(true),

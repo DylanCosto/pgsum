@@ -40,7 +40,8 @@ use crate::{Error, Result, invalid};
 use sha2::{Digest, Sha256};
 
 pub const MAGIC: &[u8; 8] = b"PGSUMGT1";
-pub const SCHEMA: &str = "pgsum-genotypes-v4";
+pub const SCHEMA: &str = "pgsum-genotypes-v5";
+pub const SCHEMA_V4: &str = "pgsum-genotypes-v4";
 /// Earlier schemas still read. v3 is one frame; v1 has no sequence targets; v1 and v2 pack keys as
 /// contig << 40 | pos << 8 | 8 low bits (sequence flag 0x80, so at most 128 sequence targets per position)
 /// and are converted on reading.
@@ -137,10 +138,11 @@ pub(crate) fn index_sequences(sequences: &[(u64, Variant)]) -> HashMap<(u8, Vari
 }
 
 /// An assessed call, as stored.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CompactCall {
     pub state: State,
     pub alt_dosage: Option<u8>,
+    pub measurement: Option<Box<crate::dosage::Measurement>>,
     pub refcall_adapted: bool,
     pub phased: bool,
 }
@@ -150,6 +152,7 @@ impl From<Call> for CompactCall {
         CompactCall {
             state: c.state,
             alt_dosage: c.alt_dosage,
+            measurement: c.measurement.clone(),
             refcall_adapted: c.refcall_adapted,
             phased: c.phase_set.is_some(),
         }
@@ -159,6 +162,8 @@ impl From<Call> for CompactCall {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct PolicyInfo {
     pub id: String,
+    #[serde(default)]
+    pub dosage_field: crate::dosage::Field,
     pub min_depth: f64,
     pub min_gq: f64,
     pub refcall_is_reference: bool,
@@ -246,11 +251,12 @@ pub struct Header {
 /// header stays small (about 660 blocks for the whole Catalog).
 pub const BLOCK_ENTRIES: usize = 1 << 16;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Entry {
     pub key: u64,
     pub state: State,
     pub alt_dosage: Option<u8>,
+    pub measurement: Option<Box<crate::dosage::Measurement>>,
     pub refcall_adapted: bool,
     pub phased: bool,
     pub first_ref: u32,
@@ -288,7 +294,16 @@ impl Block {
             out.write_all(&o.to_le_bytes())?;
         }
         out.write_all(&(self.text.len() as u64).to_le_bytes())?;
-        out.write_all(&self.text)
+        out.write_all(&self.text)?;
+        let measurements: Vec<_> = self
+            .entries
+            .iter()
+            .enumerate()
+            .filter_map(|(i, e)| e.measurement.as_ref().map(|m| (i, m)))
+            .collect();
+        let bytes = serde_json::to_vec(&measurements)?;
+        out.write_all(&(bytes.len() as u64).to_le_bytes())?;
+        out.write_all(&bytes)
     }
 
     fn bytes(&self) -> Vec<u8> {
@@ -298,7 +313,7 @@ impl Block {
     }
 
     /// Parse the block sections from the start of `bytes`; returns the block and the bytes consumed.
-    fn read(bytes: &[u8]) -> Option<(Block, usize)> {
+    fn read(bytes: &[u8], quantitative: bool) -> Option<(Block, usize)> {
         let mut at = 0usize;
         let take = |at: &mut usize, n: usize| -> Option<&[u8]> {
             let s = bytes.get(*at..at.checked_add(n)?)?;
@@ -316,6 +331,7 @@ impl Block {
                 key: u64::from_le_bytes(b[0..8].try_into().expect("8")),
                 state: State::from_code(b[8])?,
                 alt_dosage: (b[9] != 255).then_some(b[9]),
+                measurement: None,
                 refcall_adapted: b[10] & 1 != 0,
                 phased: b[10] & 2 != 0,
                 first_ref: u32::from_le_bytes(b[11..15].try_into().expect("4")),
@@ -338,6 +354,18 @@ impl Block {
             .collect();
         let n = count(&mut at)?;
         let text = take(&mut at, n)?.to_vec();
+        if quantitative {
+            let n = count(&mut at)?;
+            let measurements: Vec<(usize, crate::dosage::Measurement)> =
+                serde_json::from_slice(take(&mut at, n)?).ok()?;
+            for (i, measurement) in measurements {
+                let e = entries.get_mut(i)?;
+                if e.measurement.is_some() || !e.state.is_passing() || e.alt_dosage.is_some() || !measurement.valid() {
+                    return None;
+                }
+                e.measurement = Some(Box::new(measurement));
+            }
+        }
         let block = Block {
             entries,
             refs,
@@ -482,11 +510,12 @@ impl GenotypeTable {
                             block.refs.push(l);
                         }
                     }
-                    let c = calls[i];
+                    let c = &calls[i];
                     block.entries.push(Entry {
                         key: keys[i],
                         state: c.state,
                         alt_dosage: c.alt_dosage,
+                        measurement: c.measurement.clone(),
                         refcall_adapted: c.refcall_adapted,
                         phased: c.phased,
                         first_ref,
@@ -522,7 +551,12 @@ impl GenotypeTable {
                 schema: SCHEMA.into(),
                 pgsum_version: env!("CARGO_PKG_VERSION").into(),
                 policy: PolicyInfo {
-                    id: policy.id.into(),
+                    id: if policy.dosage_field == crate::dosage::Field::Gt {
+                        policy.id.into()
+                    } else {
+                        format!("{}-{}-strict-v1", policy.id, policy.dosage_field.label().to_lowercase())
+                    },
+                    dosage_field: policy.dosage_field,
                     min_depth: policy.min_depth,
                     min_gq: policy.min_gq,
                     refcall_is_reference: policy.refcall_is_reference,
@@ -574,6 +608,27 @@ impl GenotypeTable {
             .collect::<std::io::Result<_>>()
             .map_err(Error::io(path))?;
         let mut header = self.header.clone();
+        header.schema = SCHEMA.into();
+        header.sequence_frame = Some(Frame {
+            sha256: sha256(&sequence_bytes),
+            ..Frame::default()
+        });
+        header.blocks = blocks
+            .iter()
+            .map(|b| BlockInfo {
+                first_key: b.entries.first().map_or(0, |e| e.key),
+                last_key: b.entries.last().map_or(0, |e| e.key),
+                targets: b.entries.len() as u64,
+                frame: Frame {
+                    sha256: sha256(&b.bytes()),
+                    ..Frame::default()
+                },
+            })
+            .collect();
+        header.body_sha256 = digest_of_frames(
+            std::iter::once(header.sequence_frame.as_ref().unwrap().sha256.as_str())
+                .chain(header.blocks.iter().map(|b| b.frame.sha256.as_str())),
+        );
         let mut offset = 0u64;
         for (i, f) in frames.iter().enumerate() {
             let frame = if i == 0 {
@@ -626,7 +681,7 @@ impl GenotypeTable {
         let body_start = 16 + len as usize;
         let header: Header = serde_json::from_slice(map.get(16..body_start).ok_or_else(|| bad("header"))?)
             .map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
-        if header.schema != SCHEMA {
+        if header.schema != SCHEMA && header.schema != SCHEMA_V4 {
             return GenotypeTable::open_single_frame(path, header, &map[body_start..]);
         }
         let sequence_frame = header.sequence_frame.clone().ok_or_else(|| bad("no sequence frame"))?;
@@ -673,7 +728,7 @@ impl GenotypeTable {
         }
         let legacy = header.schema != SCHEMA_V3;
         let upgrade = |key: u64| if legacy { upgrade_v2_key(key) } else { key };
-        let (mut block, used) = Block::read(&body).ok_or_else(bad)?;
+        let (mut block, used) = Block::read(&body, false).ok_or_else(bad)?;
         for e in &mut block.entries {
             e.key = upgrade(e.key);
         }
@@ -700,7 +755,7 @@ impl GenotypeTable {
                 let source = self.source.as_ref().ok_or("block not in memory")?;
                 let info = &self.header.blocks[i];
                 let bytes = source.frame(&info.frame).map_err(|e| e.to_string())?;
-                let (block, used) = Block::read(&bytes)
+                let (block, used) = Block::read(&bytes, self.header.schema == SCHEMA)
                     .filter(|(b, used)| *used == bytes.len() && b.entries.len() as u64 == info.targets)
                     .ok_or_else(|| format!("{}: invalid genotype table block {i}", source.path.display()))?;
                 debug_assert_eq!(used, bytes.len());
@@ -861,6 +916,7 @@ mod tests {
             CompactCall {
                 state: State::ObservedVariant,
                 alt_dosage: Some(1),
+                measurement: None,
                 refcall_adapted: false,
                 phased: false,
             };

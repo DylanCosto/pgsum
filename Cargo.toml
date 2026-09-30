@@ -20,9 +20,12 @@ path = "src/main.rs"
 [dependencies]
 clap = { version = "4.6", features = ["derive"] }
 flate2 = { version = "1.1.10", default-features = false, features = ["zlib-rs"] }
+fs2 = "0.4.3"
 memchr = "2.8.3"
 memmap2 = "0.9.11"
+noodles-bcf = "0.81.0"
 noodles-bgzf = { version = "0.45.0", features = ["libdeflate"] }
+noodles-vcf = "0.83.0"
 num-bigint = "0.5.1"
 num-traits = "0.2.19"
 rayon = "1.12.0"

@@ -62,6 +62,7 @@ fn setup(name: &str) -> (PathBuf, Reference, Pack, pgsum::genotypes::GenotypeTab
     .unwrap();
     let pack_path = out.join("PGS999998.pgsp");
     let options = Options {
+        dosage_field: pgsum::dosage::Field::Gt,
         targets_cache: None,
         haploid_xy_as_homozygous: false,
         accept_missing_quality: false,

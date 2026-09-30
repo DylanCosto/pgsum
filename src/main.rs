@@ -62,7 +62,7 @@ struct PackSelection {
     /// A file listing pack paths or directories, one per line (`#` comments allowed).
     #[arg(long)]
     pack_list: Option<PathBuf>,
-    /// Keep only these score IDs (comma-separated or repeated), e.g. `PGS000001,PGS000013,MY_SCORE`.
+    /// Select score IDs (comma-separated or repeated). With run/batch and no packs, fetch Catalog IDs.
     #[arg(long, value_delimiter = ',')]
     ids: Vec<String>,
 }
@@ -122,8 +122,91 @@ impl PackSelection {
     }
 }
 
+#[derive(Args, Default)]
+struct CatalogArgs {
+    /// Verified download/pack cache for --ids without --pack (default: the pgsum user cache).
+    #[arg(long)]
+    catalog_cache: Option<PathBuf>,
+    /// Require verified cached Catalog packs; never contact the network.
+    #[arg(long, conflicts_with = "refresh_catalog")]
+    offline: bool,
+    /// Check the Catalog again and download fresh score files.
+    #[arg(long)]
+    refresh_catalog: bool,
+}
+
+impl CatalogArgs {
+    fn resolve(&self, selection: &PackSelection, reference: &Path, threads: usize) -> Result<Vec<PathBuf>> {
+        if !selection.packs.is_empty() || selection.pack_list.is_some() {
+            if self.catalog_cache.is_some() || self.offline || self.refresh_catalog {
+                return Err(Error::Invalid(
+                    "Catalog cache options apply only to --ids without --pack/--pack-list".into(),
+                ));
+            }
+            return selection.resolve();
+        }
+        pgsum::catalog_cache::resolve(
+            &selection.ids,
+            reference,
+            &pgsum::catalog_cache::Options {
+                directory: self.catalog_cache.clone(),
+                offline: self.offline,
+                refresh: self.refresh_catalog,
+                jobs: threads.clamp(1, 4),
+            },
+        )
+    }
+}
+
+#[derive(Args)]
+struct BatchArgs {
+    #[command(flatten)]
+    catalog: CatalogArgs,
+    /// TSV with sample_id, input, and optional sample columns; input paths are relative to the sheet.
+    #[arg(long)]
+    samplesheet: PathBuf,
+    #[arg(long)]
+    reference: PathBuf,
+    #[command(flatten)]
+    packs: PackSelection,
+    #[arg(long)]
+    out: PathBuf,
+    /// Concurrent samples; the global --threads budget is divided among them.
+    #[arg(long, default_value_t = 1)]
+    jobs: usize,
+    /// Reuse only complete runs whose inputs, executable, settings and output hashes still match.
+    #[arg(long)]
+    resume: bool,
+    #[arg(long, value_enum, default_value_t = pgsum::dosage::Field::Gt)]
+    dosage_field: pgsum::dosage::Field,
+    #[arg(long)]
+    accept_missing_quality: bool,
+    #[arg(long)]
+    haploid_xy_as_homozygous: bool,
+    #[arg(long)]
+    skip_structural_alleles: bool,
+    #[arg(long)]
+    merge_split_records: bool,
+    #[arg(long)]
+    allow_inferred_other_allele: bool,
+    #[arg(long)]
+    accept_informational_descriptions: bool,
+    #[arg(long)]
+    allow_inferred_palindromes: bool,
+    #[arg(long)]
+    allow_inferred_indels: bool,
+    #[arg(long)]
+    terms: bool,
+    #[arg(long)]
+    bundle: bool,
+}
+
 #[derive(Subcommand)]
 enum Command {
+    /// Compare reported pgsum, PLINK 2 or pgsc_calc sums, with optional term evidence.
+    Compare(pgsum::compare::CompareArgs),
+    /// Score a sample sheet with bounded concurrency, atomic sample outputs and validated resume.
+    Batch(BatchArgs),
     /// Compile PGS Catalog harmonized scoring files into packs.
     Compile {
         /// Scoring files: PGS Catalog harmonized files (`*_hmPOS_GRCh38.txt.gz`, or directories of them, each with
@@ -238,6 +321,9 @@ enum Command {
         /// array or joint-called data). Recorded in the table's policy ID.
         #[arg(long)]
         accept_missing_quality: bool,
+        /// Genotype field to score. DS is additive-only; GP uses model-specific expectations.
+        #[arg(long, value_enum, default_value_t = pgsum::dosage::Field::Gt)]
+        dosage_field: pgsum::dosage::Field,
         /// Leave out records whose ALTs are all structural-variant symbols (`<DEL>`, `<INV>`, …, breakends), which
         /// otherwise make every target they span ambiguous; for panels that carry SVs, such as the 30× 1000
         /// Genomes release. Recorded in the policy ID.
@@ -255,6 +341,12 @@ enum Command {
     },
     /// Score packs against an extracted genotype table.
     Score {
+        /// Target decoded cohort payload in MiB; packs, active frames and decoder workspace are additional.
+        #[arg(long, default_value_t = 128, value_parser = clap::value_parser!(u64).range(1..))]
+        cohort_cache_mib: u64,
+        /// For cohorts, also write detailed missing-call reasons, contribution bounds and source references.
+        #[arg(long)]
+        missingness: bool,
         /// Genotype table from `extract`, or a cohort file from `extract --all-samples`.
         #[arg(long)]
         genotypes: PathBuf,
@@ -285,8 +377,13 @@ enum Command {
         #[command(flatten)]
         reference: ReferenceArgs,
     },
-    /// Extract then score in one step.
+    /// Fetch/cache Catalog IDs (or use packs), extract and score in one step.
     Run {
+        /// Validate input headers and selected packs, write preflight.json, then stop before extraction.
+        #[arg(long)]
+        preflight: bool,
+        #[command(flatten)]
+        catalog: CatalogArgs,
         #[arg(long)]
         gvcf: PathBuf,
         #[arg(long)]
@@ -318,6 +415,9 @@ enum Command {
         /// array or joint-called data). Recorded in the table's policy ID.
         #[arg(long)]
         accept_missing_quality: bool,
+        /// Genotype field to score. DS is additive-only; GP uses model-specific expectations.
+        #[arg(long, value_enum, default_value_t = pgsum::dosage::Field::Gt)]
+        dosage_field: pgsum::dosage::Field,
         /// Leave out records whose ALTs are all structural-variant symbols (`<DEL>`, `<INV>`, …, breakends), which
         /// otherwise make every target they span ambiguous; for panels that carry SVs, such as the 30× 1000
         /// Genomes release. Recorded in the policy ID.
@@ -351,6 +451,16 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     let result: Result<()> = match cli.command {
+        Command::Compare(args) => pgsum::compare::run(&args).and_then(|agrees| {
+            if args.fail_on_difference && !agrees {
+                Err(Error::Invalid(format!(
+                    "comparison differs; see {}",
+                    args.out.display()
+                )))
+            } else {
+                Ok(())
+            }
+        }),
         Command::Compile {
             scoring_files,
             reference,
@@ -392,6 +502,46 @@ fn main() -> ExitCode {
             out,
         } => frequencies(&vcf, &field, &multiallelic_flag, manifest.as_deref(), &out),
         Command::Fetch(args) => fetch(&args),
+        Command::Batch(args) => (|| {
+            pgsum::batch::read_sheet(&args.samplesheet)?;
+            if args.jobs == 0 || args.jobs > threads {
+                return Err(Error::Invalid("--jobs must be between 1 and --threads".into()));
+            }
+            args.catalog.resolve(&args.packs, &args.reference, threads)
+        })()
+        .and_then(|packs| {
+            let result = pgsum::batch::run(&pgsum::batch::Options {
+                sheet: &args.samplesheet,
+                reference: &args.reference,
+                packs: &packs,
+                out: &args.out,
+                settings: pgsum::batch::Settings {
+                    dosage_field: args.dosage_field,
+                    accept_missing_quality: args.accept_missing_quality,
+                    haploid_xy_as_homozygous: args.haploid_xy_as_homozygous,
+                    skip_structural_alleles: args.skip_structural_alleles,
+                    merge_split_records: args.merge_split_records,
+                    allow_inferred_other_allele: args.allow_inferred_other_allele,
+                    accept_informational_descriptions: args.accept_informational_descriptions,
+                    allow_inferred_palindromes: args.allow_inferred_palindromes,
+                    allow_inferred_indels: args.allow_inferred_indels,
+                    terms: args.terms,
+                    bundle: args.bundle,
+                },
+                jobs: args.jobs,
+                threads,
+                resume: args.resume,
+            })?;
+            for sample in result {
+                eprintln!(
+                    "{}: {} — {}",
+                    sample.sample_id,
+                    sample.status,
+                    sample.directory.display()
+                );
+            }
+            Ok(())
+        }),
         Command::Extract {
             gvcf,
             reference,
@@ -402,6 +552,7 @@ fn main() -> ExitCode {
             scan,
             sample,
             accept_missing_quality,
+            dosage_field,
             skip_structural_alleles,
             merge_split_records,
             term_positions,
@@ -409,6 +560,7 @@ fn main() -> ExitCode {
         } => packs.resolve().and_then(|packs| {
             if all_samples {
                 let options = pgsum::cohort::CohortOptions {
+                    dosage_field,
                     targets_cache: targets_cache.as_deref(),
                     haploid_xy_as_homozygous,
                     accept_missing_quality,
@@ -419,6 +571,7 @@ fn main() -> ExitCode {
                 return extract_cohort(&gvcf, &reference, &packs, &out, &options);
             }
             let options = ExtractOptions {
+                dosage_field,
                 targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
                 accept_missing_quality,
@@ -432,6 +585,8 @@ fn main() -> ExitCode {
             extract(&gvcf, &reference, &packs, &out, &options)
         }),
         Command::Score {
+            cohort_cache_mib,
+            missingness,
             genotypes,
             packs,
             out,
@@ -450,7 +605,7 @@ fn main() -> ExitCode {
                 allow_inferred_indels,
             };
             if is_cohort(&genotypes)? {
-                return score_cohort(&genotypes, &packs, &out, &options);
+                return score_cohort(&genotypes, &packs, &out, &options, missingness, cohort_cache_mib);
             }
             let table = GenotypeTable::open(&genotypes)?;
             let panel = open_panel(&reference, &table)?;
@@ -483,6 +638,8 @@ fn main() -> ExitCode {
             )
         }),
         Command::Run {
+            preflight,
+            catalog,
             gvcf,
             reference,
             packs,
@@ -494,22 +651,70 @@ fn main() -> ExitCode {
             scan,
             sample,
             accept_missing_quality,
+            dosage_field,
             skip_structural_alleles,
             merge_split_records,
             allow_inferred_other_allele,
             accept_informational_descriptions,
             allow_inferred_palindromes,
             allow_inferred_indels,
-        } => packs.resolve().and_then(|packs| {
+        } => (|| {
+            let checks = pgsum::workflow::preflight(&gvcf, &reference, sample.as_deref())?;
+            let paths = catalog.resolve(&packs, &reference, threads)?;
+            Ok((paths, checks))
+        })()
+        .and_then(|(packs, checks)| {
             let options = pgsum::score::Options {
                 allow_inferred_other_allele,
                 accept_informational_descriptions,
                 allow_inferred_palindromes,
                 allow_inferred_indels,
             };
+            let provenance = pgsum::workflow::pack_provenance(&packs)?;
+            let reference_identity = reference_identity(&Reference::open(&reference)?)?;
+            let mut seen = std::collections::HashSet::new();
+            for pack in &provenance {
+                if !seen.insert(pack["pgs_id"].as_str()) {
+                    return Err(Error::Invalid("selected packs contain duplicate score IDs".into()));
+                }
+                if pack["reference"]
+                    != serde_json::to_value(&reference_identity).map_err(|e| Error::Invalid(e.to_string()))?
+                {
+                    return Err(Error::Invalid(format!("{}: pack/reference mismatch", pack["pgs_id"])));
+                }
+            }
             std::fs::create_dir_all(&out).map_err(Error::io(&out))?;
+            let lock_path = out.join(".run.lock");
+            let lock = std::fs::OpenOptions::new()
+                .create(true)
+                .truncate(false)
+                .read(true)
+                .write(true)
+                .open(&lock_path)
+                .map_err(Error::io(&lock_path))?;
+            fs2::FileExt::try_lock_exclusive(&lock)
+                .map_err(|e| Error::Invalid(format!("output directory is in use: {e}")))?;
+            if preflight {
+                for path in &packs {
+                    Pack::open(path)?;
+                }
+                pgsum::workflow::write_json(
+                    &out.join("preflight.json"),
+                    &serde_json::json!({
+                        "schema": "pgsum-preflight-v1", "checks": checks, "packs": provenance,
+                        "note": "Preflight passed; no samples have been scored."
+                    }),
+                )?;
+                eprintln!("preflight passed; {}", out.join("preflight.json").display());
+                return Ok(());
+            }
+            let manifest = out.join("execution-manifest.json");
+            if manifest.exists() {
+                std::fs::remove_file(&manifest).map_err(Error::io(&manifest))?;
+            }
             let table_path = out.join("genotypes.pgsg");
             let extract_options = ExtractOptions {
+                dosage_field,
                 targets_cache: targets_cache.as_deref(),
                 haploid_xy_as_homozygous,
                 accept_missing_quality,
@@ -533,6 +738,21 @@ fn main() -> ExitCode {
                 None,
                 None,
                 None,
+            )?;
+            pgsum::workflow::finish(
+                &out,
+                &provenance,
+                serde_json::json!({
+                    "threads": threads, "scan": format!("{scan:?}"), "terms": terms, "bundle": bundle,
+                    "allow_inferred_other_allele": allow_inferred_other_allele,
+                    "accept_informational_descriptions": accept_informational_descriptions,
+                    "allow_inferred_palindromes": allow_inferred_palindromes,
+                    "allow_inferred_indels": allow_inferred_indels,
+                    "catalog_offline": catalog.offline, "catalog_refresh": catalog.refresh_catalog
+                }),
+                checks,
+                terms,
+                bundle,
             )
         }),
     };
@@ -804,17 +1024,76 @@ fn extract_cohort(
 }
 
 /// Score every pack for every sample of a cohort file: `cohort-scores.tsv.zst`, one line per sample and score.
-fn score_cohort(cohort: &Path, packs: &[PathBuf], out: &Path, options: &pgsum::score::Options) -> Result<()> {
+fn score_cohort(
+    cohort: &Path,
+    packs: &[PathBuf],
+    out: &Path,
+    options: &pgsum::score::Options,
+    missingness: bool,
+    cohort_cache_mib: u64,
+) -> Result<()> {
     std::fs::create_dir_all(out).map_err(Error::io(out))?;
     let started = std::time::Instant::now();
-    let table = pgsum::cohort::CohortTable::open(cohort)?;
-    table.preload()?;
-    let scores: Vec<Result<pgsum::cohort::CohortScore>> = packs
-        .par_iter()
-        .map(|p| pgsum::cohort::score_cohort(&Pack::open(p)?, &table, options))
-        .collect();
-    let mut scores = scores.into_iter().collect::<Result<Vec<_>>>()?;
+    let cache_bytes = cohort_cache_mib
+        .checked_mul(1024 * 1024)
+        .and_then(|v| usize::try_from(v).ok())
+        .ok_or_else(|| Error::Invalid("cohort cache size is too large".into()))?;
+    let table = pgsum::cohort::CohortTable::open_with_cache_bytes(cohort, cache_bytes)?;
+    let mut scores = Vec::new();
+    let (mut shared_packs, mut independent_packs) = (0, 0);
+    // Opening a pack decodes its weights. Bound the number open together as well as genotype storage.
+    let group_size = rayon::current_num_threads().clamp(2, 8);
+    if table.header.policy.dosage_field == pgsum::dosage::Field::Gt {
+        scores = packs
+            .par_iter()
+            .map(|p| pgsum::cohort::score_cohort(&Pack::open(p)?, &table, options))
+            .collect::<Result<Vec<_>>>()?;
+        independent_packs = packs.len();
+    } else {
+        for group in packs.chunks(group_size) {
+            let opened = group.par_iter().map(|p| Pack::open(p)).collect::<Result<Vec<_>>>()?;
+            let batch = pgsum::cohort::score_cohorts(&opened, &table, options)?;
+            shared_packs += batch.shared_packs;
+            independent_packs += batch.independent_packs;
+            scores.extend(batch.scores);
+        }
+    }
     scores.sort_by(|a, b| a.pgs_id.cmp(&b.pgs_id));
+    if scores.windows(2).any(|w| w[0].pgs_id == w[1].pgs_id) {
+        return Err(Error::Invalid("cohort scoring requires one pack per score ID".into()));
+    }
+    let report_path = out.join("cohort-missingness.jsonl.zst");
+    let report_identity = if missingness {
+        let path = &report_path;
+        let tmp = path.with_extension("zst.tmp");
+        let result = (|| -> Result<()> {
+            let mut writer =
+                zstd::Encoder::new(BufWriter::new(std::fs::File::create(&tmp).map_err(Error::io(&tmp))?), 3)
+                    .map_err(Error::io(&tmp))?;
+            for source in packs {
+                let pack = Pack::open(source)?;
+                let score = scores
+                    .iter()
+                    .find(|s| s.pgs_id == pack.header.pgs_id)
+                    .expect("scored pack");
+                pgsum::missingness::write_cohort(&pack, &table, options, score, &mut writer)?;
+            }
+            writer.finish().and_then(|mut w| w.flush()).map_err(Error::io(&tmp))?;
+            std::fs::rename(&tmp, path).map_err(Error::io(path))
+        })();
+        if result.is_err() {
+            let _ = std::fs::remove_file(&tmp);
+        }
+        result?;
+        Some(serde_json::json!({
+            "file": "cohort-missingness.jsonl.zst",
+            "sha256": pgsum::digest::file_sha256(path)?,
+            "schema": "pgsum-cohort-missingness-v1"
+        }))
+    } else {
+        None
+    };
+
     let path = out.join("cohort-scores.tsv.zst");
     let tmp = path.with_extension("zst.tmp");
     let written = (|| -> std::io::Result<()> {
@@ -822,7 +1101,7 @@ fn score_cohort(cohort: &Path, packs: &[PathBuf], out: &Path, options: &pgsum::s
         writeln!(
             w,
             "sample\tpgs_id\tpartial_raw_score\tscorable_terms\ttotal_terms\tterm_coverage\tweight_coverage\t\
-             meets_coverage_guideline"
+             meets_coverage_guideline\tdosage_field\texpected_genotype_terms"
         )?;
         for (s, sample) in table.header.samples.iter().enumerate() {
             for c in &scores {
@@ -841,12 +1120,14 @@ fn score_cohort(cohort: &Path, packs: &[PathBuf], out: &Path, options: &pgsum::s
                 let meets = tf >= pgsum::score::COVERAGE_GUIDELINE && wf >= pgsum::score::COVERAGE_GUIDELINE;
                 writeln!(
                     w,
-                    "{sample}\t{}\t{}\t{}\t{}\t{tf:.6}\t{wf:.6}\t{}",
+                    "{sample}\t{}\t{}\t{}\t{}\t{tf:.6}\t{wf:.6}\t{}\t{}\t{}",
                     c.pgs_id,
                     c.text(s),
                     c.scorable[s],
                     c.total_terms,
-                    meets as u8
+                    meets as u8,
+                    table.header.policy.dosage_field.label(),
+                    c.expected_genotype_terms[s]
                 )?;
             }
         }
@@ -857,6 +1138,33 @@ fn score_cohort(cohort: &Path, packs: &[PathBuf], out: &Path, options: &pgsum::s
         let _ = std::fs::remove_file(&tmp);
         Error::io(&path)(e)
     })?;
+    let metadata = out.join("cohort-scores.metadata.json");
+    let metadata_tmp = metadata.with_extension("json.tmp");
+    let provenance = serde_json::json!({
+        "schema": "pgsum-cohort-scores-v2",
+        "pgsum_version": env!("CARGO_PKG_VERSION"),
+        "score_kind": "partial_uncalibrated_score",
+        "dosage_field": table.header.policy.dosage_field,
+        "policy": table.header.policy,
+        "input": table.header.gvcf,
+        "reference": table.header.reference,
+        "genotypes_body_sha256": table.header.body_sha256,
+        "extracted_packs": table.header.packs,
+        "scored_pgs_ids": scores.iter().map(|s| &s.pgs_id).collect::<Vec<_>>(),
+        "missingness_report": report_identity,
+        "cohort_execution": { "shared_block_packs": shared_packs, "independent_packs": independent_packs, "pack_group_size": (table.header.policy.dosage_field != pgsum::dosage::Field::Gt).then_some(group_size) },
+        "cohort_cache": {
+            "stats": table.cache_stats()?,
+            "scope": "Estimated cache payload and size-guided decoded waves. One cached block may exceed capacity; waves can exceed the target when block sizes grow. Packs, active handles, diagnostics, decoder workspace, score sums and mapped files are additional."
+        },
+        "note": "Missing terms contribute nothing. Expected-genotype counts identify input DS/GP contributions, including zero values."
+    });
+    std::fs::write(
+        &metadata_tmp,
+        serde_json::to_vec_pretty(&provenance).map_err(|e| Error::Invalid(e.to_string()))?,
+    )
+    .map_err(Error::io(&metadata_tmp))?;
+    std::fs::rename(&metadata_tmp, &metadata).map_err(Error::io(&metadata))?;
     eprintln!(
         "scored {} packs for {} samples in {:.1}s",
         scores.len(),
@@ -921,7 +1229,6 @@ fn open_panel(args: &ReferenceArgs, table: &GenotypeTable) -> Result<Option<Pane
     }
     let started = std::time::Instant::now();
     let cohort = pgsum::cohort::CohortTable::open(path)?;
-    cohort.preload()?;
     let groups = pgsum::panel::read_groups(groups, &cohort, &args.reference_group_column)?;
     table.preload()?;
     let ancestry = pgsum::panel::nearest_group(table, &cohort, &groups)?;
@@ -1181,7 +1488,11 @@ fn write_targets_tsv(table: &GenotypeTable, out: &mut impl Write) -> Result<()> 
             out,
             "{contig}\t{pos}\t{r}\t{a}\t{}\t{}\t{}\t{}",
             e.state.as_str(),
-            e.alt_dosage.map_or(String::new(), |d| d.to_string()),
+            e.measurement
+                .as_ref()
+                .map(|m| m.alt_dosage().to_python_string())
+                .or_else(|| e.alt_dosage.map(|d| d.to_string()))
+                .unwrap_or_default(),
             e.refcall_adapted as u8,
             e.phased as u8
         )

@@ -156,7 +156,7 @@ fn low_call_rate_terms_cannot_change_percentiles_or_inflate_coverage() {
         f.panel(called, true);
         let r = f.score("1/1", false);
         let p = &r["reference"];
-        assert_eq!(r["schema"], "pgsum-score-v3");
+        assert_eq!(r["schema"], "pgsum-score-v4");
         assert_eq!(r["partial"]["raw_score"], "3");
         let matched = if called >= 99 { 2 } else { 1 };
         assert_eq!(p["matched_terms"], matched);

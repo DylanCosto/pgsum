@@ -1,0 +1,479 @@
+{
+  "schema": "pgsum-plink-synthetic-migration-v1",
+  "versions": {
+    "pgsum": "pgsum 0.5.1",
+    "plink2": "PLINK v2.0.0-a.7.10LM 64-bit Intel (29 Sep 2026)"
+  },
+  "binaries_sha256": {
+    "pgsum": "72e2bb490bd3e51fd9f14c11292b7f7db48e11b7394bffdfd7f94b5d0fc69eb6",
+    "plink2": "72da90d499615cb90c5aac74bc05f9d676c565a94e9ef53f3bf025f75fad4ae9"
+  },
+  "runner_sha256": "9de9a4c5d1decb341bc632bd37a483426d73dafc72a659f6613dc824b8d63aee",
+  "samples": 32,
+  "variants": 48,
+  "oracle": "Independent Python Decimal: 128 sample/score sums, ref and alt effect alleles, missing calls, three GT models, high precision weights.",
+  "limitations": "Synthetic biallelic diploid autosomes only; no public real-data, DS/GP, gVCF, indel, multiallelic, sex-chromosome or pgsc_calc execution validation.",
+  "inputs_sha256": {
+    "RECESSIVE.txt": "3da633eaacff5fd33708cc97c8199a6cb3e50408017e3237a88cddc977b1c88b",
+    "ADDITIVE.txt": "766e9c42cc995db2c4bbfc4ff4e0f29dbfa4d11e5b668d48ea2be6d3c8b57e1d",
+    "DOMINANT.txt": "bd61a004e6d18ad1f4e1dfe78341752222030fc962778ee4d0279c6eeb8d3ba0",
+    "PRECISE.weights": "e2e328e20ba66247800171e64738a67d4b70732592c5dc417148b388672ea30c",
+    "cohort.vcf": "321716736b05f77c97ea6666395b142e638b7a121c73c2b30efc1e9e62032977",
+    "PRECISE.txt": "6d6345e9cbad5148a685b84b1721163c73d9e21d3ce570dd91ebeb7ae9f6c738",
+    "RECESSIVE.weights": "189f933dfcd4e1148108b0ec67aaaf1baf2243a97c838ae51957537b5bbfe2c7",
+    "reference.fa.fai": "7729412ea903497a97b5a6b92f9675c3b63d75d2a07e985eebcd857db0f508f6",
+    "ADDITIVE.weights": "eb003df4f506b63b483863515102125f31beccdaf8a403efafb7b5b486d58ba5",
+    "reference.fa": "5070fa1c6b28b0ad9c86e28236cac639c97c74cd273dc7afd235ad031d45a7d8",
+    "DOMINANT.weights": "3c52a0c9b3c9702e1b9853b70085c693ce30a4c9509ac4f94654d30842c38ba9"
+  },
+  "comparisons": {
+    "ADDITIVE": {
+      "absolute_tolerance": "0",
+      "agrees": true,
+      "comparison_scope": "Reported numeric values only. Agreement does not establish identical input variants, policies, score publication, assembly or clinical validity.",
+      "counts": {
+        "different": 0,
+        "exact": 32,
+        "identity_mismatch": 0,
+        "left_only": 0,
+        "right_only": 0,
+        "rows": 32,
+        "unavailable": 0,
+        "within_tolerance": 0
+      },
+      "left": {
+        "filtered_rows": 0,
+        "format": "pgsum",
+        "path": "$RUN/ADDITIVE/cohort-scores.tsv.zst",
+        "rows": 32,
+        "sample_override": null,
+        "sampleset": null,
+        "score_id": null,
+        "sha256": "sha256:cf28ccdc58547eb6d3805ac16125e44775f7b76b24daaa4f6bad0c201703c5db",
+        "value_column": "partial_raw_score"
+      },
+      "outputs": {
+        "scores.tsv": "sha256:09a90c689824ec8373243fd5bccaa44689ed2e25bea25ebf49100124da02e548"
+      },
+      "pgsum_version": "0.5.1",
+      "policies": [
+        "pgsum uses partial_raw_score: observed/expected contributions without frequency filling; withheld strict raw scores remain withheld.",
+        "PLINK requires an explicitly named _SUM column. pgsc_calc uses SUM. No averages, denominator rescaling or ancestry-normalized values are substituted.",
+        "Sample joins use sample_id/sample or IID. Duplicate sample/score pairs and mixed families/samplesets are rejected; Conflicting FID/SID values on joined rows fail comparison; absent family identifiers cannot be verified.",
+        "Missing rows and unavailable values never become zero or agreement. Explicit tolerances cover reported precision only, not biological or policy equivalence.",
+        "A numeric discrepancy alone has no proven cause. Inspect term evidence and align missing-call imputation, quality filters, dosage fields, allele matching, ploidy and models."
+      ],
+      "relative_tolerance": "0",
+      "right": {
+        "filtered_rows": 0,
+        "format": "plink2",
+        "path": "$RUN/plink-ADDITIVE.sscore",
+        "rows": 32,
+        "sample_override": null,
+        "sampleset": null,
+        "score_id": "ADDITIVE",
+        "sha256": "sha256:64b666e221d3581c6956e5f6218423441b8af4f7a0d3320a0b970165eb6dd3c4",
+        "value_column": "ADDITIVE_SUM"
+      },
+      "schema": "pgsum-comparison-v1",
+      "terms": null
+    },
+    "DOMINANT": {
+      "absolute_tolerance": "0",
+      "agrees": true,
+      "comparison_scope": "Reported numeric values only. Agreement does not establish identical input variants, policies, score publication, assembly or clinical validity.",
+      "counts": {
+        "different": 0,
+        "exact": 32,
+        "identity_mismatch": 0,
+        "left_only": 0,
+        "right_only": 0,
+        "rows": 32,
+        "unavailable": 0,
+        "within_tolerance": 0
+      },
+      "left": {
+        "filtered_rows": 0,
+        "format": "pgsum",
+        "path": "$RUN/DOMINANT/cohort-scores.tsv.zst",
+        "rows": 32,
+        "sample_override": null,
+        "sampleset": null,
+        "score_id": null,
+        "sha256": "sha256:0e7c155608a50998b2435c982794f0d6976afece446a774d87f4bf2e4103a6ad",
+        "value_column": "partial_raw_score"
+      },
+      "outputs": {
+        "scores.tsv": "sha256:85c1dcbad84ea80373dcc455c59299249fccd45a4472ecc40a9a1cfde46f243a"
+      },
+      "pgsum_version": "0.5.1",
+      "policies": [
+        "pgsum uses partial_raw_score: observed/expected contributions without frequency filling; withheld strict raw scores remain withheld.",
+        "PLINK requires an explicitly named _SUM column. pgsc_calc uses SUM. No averages, denominator rescaling or ancestry-normalized values are substituted.",
+        "Sample joins use sample_id/sample or IID. Duplicate sample/score pairs and mixed families/samplesets are rejected; Conflicting FID/SID values on joined rows fail comparison; absent family identifiers cannot be verified.",
+        "Missing rows and unavailable values never become zero or agreement. Explicit tolerances cover reported precision only, not biological or policy equivalence.",
+        "A numeric discrepancy alone has no proven cause. Inspect term evidence and align missing-call imputation, quality filters, dosage fields, allele matching, ploidy and models."
+      ],
+      "relative_tolerance": "0",
+      "right": {
+        "filtered_rows": 0,
+        "format": "plink2",
+        "path": "$RUN/plink-DOMINANT.sscore",
+        "rows": 32,
+        "sample_override": null,
+        "sampleset": null,
+        "score_id": "DOMINANT",
+        "sha256": "sha256:d4a5835d2889a4fa406482ed7e68838c28591ca1b8632935946f0dce01782212",
+        "value_column": "DOMINANT_SUM"
+      },
+      "schema": "pgsum-comparison-v1",
+      "terms": null
+    },
+    "RECESSIVE": {
+      "absolute_tolerance": "0",
+      "agrees": true,
+      "comparison_scope": "Reported numeric values only. Agreement does not establish identical input variants, policies, score publication, assembly or clinical validity.",
+      "counts": {
+        "different": 0,
+        "exact": 32,
+        "identity_mismatch": 0,
+        "left_only": 0,
+        "right_only": 0,
+        "rows": 32,
+        "unavailable": 0,
+        "within_tolerance": 0
+      },
+      "left": {
+        "filtered_rows": 0,
+        "format": "pgsum",
+        "path": "$RUN/RECESSIVE/cohort-scores.tsv.zst",
+        "rows": 32,
+        "sample_override": null,
+        "sampleset": null,
+        "score_id": null,
+        "sha256": "sha256:6c749175e68c5f3bb67de24e78972a28db3e1f30963f12dcf6d45c77098f4121",
+        "value_column": "partial_raw_score"
+      },
+      "outputs": {
+        "scores.tsv": "sha256:bd9c9627383ca18b14205c5754110d13186b0c064e602851cc64a4143533ac4f"
+      },
+      "pgsum_version": "0.5.1",
+      "policies": [
+        "pgsum uses partial_raw_score: observed/expected contributions without frequency filling; withheld strict raw scores remain withheld.",
+        "PLINK requires an explicitly named _SUM column. pgsc_calc uses SUM. No averages, denominator rescaling or ancestry-normalized values are substituted.",
+        "Sample joins use sample_id/sample or IID. Duplicate sample/score pairs and mixed families/samplesets are rejected; Conflicting FID/SID values on joined rows fail comparison; absent family identifiers cannot be verified.",
+        "Missing rows and unavailable values never become zero or agreement. Explicit tolerances cover reported precision only, not biological or policy equivalence.",
+        "A numeric discrepancy alone has no proven cause. Inspect term evidence and align missing-call imputation, quality filters, dosage fields, allele matching, ploidy and models."
+      ],
+      "relative_tolerance": "0",
+      "right": {
+        "filtered_rows": 0,
+        "format": "plink2",
+        "path": "$RUN/plink-RECESSIVE.sscore",
+        "rows": 32,
+        "sample_override": null,
+        "sampleset": null,
+        "score_id": "RECESSIVE",
+        "sha256": "sha256:22f23567d2b7f5bf2b7687c23cb24671635f2d399b6d4211a00d73fa1e318198",
+        "value_column": "RECESSIVE_SUM"
+      },
+      "schema": "pgsum-comparison-v1",
+      "terms": null
+    },
+    "PRECISE": {
+      "absolute_tolerance": "0.00001",
+      "agrees": true,
+      "comparison_scope": "Reported numeric values only. Agreement does not establish identical input variants, policies, score publication, assembly or clinical validity.",
+      "counts": {
+        "different": 0,
+        "exact": 1,
+        "identity_mismatch": 0,
+        "left_only": 0,
+        "right_only": 0,
+        "rows": 32,
+        "unavailable": 0,
+        "within_tolerance": 31
+      },
+      "left": {
+        "filtered_rows": 0,
+        "format": "pgsum",
+        "path": "$RUN/PRECISE/cohort-scores.tsv.zst",
+        "rows": 32,
+        "sample_override": null,
+        "sampleset": null,
+        "score_id": null,
+        "sha256": "sha256:f9a4fc5dbc5c161560d6e3ed812dcb8c406b569f9b5c5ff95c1d8977398107d5",
+        "value_column": "partial_raw_score"
+      },
+      "outputs": {
+        "scores.tsv": "sha256:74d9ef12feb4af3efabee053790aaa9ebd4299323263313717c44b7ebf645a08"
+      },
+      "pgsum_version": "0.5.1",
+      "policies": [
+        "pgsum uses partial_raw_score: observed/expected contributions without frequency filling; withheld strict raw scores remain withheld.",
+        "PLINK requires an explicitly named _SUM column. pgsc_calc uses SUM. No averages, denominator rescaling or ancestry-normalized values are substituted.",
+        "Sample joins use sample_id/sample or IID. Duplicate sample/score pairs and mixed families/samplesets are rejected; Conflicting FID/SID values on joined rows fail comparison; absent family identifiers cannot be verified.",
+        "Missing rows and unavailable values never become zero or agreement. Explicit tolerances cover reported precision only, not biological or policy equivalence.",
+        "A numeric discrepancy alone has no proven cause. Inspect term evidence and align missing-call imputation, quality filters, dosage fields, allele matching, ploidy and models."
+      ],
+      "relative_tolerance": "0.000005",
+      "right": {
+        "filtered_rows": 0,
+        "format": "plink2",
+        "path": "$RUN/plink-PRECISE.sscore",
+        "rows": 32,
+        "sample_override": null,
+        "sampleset": null,
+        "score_id": "PRECISE",
+        "sha256": "sha256:a64e1ed7eddf53f336980b92c7ac1417c23ba96358170187b5c354ca8a1e90c4",
+        "value_column": "PRECISE_SUM"
+      },
+      "schema": "pgsum-comparison-v1",
+      "terms": null
+    }
+  },
+  "commands": [
+    [
+      "$PGSUM",
+      "--version"
+    ],
+    [
+      "$PLINK2",
+      "--version"
+    ],
+    [
+      "$PGSUM",
+      "--threads",
+      "2",
+      "compile",
+      "$RUN/ADDITIVE.txt",
+      "$RUN/DOMINANT.txt",
+      "$RUN/RECESSIVE.txt",
+      "$RUN/PRECISE.txt",
+      "--reference",
+      "$RUN/reference.fa",
+      "--out",
+      "$RUN/packs"
+    ],
+    [
+      "$PGSUM",
+      "--threads",
+      "2",
+      "extract",
+      "--gvcf",
+      "$RUN/cohort.vcf",
+      "--reference",
+      "$RUN/reference.fa",
+      "--pack",
+      "$RUN/packs",
+      "--all-samples",
+      "--accept-missing-quality",
+      "--out",
+      "$RUN/cohort.pgsc"
+    ],
+    [
+      "$PGSUM",
+      "--threads",
+      "2",
+      "score",
+      "--genotypes",
+      "$RUN/cohort.pgsc",
+      "--pack",
+      "$RUN/packs/ADDITIVE.pgsp",
+      "--out",
+      "$RUN/ADDITIVE"
+    ],
+    [
+      "$PLINK2",
+      "--vcf",
+      "$RUN/cohort.vcf",
+      "--score",
+      "$RUN/ADDITIVE.weights",
+      "1",
+      "2",
+      "3",
+      "header-read",
+      "no-mean-imputation",
+      "cols=+scoresums",
+      "--threads",
+      "2",
+      "--out",
+      "$RUN/plink-ADDITIVE"
+    ],
+    [
+      "$PGSUM",
+      "compare",
+      "--left",
+      "$RUN/ADDITIVE/cohort-scores.tsv.zst",
+      "--right",
+      "$RUN/plink-ADDITIVE.sscore",
+      "--right-format",
+      "plink2",
+      "--right-score-column",
+      "ADDITIVE_SUM",
+      "--right-score-id",
+      "ADDITIVE",
+      "--out",
+      "$RUN/compare-ADDITIVE",
+      "--fail-on-difference"
+    ],
+    [
+      "$PGSUM",
+      "--threads",
+      "2",
+      "score",
+      "--genotypes",
+      "$RUN/cohort.pgsc",
+      "--pack",
+      "$RUN/packs/DOMINANT.pgsp",
+      "--out",
+      "$RUN/DOMINANT"
+    ],
+    [
+      "$PLINK2",
+      "--vcf",
+      "$RUN/cohort.vcf",
+      "--score",
+      "$RUN/DOMINANT.weights",
+      "1",
+      "2",
+      "3",
+      "header-read",
+      "no-mean-imputation",
+      "cols=+scoresums",
+      "dominant",
+      "--threads",
+      "2",
+      "--out",
+      "$RUN/plink-DOMINANT"
+    ],
+    [
+      "$PGSUM",
+      "compare",
+      "--left",
+      "$RUN/DOMINANT/cohort-scores.tsv.zst",
+      "--right",
+      "$RUN/plink-DOMINANT.sscore",
+      "--right-format",
+      "plink2",
+      "--right-score-column",
+      "DOMINANT_SUM",
+      "--right-score-id",
+      "DOMINANT",
+      "--out",
+      "$RUN/compare-DOMINANT",
+      "--fail-on-difference"
+    ],
+    [
+      "$PGSUM",
+      "--threads",
+      "2",
+      "score",
+      "--genotypes",
+      "$RUN/cohort.pgsc",
+      "--pack",
+      "$RUN/packs/RECESSIVE.pgsp",
+      "--out",
+      "$RUN/RECESSIVE"
+    ],
+    [
+      "$PLINK2",
+      "--vcf",
+      "$RUN/cohort.vcf",
+      "--score",
+      "$RUN/RECESSIVE.weights",
+      "1",
+      "2",
+      "3",
+      "header-read",
+      "no-mean-imputation",
+      "cols=+scoresums",
+      "recessive",
+      "--threads",
+      "2",
+      "--out",
+      "$RUN/plink-RECESSIVE"
+    ],
+    [
+      "$PGSUM",
+      "compare",
+      "--left",
+      "$RUN/RECESSIVE/cohort-scores.tsv.zst",
+      "--right",
+      "$RUN/plink-RECESSIVE.sscore",
+      "--right-format",
+      "plink2",
+      "--right-score-column",
+      "RECESSIVE_SUM",
+      "--right-score-id",
+      "RECESSIVE",
+      "--out",
+      "$RUN/compare-RECESSIVE",
+      "--fail-on-difference"
+    ],
+    [
+      "$PGSUM",
+      "--threads",
+      "2",
+      "score",
+      "--genotypes",
+      "$RUN/cohort.pgsc",
+      "--pack",
+      "$RUN/packs/PRECISE.pgsp",
+      "--out",
+      "$RUN/PRECISE"
+    ],
+    [
+      "$PLINK2",
+      "--vcf",
+      "$RUN/cohort.vcf",
+      "--score",
+      "$RUN/PRECISE.weights",
+      "1",
+      "2",
+      "3",
+      "header-read",
+      "no-mean-imputation",
+      "cols=+scoresums",
+      "--threads",
+      "2",
+      "--out",
+      "$RUN/plink-PRECISE"
+    ],
+    [
+      "$PGSUM",
+      "compare",
+      "--left",
+      "$RUN/PRECISE/cohort-scores.tsv.zst",
+      "--right",
+      "$RUN/plink-PRECISE.sscore",
+      "--right-format",
+      "plink2",
+      "--right-score-column",
+      "PRECISE_SUM",
+      "--right-score-id",
+      "PRECISE",
+      "--out",
+      "$RUN/compare-PRECISE",
+      "--fail-on-difference",
+      "--absolute-tolerance",
+      "0.00001",
+      "--relative-tolerance",
+      "0.000005"
+    ]
+  ],
+  "plink_download": {
+    "url": "https://s3.amazonaws.com/plink2-assets/alpha7/plink2_linux_x86_64_20260929.zip",
+    "archive_sha256": "671e8d707060ff141ad577a31fc71ef43b96f4dde1ce6e042ebaf27f39c02cc3",
+    "binary_sha256": "72da90d499615cb90c5aac74bc05f9d676c565a94e9ef53f3bf025f75fad4ae9"
+  },
+  "source_sha256": {
+    "src/compare.rs": "91ae2dbdee624aa21995c83fe1f478bca171457445b36f0c53f8af1c50dedf11",
+    "src/main.rs": "f7d16e1119a2fb6a3c59f9250fcac3b9098302dfe52441074954b4edc492ec0c",
+    "src/lib.rs": "de2badc7fa9dcef15b3d9b56d1760ab080c0ef61dce7661c5f63d94689d862aa",
+    "Cargo.lock": "739937b37ed8fa3ed71341f3ab52fb47b67f618c28c8f42c6bc7c4408de8971f",
+    "bench/compare_plink.py": "9de9a4c5d1decb341bc632bd37a483426d73dafc72a659f6613dc824b8d63aee"
+  },
+  "build": "pgsum debug test binary; correctness run only, no performance claim",
+  "validation_test_sha256": "fa2731f82063d86c9c777e26bdf8ad15b25f82380edacf23596ee7fd89f48ef2"
+}

@@ -32,7 +32,7 @@ def genotype(i, sample, dense):
     return v % 3 if dense else (1 if v < 3 else 2 if v == 3 else 0)
 
 
-def generate(root, terms, samples):
+def generate(root, terms, samples, quantitative=False):
     root.mkdir(parents=True, exist_ok=True)
     seq = 'A' * terms
     (root / 'ref.fa').write_text('>chr1\n' + seq + '\n')
@@ -79,6 +79,34 @@ def generate(root, terms, samples):
             sums[0] += weight(i) * c
             sums[1] += weight(i) * (2-c)
     expected['gvcf'] = [sums]
+    if quantitative:
+        for field in ['ds', 'gp']:
+            sums = [[0, 0, 0, 0] for _ in range(samples)]
+            declaration = ('##FORMAT=<ID=DS,Number=A,Type=Float,Description="ALT dosage">\n'
+                           '##FORMAT=<ID=GP,Number=G,Type=Float,Description="Genotype probabilities">\n')
+            with (root / f'{field}.vcf').open('w') as f:
+                f.write(header.replace('#CHROM', declaration + '#CHROM') + '\t'.join(f'S{s}' for s in range(samples)) + '\n')
+                for i in range(terms):
+                    fields = []
+                    for sample in range(samples):
+                        p0 = (i * 17 + sample * 13) % 101
+                        p1 = (100 - p0) // 2
+                        p2 = 100 - p0 - p1
+                        numerator = p1 + 2*p2
+                        if (i + sample) % 29 == 0:
+                            fields.append('.')
+                        else:
+                            fields.append(str(Decimal(numerator).scaleb(-2)) if field == 'ds'
+                                          else ','.join(str(Decimal(p).scaleb(-2)) for p in [p0, p1, p2]))
+                            sums[sample][0] += weight(i) * numerator
+                            sums[sample][1] += weight(i) * (200 - numerator)
+                            sums[sample][2] += 1
+                            sums[sample][3] += abs(weight(i))
+                    f.write(f'chr1\t{i+1}\t.\tA\tG\t.\tPASS\t.\t{field.upper()}\t' + '\t'.join(fields) + '\n')
+            for row in sums:
+                row[0] = Decimal(row[0]).scaleb(-2)
+                row[1] = Decimal(row[1]).scaleb(-2)
+            expected[field] = sums
     return expected
 
 
@@ -117,10 +145,53 @@ def verify(directory, expected, terms, total_weight, cohort):
         data = json.loads((directory / f'{name}.score.json').read_text())
         assert Decimal(data['partial']['raw_score']) == Decimal(expected[0][idx]).scaleb(-5)
         assert data['scorable_terms'] == terms
+        # This workload is fully observed. Validate additive missingness diagnostics separately so
+        # older binaries without that newly added field still compare exactly on existing outputs.
+        missingness = data.pop('missingness', None)
+        if missingness is not None:
+            assert missingness['missing_terms'] == 0
+            assert missingness['bounded_missing_contribution'] == {'lower': '0', 'upper': '0'}
+            assert all(Decimal(v) == Decimal(data['partial']['raw_score'])
+                       for v in missingness['completion_score_bounds'].values())
         # Version changes are allowed; all other fields must agree across binaries and thread counts.
         data.pop('pgsum_version', None)
         results.append(data)
     return hashlib.sha256(json.dumps(results, sort_keys=True).encode()).hexdigest()
+
+
+def verify_cohort_diagnostics(directory, expected, workload, terms):
+    """Independent additive bounds/ranking oracle; also check original record ordinals."""
+    path = directory / 'cohort-missingness.jsonl.zst'
+    raw = subprocess.check_output(['zstd', '-dc', str(path)])
+    records = [json.loads(line) for line in raw.splitlines()]
+    assert len(records) == len(expected) * 2
+    seen = set()
+    for record in records:
+        sample = int(record['sample'][1:])
+        score = record['pgs_id']
+        assert (sample, score) not in seen
+        seen.add((sample, score))
+        missing = [i for i in range(terms) if ((i + sample) % 29 == 0 if workload in ['ds', 'gp']
+                   else genotype(i, sample, workload == 'dense') == 3)]
+        lower = sum(min(0, 2 * weight(i)) for i in missing)
+        upper = sum(max(0, 2 * weight(i)) for i in missing)
+        report = record['missingness']
+        expected_sum = expected[sample][score == 'REF']
+        assert Decimal(record['partial_raw_score']) == Decimal(expected_sum).scaleb(-5)
+        assert report['missing_terms'] == len(missing) == terms - expected[sample][2]
+        assert report['unbounded_terms'] == 0
+        assert report['by_status'] == ({'dosage_missing' if workload in ['ds', 'gp'] else 'no_call': len(missing)} if missing else {})
+        for key, value in [('lower', lower), ('upper', upper)]:
+            assert Decimal(report['bounded_missing_contribution'][key]) == Decimal(value).scaleb(-5)
+            assert Decimal(report['completion_score_bounds'][key]) == Decimal(expected_sum + value).scaleb(-5)
+        ordered = sorted(missing, key=lambda i: (-abs(2 * weight(i)), i))[:20]
+        ranked = report['ranked_missing_terms']
+        assert [r['ordinal'] for r in ranked] == [i + 1 for i in ordered]
+        for r in ranked:
+            assert r['evidence']['source_record_ordinals'] == [r['ordinal']]
+    metadata = json.loads((directory / 'cohort-scores.metadata.json').read_text())
+    assert metadata['missingness_report']['sha256'] == 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(raw).hexdigest()
 
 
 def main():
@@ -129,6 +200,10 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--binary', type=Path, default=Path('target/release/pgsum'))
     p.add_argument('--baseline', type=Path)
+    p.add_argument('--quantitative', action='store_true', help='Also validate and measure DS/GP cohorts')
+    p.add_argument('--workloads', nargs='+', choices=['gvcf', 'sparse', 'dense', 'ds', 'gp'], help='Restrict measured workloads')
+    p.add_argument('--cohort-cache-mib', type=int, help='Candidate-only retained decoded cohort cache capacity')
+    p.add_argument('--cohort-missingness', action='store_true', help='Also measure candidate detailed cohort reports and independently verify their bounds/rankings')
     p.add_argument('--output', type=Path, required=True, help='New directory for inputs, logs, and results.json')
     p.add_argument('--terms', type=int, default=20000)
     p.add_argument('--samples', type=int, default=256)
@@ -146,23 +221,28 @@ def main():
         p.error('Sizes, repeats and thread counts must be positive')
     if args.max_score_slowdown is not None and (not args.baseline or args.max_score_slowdown <= 0):
         p.error('--max-score-slowdown requires --baseline and a positive ratio')
+    if args.cohort_cache_mib is not None and args.cohort_cache_mib < 1:
+        p.error('--cohort-cache-mib must be positive')
+    workloads = args.workloads or (['gvcf', 'sparse', 'dense'] + (['ds', 'gp'] if args.quantitative else []))
     root = args.output.resolve()
     root.mkdir(parents=True, exist_ok=False)
     binaries = [('candidate', args.binary.resolve())]
     if args.baseline:
         binaries.insert(0, ('baseline', args.baseline.resolve()))
-    expected = generate(root / 'inputs', args.terms, args.samples)
+    expected = generate(root / 'inputs', args.terms, args.samples, args.quantitative or any(w in ['ds', 'gp'] for w in workloads))
     total_weight = sum(abs(weight(i)) for i in range(args.terms))
     if not total_weight:
         p.error('Workload must have nonzero total weight')
     report = dict(platform=platform.platform(), cpu_count=os.cpu_count(),
                   terms=args.terms, samples=args.samples, threads=args.threads, repeats=args.repeats,
+                  workloads=workloads, candidate_cohort_cache_mib=args.cohort_cache_mib,
                   cache_policy='One unmeasured warm-up per command; OS caches are not flushed',
                   binaries={}, measurements=[],
                   input_sha256={f.name: hashlib.sha256(f.read_bytes()).hexdigest()
                                 for f in sorted((root / 'inputs').iterdir())},
                   harness_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
     fingerprints = {}
+    diagnostic_fingerprints = {}
     for label, binary in binaries:
         report['binaries'][label] = dict(path=str(binary), sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),
                                         version=subprocess.check_output([binary, '--version'], text=True).strip())
@@ -180,28 +260,46 @@ def main():
             print(f"{label:9} {stage:22} {record['median_seconds']:.4f}s {record['max_rss_mib']:.1f} MiB", flush=True)
         run('compile', [binary, 'compile', 'ALT.tsv', 'REF.tsv', '--reference', 'ref.fa', '--out', packs, '--threads', 1])
         for threads in args.threads:
-            for workload in ['gvcf', 'sparse', 'dense']:
+            for workload in workloads:
                 cohort = workload != 'gvcf'
                 source = f'{workload}.vcf' if cohort else 'sample.g.vcf'
                 table = work / (workload + ('.pgsc' if cohort else '.pgsg'))
                 out = work / f'{workload}-t{threads}'
                 common = ['--pack', packs, '--threads', threads]
                 run(f'{workload}-extract-t{threads}', [binary, 'extract', '--gvcf', source, '--reference', 'ref.fa',
-                    '--out', table, *common, *(['--all-samples', '--accept-missing-quality'] if cohort else [])])
-                run(f'{workload}-score-t{threads}', [binary, 'score', '--genotypes', table, '--out', out, *common])
+                    '--out', table, *common, *(['--all-samples', '--accept-missing-quality'] if cohort else []),
+                    *(['--dosage-field', workload] if workload in ['ds', 'gp'] else [])])
+                cache_args = (['--cohort-cache-mib', args.cohort_cache_mib]
+                              if cohort and label == 'candidate' and args.cohort_cache_mib is not None else [])
+                run(f'{workload}-score-t{threads}', [binary, 'score', '--genotypes', table, '--out', out, *common, *cache_args])
+                if cohort and label == 'candidate':
+                    metadata = json.loads((out / 'cohort-scores.metadata.json').read_text())
+                    if 'cohort_cache' in metadata:
+                        stats = metadata['cohort_cache']['stats']
+                        if args.cohort_cache_mib is not None:
+                            assert stats['capacity_bytes'] == args.cohort_cache_mib * 1024 * 1024
+                        assert stats['resident_bytes'] <= max(stats['capacity_bytes'], stats['largest_block_bytes'])
+                        report.setdefault('cohort_cache', {})[f'{workload}-t{threads}'] = stats
+
                 digest = verify(out, expected[workload], args.terms, total_weight, cohort)
                 previous = fingerprints.setdefault(workload, digest)
                 assert digest == previous, f'{workload}: output changed across binaries/threads'
+                if cohort and label == 'candidate' and args.cohort_missingness:
+                    run(f'{workload}-diagnostics-t{threads}', [binary, 'score', '--genotypes', table, '--out', out, *common, *cache_args, '--missingness'])
+                    assert verify(out, expected[workload], args.terms, total_weight, True) == digest
+                    report_digest = verify_cohort_diagnostics(out, expected[workload], workload, args.terms)
+                    assert diagnostic_fingerprints.setdefault(workload, report_digest) == report_digest
                 if not cohort:
                     run(f'gvcf-run-t{threads}', [binary, 'run', '--gvcf', source, '--reference', 'ref.fa', '--out', out, *common])
                     assert verify(out, expected[workload], args.terms, total_weight, False) == digest
     report['verified_output_sha256'] = fingerprints
+    report['verified_diagnostic_sha256'] = diagnostic_fingerprints
     report['oracle'] = 'All sample sums and cohort coverage checked against independent integer arithmetic'
     if args.baseline:
         by_key = {(r['binary'], r['stage']): r for r in report['measurements']}
         report['speedup_baseline_over_candidate'] = {
             stage: by_key[('baseline', stage)]['median_seconds'] / by_key[('candidate', stage)]['median_seconds']
-            for label, stage in by_key if label == 'candidate'}
+            for label, stage in by_key if label == 'candidate' and ('baseline', stage) in by_key}
     (root / 'results.json').write_text(json.dumps(report, indent=2) + '\n')
     print(f'Exact-output checks passed; results: {root / "results.json"}')
     if args.max_score_slowdown is not None:

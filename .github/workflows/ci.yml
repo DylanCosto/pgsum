@@ -37,9 +37,12 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y zstd time
       - run: cargo build --release --locked
       # Correctness is a gate; noisy shared-runner timings are retained for inspection.
-      - run: python3 bench/performance.py --output target/performance-smoke --terms 10000 --samples 65 --threads 1 4 --repeats 2
+      - run: python3 bench/performance.py --output target/performance-smoke --terms 10000 --samples 65 --threads 1 4 --repeats 2 --quantitative --cohort-missingness --cohort-cache-mib 16
+      - run: python3 bench/missingness.py --binary target/release/pgsum --output target/missingness-smoke --terms 10000 --threads 1 4 --repeats 1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: performance-smoke
-          path: target/performance-smoke/
+          path: |
+            target/performance-smoke/
+            target/missingness-smoke/

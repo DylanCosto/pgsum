@@ -5,7 +5,7 @@
 //! `decimal.Decimal`, so results can be compared as strings.
 
 /// A finite decimal: `(-1)^negative × coefficient × 10^exponent`.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Decimal {
     pub negative: bool,
     /// ASCII digits without leading zeros (`"0"` for zero).
@@ -89,6 +89,36 @@ impl Decimal {
             exponent,
         };
         ADJUSTED_RANGE.contains(&decimal.adjusted()).then_some(decimal)
+    }
+
+    /// Numerical ordering, ignoring trailing precision and the sign of zero; no float conversion.
+    pub fn numeric_cmp(&self, other: &Self) -> std::cmp::Ordering {
+        use std::cmp::Ordering;
+        let zero = self.coefficient == "0";
+        let other_zero = other.coefficient == "0";
+        if zero && other_zero {
+            return Ordering::Equal;
+        }
+        let negative = self.negative && !zero;
+        let other_negative = other.negative && !other_zero;
+        if negative != other_negative {
+            return if negative { Ordering::Less } else { Ordering::Greater };
+        }
+        let magnitude = if zero {
+            Ordering::Less
+        } else if other_zero {
+            Ordering::Greater
+        } else {
+            self.adjusted().cmp(&other.adjusted()).then_with(|| {
+                let len = self.coefficient.len().max(other.coefficient.len());
+                self.coefficient
+                    .bytes()
+                    .chain(std::iter::repeat(b'0'))
+                    .take(len)
+                    .cmp(other.coefficient.bytes().chain(std::iter::repeat(b'0')).take(len))
+            })
+        };
+        if negative { magnitude.reverse() } else { magnitude }
     }
 
     /// Exponent of the leading digit.
