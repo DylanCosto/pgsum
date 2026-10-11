@@ -4,7 +4,16 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn cli(args: &[&str], success: bool) -> std::process::Output {
-    let out = Command::new(env!("CARGO_BIN_EXE_pgsum")).args(args).output().unwrap();
+    let mut command = Command::new(env!("CARGO_BIN_EXE_pgsum"));
+    // Fixtures intentionally change bytes while preserving mtime. Separate their cache files so
+    // unrelated parallel child processes cannot restore an older shared-cache snapshot.
+    if let Some(pair) = args.windows(2).find(|pair| pair[0] == "--reference") {
+        command.env(
+            "PGSUM_CACHE_DIR",
+            Path::new(pair[1]).parent().unwrap().join("digest-cache"),
+        );
+    }
+    let out = command.args(args).output().unwrap();
     assert_eq!(
         out.status.success(),
         success,

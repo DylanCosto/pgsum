@@ -203,6 +203,8 @@ struct BatchArgs {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Run reproducible genotype-masking experiments and report score/rank sensitivity.
+    Robustness(pgsum::robustness::RobustnessArgs),
     /// Compare reported pgsum, PLINK 2 or pgsc_calc sums, with optional term evidence.
     Compare(pgsum::compare::CompareArgs),
     /// Score a sample sheet with bounded concurrency, atomic sample outputs and validated resume.
@@ -451,6 +453,7 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     let result: Result<()> = match cli.command {
+        Command::Robustness(args) => pgsum::robustness::run(&args),
         Command::Compare(args) => pgsum::compare::run(&args).and_then(|agrees| {
             if args.fail_on_difference && !agrees {
                 Err(Error::Invalid(format!(

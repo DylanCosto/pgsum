@@ -62,6 +62,15 @@ gate checks term sums too, so matching totals cannot hide different contribution
 The [public-data comparison](docs/public-validation.md) verifies shared-term arithmetic against PLINK
 and traces default-policy differences from the actual pgsc_calc workflow on chromosome 22.
 
+## Investigate score robustness
+
+`pgsum robustness --experiment experiment.json --out experiment-results` runs deterministic
+random and BED coverage masks, optional frequency-filling experiments, alternative genotype
+extractions, and comparisons with frozen reference distributions. It produces an HTML report,
+exact score/variant deltas, rank changes, cutoff crossings and reproducible provenance. All
+comparisons use an explicit common-callable baseline; these are reconstruction diagnostics,
+not evidence of predictive accuracy. See [robustness experiments](docs/robustness.md).
+
 ## Install
 
 Prebuilt binaries for macOS (Apple Silicon, Intel) and Linux (x86-64, ARM) are attached to each
