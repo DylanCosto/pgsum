@@ -520,8 +520,33 @@ mod tests {
             coefficient: "1".into(),
             exponent: i64::MAX,
         };
-        let summary = summarize(&decimals(&["0"]), &[huge], &[]).unwrap();
+        let summary = summarize(&decimals(&["0"]), std::slice::from_ref(&huge), &[]).unwrap();
         assert!(summary.mae.is_none());
         assert!(serde_json::to_string(&summary).is_ok());
+        let reference = decimals(&["1", "2"]);
+        assert_eq!(percentiles(std::slice::from_ref(&huge), &reference), vec![Some(100.0)]);
+        let summary = summarize(&reference, &[huge.clone(), huge.clone()], &[]).unwrap();
+        assert!(summary.mae.is_none());
+        assert!(serde_json::to_string(&summary).is_ok());
+        let negative_huge = Decimal {
+            negative: true,
+            ..huge.clone()
+        };
+        assert_eq!(percentiles(&[negative_huge], &reference), vec![Some(0.0)]);
+        let same_adjusted = Decimal {
+            negative: false,
+            coefficient: "10".into(),
+            exponent: i64::MAX - 1,
+        };
+        assert_eq!(huge.numeric_cmp(&same_adjusted), Ordering::Equal);
+        let overflowing_adjusted = Decimal {
+            exponent: i64::MAX,
+            ..same_adjusted
+        };
+        assert_eq!(
+            percentiles(std::slice::from_ref(&overflowing_adjusted), &reference),
+            vec![None]
+        );
+        assert!(summarize(&reference, &[huge, overflowing_adjusted], &[]).is_err());
     }
 }
