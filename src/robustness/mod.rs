@@ -1,6 +1,8 @@
 //! Controlled score-reconstruction experiments. These diagnostics do not estimate phenotype prediction.
 pub mod config;
 pub mod planner;
+mod progress;
+pub use progress::ProgressFormat;
 mod report;
 pub mod stats;
 pub mod study;
@@ -36,6 +38,12 @@ pub struct RobustnessArgs {
     /// Also write every changed term/sample/scenario to terms.tsv.zst (can be large).
     #[arg(long)]
     pub terms: bool,
+    /// Progress on stderr: readable updates, JSON Lines for workflow tools, or none.
+    #[arg(long, value_enum, default_value = "human")]
+    pub progress: ProgressFormat,
+    /// Minimum seconds between scoring updates (checked between blocks of 256 terms).
+    #[arg(long, default_value_t = 30, value_parser = clap::value_parser!(u64).range(1..))]
+    pub progress_interval: u64,
 }
 
 enum Source {
@@ -316,6 +324,8 @@ fn optional(v: Option<f64>) -> String {
 
 /// All output is written under a newly created directory. report.json is the completion marker.
 pub fn run(args: &RobustnessArgs) -> Result<()> {
+    let mut progress = progress::Progress::new(args.progress, args.progress_interval);
+    progress.stage("preparing");
     let experiment = config::load(&args.experiment)?;
     let baseline = Source::open(&experiment.genotypes)?;
     let samples = baseline.samples();
@@ -414,6 +424,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
             return invalid!("duplicate score IDs in experiment");
         }
     }
+    progress.stage("fingerprinting");
     let mut input_sha256 = BTreeMap::new();
     for path in paths {
         input_sha256.insert(path.display().to_string(), crate::digest::file_sha256(&path)?);
@@ -449,7 +460,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
             "Per-term and regional deltas explain raw-score movement, not additive percentile changes. Overlapping regions must not be summed.".into(),
             "Frequency-source independence is declared by the user, not established by the software. Evaluation genotypes must not contribute to frequency estimation.".into(),
         ]};
-    for path in &report.experiment.packs {
+    for (score_index, path) in report.experiment.packs.iter().enumerate() {
         let pack = Pack::open(path)?;
         baseline.check(&pack)?;
         for s in &scenarios {
@@ -462,11 +473,13 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
                 t.check(&pack)?
             }
         }
-        eprintln!(
-            "robustness: {} ({} samples, {} scenarios)",
-            pack.header.pgs_id,
+        progress.start_score(
+            &pack.header.pgs_id,
+            score_index + 1,
+            report.experiment.packs.len(),
             n,
-            scenarios.len()
+            scenarios.len(),
+            pack.columns.len(),
         );
         let mut base_reader = baseline.reader();
         let mut scenario_readers: Vec<_> = scenarios
@@ -490,6 +503,9 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
         let mut total_weight = 0.0;
         let mut baseline_weight = 0.0;
         for (ordinal, item) in pack.terms().enumerate() {
+            if ordinal % 256 == 0 {
+                progress.checkpoint(ordinal, eligible, false);
+            }
             let term = item?;
             let weight = crate::score::term_effect(&term).unwrap_or(0.0);
             total_weight += weight;
@@ -667,12 +683,14 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
                 }
             }
         }
+        progress.checkpoint(pack.columns.len(), eligible, true);
         if eligible == 0 {
             return invalid!(
                 "{}: no common-callable autosomal baseline terms; no completed report",
                 pack.header.pgs_id
             );
         }
+        progress.stage("summarizing");
         let base_values: Vec<_> = base_sums.iter().map(ExactSum::finish).collect();
         let base_pct = stats::percentiles(&base_values, &base_values);
         let reference_values: Vec<Vec<_>> = ref_sums
@@ -796,6 +814,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
             scenarios: summaries,
         });
     }
+    progress.writing();
     for out in [&mut scores, &mut changes, &mut region_out, &mut reference_out] {
         out.flush().map_err(Error::io(&args.out))?;
     }
@@ -820,6 +839,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
             crate::digest::file_sha256(&args.out.join("terms.tsv.zst"))?,
         );
     }
+    progress.stage("verifying_inputs");
     // Re-hash inputs so a concurrent replacement cannot leave a successful provenance claim.
     for (path, hash) in &report.input_sha256 {
         if crate::digest::file_sha256(Path::new(path))? != *hash {
@@ -829,7 +849,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
     let marker = args.out.join(".report.json.tmp");
     write_json(&marker, &report)?;
     std::fs::rename(&marker, args.out.join("report.json")).map_err(Error::io(&marker))?;
-    eprintln!("robustness: complete; {}", args.out.join("report.html").display());
+    progress.complete(&args.out.join("report.html").to_string_lossy());
     Ok(())
 }
 fn writer(dir: &Path, name: &str) -> Result<BufWriter<File>> {

@@ -164,6 +164,152 @@ fn gt_fields() -> Vec<Vec<&'static str>> {
     ]
 }
 
+#[test]
+fn progress_logs_account_for_exclusions_and_preserve_all_scientific_outputs() {
+    let fixture = Fixture::new("progress", 4);
+    let mut fields = gt_fields();
+    fields[1][0] = "./.";
+    let table = fixture.table("partial", &["A", "B", "C"], "GT", &fields, "gt");
+    let source = fixture.path("experiment.json");
+    let manifest = fixture.manifest(
+        &table,
+        json!([
+            {"id":"control"},
+            {"id":"mask", "masks":[{"kind":"random", "rate":0.2, "seed":42, "unit":"sample_site"}]}
+        ]),
+    );
+    std::fs::write(&source, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    for format in ["quiet", "json", "human"] {
+        let out = fixture.path(format);
+        let output = run(&[
+            "robustness",
+            "--experiment",
+            text(&source),
+            "--out",
+            text(&out),
+            "--terms",
+            "--progress",
+            format,
+            "--progress-interval",
+            "1",
+        ]);
+        assert!(output.stdout.is_empty());
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        if format == "quiet" {
+            assert!(stderr.is_empty());
+        } else if format == "human" {
+            assert!(stderr.contains("4/4 terms processed, 3 baseline, 1 excluded"));
+            assert!(stderr.contains("robustness: complete;"));
+        } else {
+            let events: Vec<Value> = stderr.lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+            let mut phases: Vec<_> = events.iter().map(|event| event["phase"].as_str().unwrap()).collect();
+            phases.dedup();
+            assert_eq!(
+                phases,
+                [
+                    "preparing",
+                    "fingerprinting",
+                    "scoring",
+                    "summarizing",
+                    "writing",
+                    "verifying_inputs",
+                    "complete"
+                ]
+            );
+            assert!(events.iter().all(|e| e["schema"] == "pgsum-robustness-progress-v1"));
+            assert!(
+                events
+                    .windows(2)
+                    .all(|pair| pair[0]["elapsed_seconds"].as_f64() <= pair[1]["elapsed_seconds"].as_f64())
+            );
+            let score = &events.iter().rev().find(|event| event["phase"] == "scoring").unwrap()["score"];
+            for (key, expected) in [
+                ("terms_total", 4),
+                ("terms_processed", 4),
+                ("baseline_terms", 3),
+                ("excluded_terms", 1),
+                ("score_index", 1),
+                ("scores_total", 1),
+                ("samples", 3),
+                ("scenarios", 2),
+            ] {
+                assert_eq!(score[key], expected, "{key}");
+            }
+            assert_eq!(events.last().unwrap()["report"], text(&out.join("report.html")));
+        }
+        for name in [
+            "report.json",
+            "report.html",
+            "samples.tsv",
+            "regions.tsv",
+            "references.tsv",
+            "top-changes.jsonl",
+            "terms.tsv.zst",
+        ] {
+            assert_eq!(
+                std::fs::read(out.join(name)).unwrap(),
+                std::fs::read(fixture.path("quiet").join(name)).unwrap(),
+                "{format}/{name}"
+            );
+        }
+    }
+}
+
+#[test]
+fn a_finished_term_scan_does_not_claim_a_failed_experiment_is_complete() {
+    let fixture = Fixture::new("progress-error", 4);
+    let mut fields = gt_fields();
+    for row in &mut fields {
+        row[0] = "./.";
+    }
+    let table = fixture.table("missing", &["A", "B", "C"], "GT", &fields, "gt");
+    let source = fixture.path("experiment.json");
+    std::fs::write(
+        &source,
+        serde_json::to_vec(&fixture.manifest(&table, json!([{"id":"control"}]))).unwrap(),
+    )
+    .unwrap();
+    let out = fixture.path("failed");
+    let output = Command::new(env!("CARGO_BIN_EXE_pgsum"))
+        .args([
+            "robustness",
+            "--experiment",
+            text(&source),
+            "--out",
+            text(&out),
+            "--progress",
+            "json",
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(!out.join("report.json").exists());
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("no common-callable"));
+    let events: Vec<Value> = stderr
+        .lines()
+        .filter(|line| line.starts_with('{'))
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert!(events.iter().all(|event| event["phase"] != "complete"));
+    assert_eq!(events.last().unwrap()["score"]["terms_processed"], 4);
+    assert_eq!(events.last().unwrap()["score"]["excluded_terms"], 4);
+    let invalid = Command::new(env!("CARGO_BIN_EXE_pgsum"))
+        .args([
+            "robustness",
+            "--experiment",
+            text(&source),
+            "--out",
+            text(&fixture.path("invalid")),
+            "--progress-interval",
+            "0",
+        ])
+        .output()
+        .unwrap();
+    assert!(!invalid.status.success());
+    assert!(!fixture.path("invalid").exists());
+}
+
 fn rows(path: &Path) -> Vec<Row> {
     let contents = std::fs::read_to_string(path).unwrap();
     parse_rows(&contents)
