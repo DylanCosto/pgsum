@@ -150,7 +150,7 @@ impl Decimal {
     }
 
     pub fn adjusted(&self) -> i64 {
-        self.exponent + self.coefficient.len() as i64 - 1
+        self.exponent + (self.coefficient.len() as i64 - 1)
     }
 
     /// The coefficient as a signed 64-bit integer, when it fits.

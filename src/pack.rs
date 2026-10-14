@@ -42,7 +42,7 @@ pub const MAGIC: &[u8; 8] = b"PGSUMPK2";
 pub const SCHEMA: &str = "pgsum-pack-v3";
 /// Version of the compile-time rules (term description, orientation, inference, informational
 /// descriptions). A pack compiled under other rules is recompiled by `fetch`.
-pub const COMPILE_RULES: &str = "2026-09-27.published-alleles";
+pub const COMPILE_RULES: &str = "2026-10-11.reference-ambiguity";
 /// Earlier schema still read: v2 has no inferred-orientation columns.
 pub const SCHEMA_V2: &str = "pgsum-pack-v2";
 pub const EXTENSION: &str = "pgsp";

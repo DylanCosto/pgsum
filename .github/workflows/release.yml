@@ -2,8 +2,9 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
 permissions:
-  contents: write
+  contents: read
 jobs:
   build:
     strategy:
@@ -11,10 +12,9 @@ jobs:
       matrix:
         include:
           - target: aarch64-apple-darwin
-            os: macos-14
+            os: macos-15
           - target: x86_64-apple-darwin
-            os: macos-14
-            cross: true
+            os: macos-15-intel
           - target: x86_64-unknown-linux-gnu
             os: ubuntu-22.04
           - target: aarch64-unknown-linux-gnu
@@ -25,51 +25,71 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
-      - name: Check release tag matches package version
+      - name: Check version tag before publishing
+        if: ${{ github.event_name == 'push' }}
         shell: bash
         run: |
-          version=$(cargo metadata --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')
+          version=$(cargo metadata --locked --no-deps --format-version 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["packages"][0]["version"])')
           test "$GITHUB_REF_NAME" = "v$version"
-      # Cross-compiled targets are built but not tested (the same code is tested on the native targets).
-      - if: ${{ !matrix.cross }}
-        run: cargo test --release --locked --target ${{ matrix.target }}
+      - run: cargo test --release --locked --target ${{ matrix.target }}
       - run: cargo build --release --locked --target ${{ matrix.target }}
       - name: Smoke test release binary
-        if: ${{ !matrix.cross }}
         run: target/${{ matrix.target }}/release/pgsum --version
       - name: Package
         shell: bash
         run: |
-          name=pgsum-${GITHUB_REF_NAME}-${{ matrix.target }}
-          mkdir "$name"
-          cp target/${{ matrix.target }}/release/pgsum README.md DESIGN.md RELEASE_NOTES.md LICENSE-APACHE LICENSE-MIT "$name"/
-          tar czf "$name.tar.gz" "$name"
-          shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
+          python3 scripts/package_release.py build \
+            --binary target/${{ matrix.target }}/release/pgsum \
+            --target ${{ matrix.target }} --output dist
+      - name: Run offline example from extracted package
+        shell: bash
+        run: |
+          for archive in dist/*.tar.gz; do
+            python3 scripts/package_release.py verify "$archive" --run-example
+          done
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.target }}
-          path: pgsum-*.tar.gz*
+          name: pgsum-${{ matrix.target }}
+          path: dist/pgsum-*.tar.gz*
+          if-no-files-found: error
   release:
+    # Manual dispatch is a packaging dry run. Only a matching version-tag push
+    # reaches publication; PR validation never has release-write permissions.
+    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') }}
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
+          path: dist
+      - name: Verify downloaded release archives
+        shell: bash
+        run: |
+          for archive in dist/*.tar.gz; do
+            python3 scripts/package_release.py verify "$archive"
+          done
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cat > notes.md <<'NOTES'
-          pgsum @TAG@ (early development). See the README for what pgsum does, what has been
-          validated and its limitations, and the commit history for what changed.
+          pgsum @TAG@. See the included release notes and README for changes,
+          validation scope and limitations.
 
-          Each archive holds the `pgsum` binary, README, DESIGN, release notes and licences; check it against its `.sha256`.
-          Scoring files are not included: download them from the PGS Catalog (`pgsum fetch`).
+          Each archive includes the platform binary, documentation, checked benchmark records,
+          licences, a file-hash manifest and a complete offline synthetic robustness example.
+          Verify the adjacent `.sha256` checksum, then run:
+          `python3 examples/robustness/run.py --binary ./pgsum --out example-output`
+
+          Real scoring files and participant genotypes are not included. The bundled miniature
+          model and genotypes are explicitly synthetic; obtain real scoring files through the PGS Catalog.
           NOTES
           cat RELEASE_NOTES.md >> notes.md
           sed -i "s/@TAG@/$GITHUB_REF_NAME/" notes.md
-          gh release create "$GITHUB_REF_NAME" pgsum-*.tar.gz* --repo "$GITHUB_REPOSITORY" \
+          gh release create "$GITHUB_REF_NAME" dist/pgsum-*.tar.gz* --repo "$GITHUB_REPOSITORY" \
             --title "pgsum $GITHUB_REF_NAME" --notes-file notes.md
 

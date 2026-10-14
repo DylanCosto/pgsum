@@ -15,7 +15,8 @@ pub struct Variant {
 }
 
 /// Normalize `(pos, ref, alt)`. `base(p)` is the upper-case reference base at 1-based position `p`, used when
-/// the variant shifts left. `None` if the alleles are equal, not ACGT, or the shift runs off the contig.
+/// the variant shifts left. `None` if the alleles are equal, not ACGT, or a shift needs an unresolved
+/// reference base or runs off the contig.
 pub fn normalize(pos: u64, ref_allele: &str, alt: &str, base: impl Fn(u64) -> Option<u8>) -> Option<Variant> {
     let acgt = |s: &str| !s.is_empty() && s.bytes().all(|b| matches!(b, b'A' | b'C' | b'G' | b'T'));
     if !acgt(ref_allele) || !acgt(alt) || ref_allele == alt {
@@ -31,7 +32,7 @@ pub fn normalize(pos: u64, ref_allele: &str, alt: &str, base: impl Fn(u64) -> Op
         }
         if r.is_empty() || a.is_empty() {
             pos = pos.checked_sub(1).filter(|&p| p >= 1)?;
-            let b = base(pos)?;
+            let b = base(pos).filter(|b| b"ACGT".contains(b))?;
             r.insert(0, b);
             a.insert(0, b);
             changed = true;
@@ -99,5 +100,20 @@ mod tests {
         assert_eq!(n(3, "A", "A"), None);
         assert_eq!(n(3, "A", "N"), None);
         assert_eq!(n(1, "GC", "C"), None, "shifting left past position 1");
+    }
+
+    #[test]
+    fn unresolved_reference_cannot_supply_a_left_anchor() {
+        for base in b"NRYSWKMBDHV" {
+            assert_eq!(normalize(3, "TA", "A", |_| Some(*base)), None);
+        }
+        assert_eq!(
+            normalize(3, "TA", "A", |_| Some(b'C')),
+            Some(Variant {
+                pos: 2,
+                ref_allele: "CT".into(),
+                alt: "C".into(),
+            })
+        );
     }
 }

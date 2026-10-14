@@ -1,0 +1,2749 @@
+{
+  "schema": "pgsum-genomewide-robustness-validation-v1",
+  "date_utc": "2026-10-14",
+  "score": "PGS000018",
+  "actual_published_rows": 1745179,
+  "file_declared_rows": 1745180,
+  "score_selection": "Full unmodified PGS000018 harmonized GRCh38 file; all rows compiled and retained in model inventory.",
+  "scope": "Numerical omission robustness conditional on each cohort-specific common-callable baseline. No phenotype, predictive-accuracy, population calibration, or complete published-score claim.",
+  "oracle": "Independent source-allele orientation against GRCh38 FASTA and a sorted overlap sweep of original public diploid GTs. NumPy signed int64 arithmetic at exact 64e12 units, after proving absolute-sum overflow bound from all original rational weight strings. Native packs, genotype caches, and contribution outputs are not oracle inputs.",
+  "checks": [
+    "all original model rows retained",
+    "all22 autosomes queried",
+    "each cohort intersection recalculated independently",
+    "every baseline/scenario raw sum and delta exact",
+    "every top10 term identity, sign and residual exact",
+    "every regional delta exact",
+    "mask/retained/fill/change counts",
+    "baseline ordinal/coordinate digest",
+    "frozen separate-reference percentiles",
+    "fixed-cohort and reranked percentiles",
+    "summary correlations/error metrics/cutoff crossings"
+  ],
+  "scenarios": "no mask; 20% deterministic site-level random omissions (seed42); chr9:21500001-22500000 regional omission; each omission without and with disjoint64-reference allele-frequency fill",
+  "frequency_independence": "Reference64 IDs are disjoint from all nested target8/32/128 IDs; no target genotype enters AF estimation.",
+  "sampling": {
+    "source_samples": 2548,
+    "selected": [
+      "HG00096",
+      "HG00110",
+      "HG00123",
+      "HG00138",
+      "HG00154",
+      "HG00179",
+      "HG00234",
+      "HG00250",
+      "HG00263",
+      "HG00277",
+      "HG00308",
+      "HG00325",
+      "HG00341",
+      "HG00358",
+      "HG00373",
+      "HG00407",
+      "HG00448",
+      "HG00479",
+      "HG00553",
+      "HG00590",
+      "HG00619",
+      "HG00641",
+      "HG00683",
+      "HG00717",
+      "HG00844",
+      "HG01047",
+      "HG01067",
+      "HG01089",
+      "HG01111",
+      "HG01137",
+      "HG01174",
+      "HG01205",
+      "HG01269",
+      "HG01312",
+      "HG01354",
+      "HG01377",
+      "HG01412",
+      "HG01455",
+      "HG01488",
+      "HG01509",
+      "HG01528",
+      "HG01578",
+      "HG01606",
+      "HG01625",
+      "HG01678",
+      "HG01705",
+      "HG01767",
+      "HG01786",
+      "HG01805",
+      "HG01841",
+      "HG01855",
+      "HG01870",
+      "HG01890",
+      "HG01924",
+      "HG01948",
+      "HG01973",
+      "HG01992",
+      "HG02020",
+      "HG02050",
+      "HG02072",
+      "HG02090",
+      "HG02128",
+      "HG02144",
+      "HG02169",
+      "HG02188",
+      "HG02236",
+      "HG02272",
+      "HG02298",
+      "HG02323",
+      "HG02358",
+      "HG02385",
+      "HG02402",
+      "HG02439",
+      "HG02477",
+      "HG02502",
+      "HG02554",
+      "HG02582",
+      "HG02610",
+      "HG02645",
+      "HG02667",
+      "HG02694",
+      "HG02728",
+      "HG02771",
+      "HG02793",
+      "HG02820",
+      "HG02879",
+      "HG02938",
+      "HG02977",
+      "HG03021",
+      "HG03054",
+      "HG03078",
+      "HG03100",
+      "HG03123",
+      "HG03162",
+      "HG03198",
+      "HG03240",
+      "HG03294",
+      "HG03352",
+      "HG03388",
+      "HG03437",
+      "HG03462",
+      "HG03491",
+      "HG03556",
+      "HG03585",
+      "HG03619",
+      "HG03652",
+      "HG03686",
+      "HG03703",
+      "HG03729",
+      "HG03750",
+      "HG03772",
+      "HG03788",
+      "HG03814",
+      "HG03838",
+      "HG03864",
+      "HG03885",
+      "HG03905",
+      "HG03928",
+      "HG03953",
+      "HG03978",
+      "HG04015",
+      "HG04039",
+      "HG04080",
+      "HG04141",
+      "HG04173",
+      "HG04200",
+      "HG04235",
+      "NA07048",
+      "NA11881",
+      "NA12003",
+      "NA12234",
+      "NA12348",
+      "NA12751",
+      "NA12827",
+      "NA18488",
+      "NA18520",
+      "NA18536",
+      "NA18550",
+      "NA18567",
+      "NA18595",
+      "NA18613",
+      "NA18627",
+      "NA18640",
+      "NA18749",
+      "NA18874",
+      "NA18917",
+      "NA18947",
+      "NA18962",
+      "NA18975",
+      "NA18988",
+      "NA19003",
+      "NA19024",
+      "NA19043",
+      "NA19067",
+      "NA19083",
+      "NA19098",
+      "NA19131",
+      "NA19171",
+      "NA19207",
+      "NA19256",
+      "NA19320",
+      "NA19351",
+      "NA19384",
+      "NA19428",
+      "NA19446",
+      "NA19468",
+      "NA19657",
+      "NA19700",
+      "NA19725",
+      "NA19750",
+      "NA19776",
+      "NA19819",
+      "NA19921",
+      "NA20289",
+      "NA20340",
+      "NA20504",
+      "NA20517",
+      "NA20533",
+      "NA20582",
+      "NA20759",
+      "NA20773",
+      "NA20798",
+      "NA20811",
+      "NA20831",
+      "NA20859",
+      "NA20875",
+      "NA20891",
+      "NA20906",
+      "NA21095",
+      "NA21110",
+      "NA21123",
+      "NA21144"
+    ],
+    "references": [
+      "HG00123",
+      "HG00179",
+      "HG00263",
+      "HG00325",
+      "HG00373",
+      "HG00479",
+      "HG00619",
+      "HG00717",
+      "HG01067",
+      "HG01137",
+      "HG01269",
+      "HG01377",
+      "HG01488",
+      "HG01578",
+      "HG01678",
+      "HG01786",
+      "HG01855",
+      "HG01924",
+      "HG01992",
+      "HG02072",
+      "HG02144",
+      "HG02236",
+      "HG02323",
+      "HG02402",
+      "HG02502",
+      "HG02610",
+      "HG02694",
+      "HG02793",
+      "HG02938",
+      "HG03054",
+      "HG03123",
+      "HG03240",
+      "HG03388",
+      "HG03491",
+      "HG03619",
+      "HG03703",
+      "HG03772",
+      "HG03838",
+      "HG03905",
+      "HG03978",
+      "HG04080",
+      "HG04200",
+      "NA11881",
+      "NA12348",
+      "NA18488",
+      "NA18550",
+      "NA18613",
+      "NA18749",
+      "NA18947",
+      "NA18988",
+      "NA19043",
+      "NA19098",
+      "NA19207",
+      "NA19351",
+      "NA19446",
+      "NA19700",
+      "NA19776",
+      "NA20289",
+      "NA20517",
+      "NA20759",
+      "NA20811",
+      "NA20875",
+      "NA21095",
+      "NA21144"
+    ],
+    "targets": [
+      "HG00096",
+      "HG00110",
+      "HG00138",
+      "HG00154",
+      "HG00234",
+      "HG00250",
+      "HG00277",
+      "HG00308",
+      "HG00341",
+      "HG00358",
+      "HG00407",
+      "HG00448",
+      "HG00553",
+      "HG00590",
+      "HG00641",
+      "HG00683",
+      "HG00844",
+      "HG01047",
+      "HG01089",
+      "HG01111",
+      "HG01174",
+      "HG01205",
+      "HG01312",
+      "HG01354",
+      "HG01412",
+      "HG01455",
+      "HG01509",
+      "HG01528",
+      "HG01606",
+      "HG01625",
+      "HG01705",
+      "HG01767",
+      "HG01805",
+      "HG01841",
+      "HG01870",
+      "HG01890",
+      "HG01948",
+      "HG01973",
+      "HG02020",
+      "HG02050",
+      "HG02090",
+      "HG02128",
+      "HG02169",
+      "HG02188",
+      "HG02272",
+      "HG02298",
+      "HG02358",
+      "HG02385",
+      "HG02439",
+      "HG02477",
+      "HG02554",
+      "HG02582",
+      "HG02645",
+      "HG02667",
+      "HG02728",
+      "HG02771",
+      "HG02820",
+      "HG02879",
+      "HG02977",
+      "HG03021",
+      "HG03078",
+      "HG03100",
+      "HG03162",
+      "HG03198",
+      "HG03294",
+      "HG03352",
+      "HG03437",
+      "HG03462",
+      "HG03556",
+      "HG03585",
+      "HG03652",
+      "HG03686",
+      "HG03729",
+      "HG03750",
+      "HG03788",
+      "HG03814",
+      "HG03864",
+      "HG03885",
+      "HG03928",
+      "HG03953",
+      "HG04015",
+      "HG04039",
+      "HG04141",
+      "HG04173",
+      "HG04235",
+      "NA07048",
+      "NA12003",
+      "NA12234",
+      "NA12751",
+      "NA12827",
+      "NA18520",
+      "NA18536",
+      "NA18567",
+      "NA18595",
+      "NA18627",
+      "NA18640",
+      "NA18874",
+      "NA18917",
+      "NA18962",
+      "NA18975",
+      "NA19003",
+      "NA19024",
+      "NA19067",
+      "NA19083",
+      "NA19131",
+      "NA19171",
+      "NA19256",
+      "NA19320",
+      "NA19384",
+      "NA19428",
+      "NA19468",
+      "NA19657",
+      "NA19725",
+      "NA19750",
+      "NA19819",
+      "NA19921",
+      "NA20340",
+      "NA20504",
+      "NA20533",
+      "NA20582",
+      "NA20773",
+      "NA20798",
+      "NA20831",
+      "NA20859",
+      "NA20891",
+      "NA20906",
+      "NA21110",
+      "NA21123"
+    ],
+    "method": "192 evenly spaced VCF-header indices floor(i*(n-1)/191); index%3==2 supplies 64 fixed references; other 128 are targets; cohorts use first8/32/128 targets"
+  },
+  "sources": {
+    "chromosomes": {
+      "1": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr1.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 1040182789,
+        "sha256": "5598cad22ca866457eb9ff5baeeade6e47e2ebd2b34d1dc2a180cf6f399f5044",
+        "index_sha256": "057d36e5edfb8abe26051c00bdbcef4c1d5ef89c4dda77edd1dd3eabd2ac58be"
+      },
+      "2": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr2.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 1121169725,
+        "sha256": "8c2a40e796e6a47855d4b825754ba01180f855286f5f2703f2ea1c849e1500c3",
+        "index_sha256": "64b4d71c02db97eed35363942df0fc42362ad122304d62657a5c07cb55dfa4cd"
+      },
+      "3": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr3.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 953352016,
+        "sha256": "f8819c823e66edc4f5f00bbafbd176dfa65ef5be74d2afac85db88707bb1899b",
+        "index_sha256": "c5dc443576576ff08c36bbc6aaf0c5f23ece8c5cd262278c86657c6d9e169be5"
+      },
+      "4": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr4.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 958588352,
+        "sha256": "81b0d81476d750dfb62d368062b4a0f60ccea80d197f3aa1990fd4c3be3fe55a",
+        "index_sha256": "5dcec0451c2d5f185a160f5d6a2828d5c71ac4e784970776621150982985fdb4"
+      },
+      "5": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr5.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 860630364,
+        "sha256": "f36cb8ae8e47e297fa60ac5814bf145dede1b84f985e5e60a3dd8935777d0fd3",
+        "index_sha256": "7f78818c4a290451769df0e702aef7e53ffc581da609510b9f7bce86b947ec23"
+      },
+      "6": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr6.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 863701545,
+        "sha256": "5432a12a8d63b9fba217156292a56257f2afdc65bf61ff7d60d15797a7c609ca",
+        "index_sha256": "6bf30b4d84c4879829a878a5e6298cb60550274ccce816b700c751d5dac5b36f"
+      },
+      "7": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr7.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 779219186,
+        "sha256": "9b3812d5f7db9d674785d9607b87e9bb55ca5da149f171b57cbf1ee649bea673",
+        "index_sha256": "3996821957644808feb23608b09082ece91be986b2c947565253fd4574a6225f"
+      },
+      "8": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr8.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 739295619,
+        "sha256": "0856971ddbc278c3e4c3209a90aa17112139bb7591f042aa5aba100c57d5edda",
+        "index_sha256": "599d7fb91e1b6d39e3133a75a4736ebe1566b33fc1a59e3b7daf364e5a79de54"
+      },
+      "9": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr9.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 574815423,
+        "sha256": "ed72c73985aba82582959d31075a355905e69cac341366b85d7acf7f2205e262",
+        "index_sha256": "23b91c1f4e838387262e0d08a7b03f91fff665e003cc32f03ddf454f2520a10c"
+      },
+      "10": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr10.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 672447277,
+        "sha256": "17e067b902ca9a66505c1fd6ce88f170f80cf8c6572c1f8ed874d26c4a4b8a57",
+        "index_sha256": "4e2984374546a95b703197ef83e74f6378fa4df6958d2f9ed6ccfa516809efcb"
+      },
+      "11": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr11.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 657936602,
+        "sha256": "f7a273a73035ee422f243419ae1169cba97a8c1e40932b78dc2bc7ce01e6f081",
+        "index_sha256": "bb51925586e69cdc7594bb2891db9c251cbe9e17451f854120560920c955a426"
+      },
+      "12": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr12.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 639916114,
+        "sha256": "bf0120b7ca8705f747dec6b5aafe2ed6b1d858185fa14763f01cf403145a5e5e",
+        "index_sha256": "c7016abd6121a8a676c424539ff12124c89788b99b7fc87b4d724e182f5f2a3a"
+      },
+      "13": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr13.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 483626279,
+        "sha256": "7f404c013e70497d2722ad2a54dfb23bbad4c495473c8de7e8a0a5edaff0928e",
+        "index_sha256": "75216d24801dbadbfcbe9683eec55edf70a35e603f3d5c614c04930d4b225f05"
+      },
+      "14": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr14.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 434804716,
+        "sha256": "bdd4f4b911c945971d4927a5890613fadfbdf90560929738934a9d75cf80ed76",
+        "index_sha256": "7314f2341fe96fa1ed31c456cf1a4626593f6d215769c00032d52ad5f0141508"
+      },
+      "15": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr15.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 389409753,
+        "sha256": "0b694817f4c6fd1e780c54a50a4c48fff81e2236968ccf2cc5b753802c56a98c",
+        "index_sha256": "7354c23d8df53fe56fa5128f370e668734abc53577a57dd92635553392bc2b5f"
+      },
+      "16": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr16.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 417683578,
+        "sha256": "74a6ab9f91ec15edb2bf5a3cb5aa630240adaef575df62515c2a52009193367c",
+        "index_sha256": "d233a28c97ebfe8f6987cc6649236d6d6d37a8b559e207342159ef2ddda913bd"
+      },
+      "17": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr17.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 367812249,
+        "sha256": "27542c440b24e5ab39e429dd897b0ced89dd22041051e1e1830c753fd260355c",
+        "index_sha256": "c41e59d65a5615421c5a7ef15d829143d1e22a34d4807576d7fb7053f079ce12"
+      },
+      "18": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr18.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 378445850,
+        "sha256": "5446ec34682f707f41a388e8444c5f3b0c3023f363918cea9d20e2b8a39e2ac0",
+        "index_sha256": "b4dde6835e53d9f841226ca70c6d26c2b9f9e56e6c0c516a909e41eedc8fa211"
+      },
+      "19": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr19.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 308195715,
+        "sha256": "2cb80e80fc6f843d384abbe1f150ee9a0bcfd5a4a4b348dcc2b52a3633de0b62",
+        "index_sha256": "193c904b39182a3f040806f3c6c871f0289513271eada67683007c4ffc2e3144"
+      },
+      "20": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr20.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 307668528,
+        "sha256": "0629e7895185e5082d6baba1a3965156d17635dd252de05ced350e2075cf4f48",
+        "index_sha256": "2f970da60a6e23905027e9f2c468a9c80702d295e24ccafcf242f57a31689c15"
+      },
+      "21": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr21.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 187727112,
+        "sha256": "44d9f3aab459edf80ed51f069ad0acd77f5859f3d1101eabd435b4f73626ee1b",
+        "index_sha256": "3888183c963b6782a171a0d01a92a37f2350e21b6348ff0c96879c189e05026c"
+      },
+      "22": {
+        "url": "https://hgdownload.soe.ucsc.edu/gbdb/hg38/1000Genomes/ALL.chr22.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz",
+        "bytes": 185517414,
+        "sha256": "dc2b718c00d1a8220f19561bc647eea08fc25ce641c8f2c12e540fb31f073f88",
+        "index_sha256": "643106c3ddcd0fe95538aa0be8255873339f034b8f40137213e92130283b8b67"
+      }
+    },
+    "score": {
+      "url": "https://ftp.ebi.ac.uk/pub/databases/spot/pgs/scores/PGS000018/ScoringFiles/Harmonized/PGS000018_hmPOS_GRCh38.txt.gz",
+      "sha256": "ed5dcd5359213364a182dd7972edf524cc3e161f8332ca54ca5515c95cbf8d2a"
+    },
+    "catalog_metadata": {
+      "url": "https://www.pgscatalog.org/rest/score/PGS000018",
+      "sha256": "eac884834abaeb0bf07d630ccfdcb6b9f6b46fa69fa6703741efe4061620edd7"
+    }
+  },
+  "reference": {
+    "path": "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+    "sha256": "9cce8b926416dd96b152deea85188495b75f7ac8d634cc723a017067be8702b7",
+    "fai_sha256": "502a1b8fb73ccd53285c28a0f12df90c818b4fe3de1e862ef47c593ef1a0a4b4"
+  },
+  "versions": {
+    "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+    "pysam": "0.24.1",
+    "numpy": "1.26.4",
+    "bcftools": "1.24"
+  },
+  "native_identity": {
+    "pgsum_sha256": "64f392051c91312189a9f7718866c4e9485dc98ef605c86653642282fea96c0b",
+    "version": "pgsum 0.6.0",
+    "prepared_manifest_sha256": "731022f248cb9315c3b3a437714d63344c235547e21ce13006a45c7bdf0526af",
+    "measurements": {
+      "compile": {
+        "elapsed_seconds": 3.82,
+        "peak_rss_kib": 2816724,
+        "user_seconds": 2.9,
+        "system_seconds": 0.73,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "compile",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/PGS000018.txt.gz",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/packs"
+        ]
+      },
+      "extract_targets8": {
+        "elapsed_seconds": 7.16,
+        "peak_rss_kib": 2957992,
+        "user_seconds": 10.77,
+        "system_seconds": 0.34,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/targets8.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/packs",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/targets8.pgsc"
+        ]
+      },
+      "extract_targets32": {
+        "elapsed_seconds": 10.93,
+        "peak_rss_kib": 2956040,
+        "user_seconds": 15.79,
+        "system_seconds": 0.48,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/targets32.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/packs",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/targets32.pgsc"
+        ]
+      },
+      "extract_targets128": {
+        "elapsed_seconds": 28.11,
+        "peak_rss_kib": 2959660,
+        "user_seconds": 35.87,
+        "system_seconds": 1.34,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/targets128.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/packs",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/targets128.pgsc"
+        ]
+      },
+      "extract_reference64": {
+        "elapsed_seconds": 16.68,
+        "peak_rss_kib": 2949456,
+        "user_seconds": 22.59,
+        "system_seconds": 0.5,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/reference64.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/packs",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/reference64.pgsc"
+        ]
+      },
+      "frequencies": {
+        "elapsed_seconds": 0.5,
+        "peak_rss_kib": 125248,
+        "user_seconds": 0.75,
+        "system_seconds": 0.07,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "frequencies",
+          "--vcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr1.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr2.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr3.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr4.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr5.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr6.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr7.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr8.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr9.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr10.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr11.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr12.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr13.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr14.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr15.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr16.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr17.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr18.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr19.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr20.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr21.frequencies.vcf.gz",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr22.frequencies.vcf.gz",
+          "--field",
+          "REF_AF",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/reference.pgsf"
+        ]
+      }
+    },
+    "public_input_gates": {
+      "all_chromosome_sample_orders_verified": true,
+      "biallelic_literal_DNA_records_only": true,
+      "diploid_single_digit_GT_parser_fail_closed": true
+    },
+    "generated_inputs_sha256": {
+      "targets128.pgsc": "4e83a06cef353f21becc7ac94735c84dd47cf5913dfc72614d490a192fb07e9e",
+      "reference64.pgsc": "4e2c0a0bf571e5e7bfbc6233d2f9846b0ec963ef7b0415e249d50a0d0c9eec85",
+      "reference.pgsf": "138489cd50bb9ebae3ec459467f928f0b046684b493534a4679d232b4c90245a",
+      "targets32.pgsc": "661924bbd9a5d7cea51907e4e5b009e6cbb3e68a3d72c9a2df57e9b2e249aa67",
+      "9p21-dropout.bed": "5fccbbe156436cf354cd3195f7d58d78f3c43e18b08e7f1a2275466b144b5c28",
+      "targets8.pgsc": "8a69cb56bf3c227d0a58571dfc95126ace89fe36b00802c7dab0270aa383951b",
+      "packs/PGS000018.pgsp": "267266c172dffc3b415c7cdd9084df93b05c5a3299db0da2f5632a2bdc65a5f4"
+    }
+  },
+  "cohorts": [
+    {
+      "cohort_size": 8,
+      "reference_samples": 64,
+      "exact_sample_scenario_checks": 40,
+      "verifier_sha256": "33f21b98f079bf1f6c452ad7e6d42d307014151c170fc17af20f009a07d27a07",
+      "baseline_terms": 1712283,
+      "total_model_terms": 1745179,
+      "baseline_term_fraction": 0.9811503576423966,
+      "inventory_consistent": false,
+      "baseline_weight_fraction": 0.9759231249401961,
+      "excluded_terms": {
+        "unresolved_position": 36,
+        "model_or_orientation_unscorable": 1201,
+        "baseline_target_not_common_callable": 31631,
+        "reference_not_common_callable": 28
+      },
+      "baseline_term_sha256": "f8cc054870cb79cb697c0d952ded16b356dad447e612124f05b86a5d3cb1e9f1",
+      "chromosome_baseline_terms": {
+        "1": 133735,
+        "2": 124546,
+        "3": 120725,
+        "4": 115500,
+        "5": 112248,
+        "6": 106650,
+        "7": 98688,
+        "8": 95567,
+        "9": 80808,
+        "10": 89628,
+        "11": 83734,
+        "12": 83050,
+        "13": 63778,
+        "14": 57523,
+        "15": 51962,
+        "16": 58656,
+        "17": 48659,
+        "18": 53724,
+        "19": 38671,
+        "20": 43562,
+        "21": 24972,
+        "22": 25897
+      },
+      "native_measurement": {
+        "elapsed_seconds": 10.3,
+        "peak_rss_kib": 524960,
+        "user_seconds": 10.08,
+        "system_seconds": 0.2,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "robustness",
+          "--experiment",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort8/experiment.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort8/robustness"
+        ]
+      },
+      "source_oracle_seconds": 3.949,
+      "scenario_summaries": [
+        {
+          "id": "no_mask",
+          "masked_observations": 0,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 0,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 8,
+            "mae": 0.0,
+            "rmse": 0.0,
+            "max_abs_change": 0.0,
+            "pearson": 1.0,
+            "spearman": 1.0,
+            "mean_abs_percentile_shift": 0.0,
+            "max_abs_percentile_shift": 0.0,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 8,
+                "evaluable": 8
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 8,
+                "evaluable": 8
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 8,
+              "mean_baseline_percentile": 22.4609375,
+              "mean_scenario_percentile": 22.4609375,
+              "mean_absolute_shift": 0.0,
+              "max_absolute_shift": 0.0
+            }
+          ]
+        },
+        {
+          "id": "random20",
+          "masked_observations": 2732304,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 2732304,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 8,
+            "mae": 0.553996148407625,
+            "rmse": 0.558569273232693,
+            "max_abs_change": 0.662548247817,
+            "pearson": 0.9666224859390237,
+            "spearman": 0.9761904761904762,
+            "mean_abs_percentile_shift": 43.75,
+            "max_abs_percentile_shift": 81.25,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 1,
+                "unchanged": 7,
+                "evaluable": 8
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 8,
+                "evaluable": 8
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 8,
+              "mean_baseline_percentile": 22.4609375,
+              "mean_scenario_percentile": 7.421875,
+              "mean_absolute_shift": 15.0390625,
+              "max_absolute_shift": 35.9375
+            }
+          ]
+        },
+        {
+          "id": "random20_fill",
+          "masked_observations": 2732304,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 2732280,
+          "unfilled_observations": 24,
+          "fill_omissions": {
+            "alleles_differ": 24
+          },
+          "metrics": {
+            "n": 8,
+            "mae": 0.11000011813590624,
+            "rmse": 0.1311027327675857,
+            "max_abs_change": 0.23870098573953125,
+            "pearson": 0.9666224859390237,
+            "spearman": 0.9761904761904762,
+            "mean_abs_percentile_shift": 17.1875,
+            "max_abs_percentile_shift": 31.25,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 8,
+                "evaluable": 8
+              },
+              {
+                "cutoff": 95.0,
+                "up": 1,
+                "down": 0,
+                "unchanged": 7,
+                "evaluable": 8
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 8,
+              "mean_baseline_percentile": 22.4609375,
+              "mean_scenario_percentile": 25.1953125,
+              "mean_absolute_shift": 2.734375,
+              "max_absolute_shift": 6.25
+            }
+          ]
+        },
+        {
+          "id": "9p21_dropout",
+          "masked_observations": 5192,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 5192,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 8,
+            "mae": 0.12725227059675,
+            "rmse": 0.1509687739911299,
+            "max_abs_change": 0.230314231428,
+            "pearson": 0.9698251911098226,
+            "spearman": 0.9047619047619048,
+            "mean_abs_percentile_shift": 17.1875,
+            "max_abs_percentile_shift": 43.75,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 8,
+                "evaluable": 8
+              },
+              {
+                "cutoff": 95.0,
+                "up": 1,
+                "down": 0,
+                "unchanged": 7,
+                "evaluable": 8
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 8,
+              "mean_baseline_percentile": 22.4609375,
+              "mean_scenario_percentile": 19.921875,
+              "mean_absolute_shift": 3.3203125,
+              "max_absolute_shift": 7.8125
+            }
+          ]
+        },
+        {
+          "id": "9p21_dropout_fill",
+          "masked_observations": 5192,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 5192,
+          "unfilled_observations": 0,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 8,
+            "mae": 0.09302197441164063,
+            "rmse": 0.10977701365198805,
+            "max_abs_change": 0.1885611114155625,
+            "pearson": 0.9698251911098226,
+            "spearman": 0.9047619047619048,
+            "mean_abs_percentile_shift": 12.5,
+            "max_abs_percentile_shift": 31.25,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 8,
+                "evaluable": 8
+              },
+              {
+                "cutoff": 95.0,
+                "up": 1,
+                "down": 0,
+                "unchanged": 7,
+                "evaluable": 8
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 8,
+              "mean_baseline_percentile": 22.4609375,
+              "mean_scenario_percentile": 23.6328125,
+              "mean_absolute_shift": 3.125,
+              "max_absolute_shift": 7.8125
+            }
+          ]
+        }
+      ],
+      "source_reference_score_sha256": "726bf46677e7ebdc749845417c80be55cfe360fe1b2eb1219166d4153c56e602",
+      "report_sha256": "eed141a20ef2c79cf452ecf07c0782274c7b9839dfc1fb049c60f6df803053dd",
+      "report_path": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort8/robustness/report.html",
+      "max_exact_raw_score_error": 0,
+      "max_exact_delta_error": 0,
+      "all_top_terms_and_regional_deltas_exact": true,
+      "all_fixed_and_reranked_percentiles_verified": true,
+      "masked_counts_include_zero_delta": true
+    },
+    {
+      "cohort_size": 32,
+      "reference_samples": 64,
+      "exact_sample_scenario_checks": 160,
+      "verifier_sha256": "33f21b98f079bf1f6c452ad7e6d42d307014151c170fc17af20f009a07d27a07",
+      "baseline_terms": 1712281,
+      "total_model_terms": 1745179,
+      "baseline_term_fraction": 0.9811492116281482,
+      "inventory_consistent": false,
+      "baseline_weight_fraction": 0.9759197606028572,
+      "excluded_terms": {
+        "unresolved_position": 36,
+        "model_or_orientation_unscorable": 1201,
+        "baseline_target_not_common_callable": 31648,
+        "reference_not_common_callable": 13
+      },
+      "baseline_term_sha256": "a3f6c4821bd36a00fa57c73ed580f92c21905d3afb8ad426d761c50212bae34e",
+      "chromosome_baseline_terms": {
+        "1": 133733,
+        "2": 124546,
+        "3": 120725,
+        "4": 115500,
+        "5": 112248,
+        "6": 106650,
+        "7": 98688,
+        "8": 95567,
+        "9": 80808,
+        "10": 89628,
+        "11": 83734,
+        "12": 83050,
+        "13": 63778,
+        "14": 57523,
+        "15": 51962,
+        "16": 58656,
+        "17": 48659,
+        "18": 53724,
+        "19": 38671,
+        "20": 43562,
+        "21": 24972,
+        "22": 25897
+      },
+      "native_measurement": {
+        "elapsed_seconds": 34.22,
+        "peak_rss_kib": 539328,
+        "user_seconds": 33.91,
+        "system_seconds": 0.29,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "robustness",
+          "--experiment",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort32/experiment.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort32/robustness"
+        ]
+      },
+      "source_oracle_seconds": 5.851,
+      "scenario_summaries": [
+        {
+          "id": "no_mask",
+          "masked_observations": 0,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 0,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 32,
+            "mae": 0.0,
+            "rmse": 0.0,
+            "max_abs_change": 0.0,
+            "pearson": 1.0,
+            "spearman": 0.9999999999999998,
+            "mean_abs_percentile_shift": 0.0,
+            "max_abs_percentile_shift": 0.0,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 32,
+                "evaluable": 32
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 32,
+                "evaluable": 32
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 32,
+              "mean_baseline_percentile": 34.423828125,
+              "mean_scenario_percentile": 34.423828125,
+              "mean_absolute_shift": 0.0,
+              "max_absolute_shift": 0.0
+            }
+          ]
+        },
+        {
+          "id": "random20",
+          "masked_observations": 10929216,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 10929216,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 32,
+            "mae": 0.6093309488840625,
+            "rmse": 0.6235781854862643,
+            "max_abs_change": 0.847446051465,
+            "pearson": 0.979127855799549,
+            "spearman": 0.9615102639296186,
+            "mean_abs_percentile_shift": 32.03125,
+            "max_abs_percentile_shift": 60.9375,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 3,
+                "unchanged": 29,
+                "evaluable": 32
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 2,
+                "unchanged": 30,
+                "evaluable": 32
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 32,
+              "mean_baseline_percentile": 34.423828125,
+              "mean_scenario_percentile": 13.916015625,
+              "mean_absolute_shift": 20.5078125,
+              "max_absolute_shift": 54.6875
+            }
+          ]
+        },
+        {
+          "id": "random20_fill",
+          "masked_observations": 10929216,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 10929120,
+          "unfilled_observations": 96,
+          "fill_omissions": {
+            "alleles_differ": 96
+          },
+          "metrics": {
+            "n": 32,
+            "mae": 0.12082236404926172,
+            "rmse": 0.14336612257154915,
+            "max_abs_change": 0.33208584271453123,
+            "pearson": 0.979127855799549,
+            "spearman": 0.9615102639296186,
+            "mean_abs_percentile_shift": 9.27734375,
+            "max_abs_percentile_shift": 26.5625,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 32,
+                "evaluable": 32
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 1,
+                "unchanged": 31,
+                "evaluable": 32
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 32,
+              "mean_baseline_percentile": 34.423828125,
+              "mean_scenario_percentile": 35.44921875,
+              "mean_absolute_shift": 4.052734375,
+              "max_absolute_shift": 15.625
+            }
+          ]
+        },
+        {
+          "id": "9p21_dropout",
+          "masked_observations": 20768,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 20768,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 32,
+            "mae": 0.11874240637662499,
+            "rmse": 0.1421743480084274,
+            "max_abs_change": 0.230314231428,
+            "pearson": 0.9876044101016274,
+            "spearman": 0.9798387096774192,
+            "mean_abs_percentile_shift": 7.12890625,
+            "max_abs_percentile_shift": 23.4375,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 32,
+                "evaluable": 32
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 1,
+                "unchanged": 31,
+                "evaluable": 32
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 32,
+              "mean_baseline_percentile": 34.423828125,
+              "mean_scenario_percentile": 30.224609375,
+              "mean_absolute_shift": 4.4921875,
+              "max_absolute_shift": 23.4375
+            }
+          ]
+        },
+        {
+          "id": "9p21_dropout_fill",
+          "masked_observations": 20768,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 20768,
+          "unfilled_observations": 0,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 32,
+            "mae": 0.08061728661307031,
+            "rmse": 0.09443780168338509,
+            "max_abs_change": 0.1885611114155625,
+            "pearson": 0.9876044101016274,
+            "spearman": 0.9798387096774192,
+            "mean_abs_percentile_shift": 5.17578125,
+            "max_abs_percentile_shift": 23.4375,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 1,
+                "down": 0,
+                "unchanged": 31,
+                "evaluable": 32
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 32,
+                "evaluable": 32
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 32,
+              "mean_baseline_percentile": 34.423828125,
+              "mean_scenario_percentile": 34.326171875,
+              "mean_absolute_shift": 3.125,
+              "max_absolute_shift": 12.5
+            }
+          ]
+        }
+      ],
+      "source_reference_score_sha256": "1983589d8e27718a1bb148c0a0cff705eda33b4fee1947f09c1421e9c0c7368e",
+      "report_sha256": "a719d4efc172f2a6ce38b2d7d51a27f5b1c0e9d1a2de47959b36185d5082f388",
+      "report_path": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort32/robustness/report.html",
+      "max_exact_raw_score_error": 0,
+      "max_exact_delta_error": 0,
+      "all_top_terms_and_regional_deltas_exact": true,
+      "all_fixed_and_reranked_percentiles_verified": true,
+      "masked_counts_include_zero_delta": true
+    },
+    {
+      "cohort_size": 128,
+      "reference_samples": 64,
+      "exact_sample_scenario_checks": 640,
+      "verifier_sha256": "33f21b98f079bf1f6c452ad7e6d42d307014151c170fc17af20f009a07d27a07",
+      "baseline_terms": 1712276,
+      "total_model_terms": 1745179,
+      "baseline_term_fraction": 0.9811463465925272,
+      "inventory_consistent": false,
+      "baseline_weight_fraction": 0.9759183184684546,
+      "excluded_terms": {
+        "unresolved_position": 36,
+        "model_or_orientation_unscorable": 1201,
+        "baseline_target_not_common_callable": 31661,
+        "reference_not_common_callable": 5
+      },
+      "baseline_term_sha256": "76b3fe675f11fc739eca88fb306000f07801571fcbe802a69aed177fd5d053ea",
+      "chromosome_baseline_terms": {
+        "1": 133733,
+        "2": 124545,
+        "3": 120725,
+        "4": 115500,
+        "5": 112248,
+        "6": 106650,
+        "7": 98687,
+        "8": 95566,
+        "9": 80808,
+        "10": 89628,
+        "11": 83734,
+        "12": 83050,
+        "13": 63778,
+        "14": 57523,
+        "15": 51962,
+        "16": 58655,
+        "17": 48659,
+        "18": 53724,
+        "19": 38671,
+        "20": 43561,
+        "21": 24972,
+        "22": 25897
+      },
+      "native_measurement": {
+        "elapsed_seconds": 119.46,
+        "peak_rss_kib": 599452,
+        "user_seconds": 119.2,
+        "system_seconds": 0.23,
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "--threads",
+          "4",
+          "robustness",
+          "--experiment",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort128/experiment.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort128/robustness"
+        ]
+      },
+      "source_oracle_seconds": 11.877,
+      "scenario_summaries": [
+        {
+          "id": "no_mask",
+          "masked_observations": 0,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 0,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 128,
+            "mae": 0.0,
+            "rmse": 0.0,
+            "max_abs_change": 0.0,
+            "pearson": 1.0,
+            "spearman": 1.0,
+            "mean_abs_percentile_shift": 0.0,
+            "max_abs_percentile_shift": 0.0,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 128,
+                "evaluable": 128
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 0,
+                "unchanged": 128,
+                "evaluable": 128
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 128,
+              "mean_baseline_percentile": 49.18212890625,
+              "mean_scenario_percentile": 49.18212890625,
+              "mean_absolute_shift": 0.0,
+              "max_absolute_shift": 0.0
+            }
+          ]
+        },
+        {
+          "id": "random20",
+          "masked_observations": 43716736,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 43716736,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 128,
+            "mae": 0.673545363636625,
+            "rmse": 0.6883546402295678,
+            "max_abs_change": 1.004838382982,
+            "pearson": 0.9806811691830288,
+            "spearman": 0.9819916224134774,
+            "mean_abs_percentile_shift": 28.863525390625,
+            "max_abs_percentile_shift": 50.390625,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 13,
+                "unchanged": 115,
+                "evaluable": 128
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 6,
+                "unchanged": 122,
+                "evaluable": 128
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 128,
+              "mean_baseline_percentile": 49.18212890625,
+              "mean_scenario_percentile": 20.8984375,
+              "mean_absolute_shift": 28.28369140625,
+              "max_absolute_shift": 60.9375
+            }
+          ]
+        },
+        {
+          "id": "random20_fill",
+          "masked_observations": 43716736,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 43716480,
+          "unfilled_observations": 256,
+          "fill_omissions": {
+            "alleles_differ": 256
+          },
+          "metrics": {
+            "n": 128,
+            "mae": 0.11234743631311671,
+            "rmse": 0.14233741287685975,
+            "max_abs_change": 0.37746571882353125,
+            "pearson": 0.9806811691830288,
+            "spearman": 0.9819916224134774,
+            "mean_abs_percentile_shift": 4.736328125,
+            "max_abs_percentile_shift": 21.484375,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 5,
+                "unchanged": 123,
+                "evaluable": 128
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 2,
+                "unchanged": 126,
+                "evaluable": 128
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 128,
+              "mean_baseline_percentile": 49.18212890625,
+              "mean_scenario_percentile": 47.9248046875,
+              "mean_absolute_shift": 4.72412109375,
+              "max_absolute_shift": 26.5625
+            }
+          ]
+        },
+        {
+          "id": "9p21_dropout",
+          "masked_observations": 83072,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 0,
+          "unfilled_observations": 83072,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 128,
+            "mae": 0.13993778228225,
+            "rmse": 0.15241546821417487,
+            "max_abs_change": 0.231304305048,
+            "pearson": 0.994356359559854,
+            "spearman": 0.9943176616004394,
+            "mean_abs_percentile_shift": 6.268310546875,
+            "max_abs_percentile_shift": 15.234375,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 6,
+                "unchanged": 122,
+                "evaluable": 128
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 1,
+                "unchanged": 127,
+                "evaluable": 128
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 128,
+              "mean_baseline_percentile": 49.18212890625,
+              "mean_scenario_percentile": 42.9931640625,
+              "mean_absolute_shift": 6.26220703125,
+              "max_absolute_shift": 25.0
+            }
+          ]
+        },
+        {
+          "id": "9p21_dropout_fill",
+          "masked_observations": 83072,
+          "unavailable_alternate_observations": 0,
+          "filled_observations": 83072,
+          "unfilled_observations": 0,
+          "fill_omissions": {},
+          "metrics": {
+            "n": 128,
+            "mae": 0.0540316504380791,
+            "rmse": 0.06565654336327958,
+            "max_abs_change": 0.1885611114155625,
+            "pearson": 0.994356359559854,
+            "spearman": 0.9943176616004394,
+            "mean_abs_percentile_shift": 2.593994140625,
+            "max_abs_percentile_shift": 10.546875,
+            "crossings": [
+              {
+                "cutoff": 90.0,
+                "up": 0,
+                "down": 3,
+                "unchanged": 125,
+                "evaluable": 128
+              },
+              {
+                "cutoff": 95.0,
+                "up": 0,
+                "down": 1,
+                "unchanged": 127,
+                "evaluable": 128
+              }
+            ],
+            "unavailable_reasons": {}
+          },
+          "reference_comparisons": [
+            {
+              "id": "fixed_reference64",
+              "reference_samples": 64,
+              "shared_sample_ids": 0,
+              "evaluable": 128,
+              "mean_baseline_percentile": 49.18212890625,
+              "mean_scenario_percentile": 48.583984375,
+              "mean_absolute_shift": 2.42919921875,
+              "max_absolute_shift": 12.5
+            }
+          ]
+        }
+      ],
+      "source_reference_score_sha256": "1bb313ac1d50d069e4e7839a4cbd3c65f5db988d52f09b5b38a41e16eaa535a2",
+      "report_sha256": "48d09a908247119e0631ccab27d38c8c452d08b85a1a0b8044622f83f016940b",
+      "report_path": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/native-final/cohort128/robustness/report.html",
+      "max_exact_raw_score_error": 0,
+      "max_exact_delta_error": 0,
+      "all_top_terms_and_regional_deltas_exact": true,
+      "all_fixed_and_reranked_percentiles_verified": true,
+      "masked_counts_include_zero_delta": true
+    }
+  ],
+  "preparation_manifest_sha256": "731022f248cb9315c3b3a437714d63344c235547e21ce13006a45c7bdf0526af",
+  "harness_sha256": "33f21b98f079bf1f6c452ad7e6d42d307014151c170fc17af20f009a07d27a07",
+  "compiler": "rustc 1.98.0 (88d9e12ae 2026-08-18)",
+  "hardware": {
+    "platform": "linux",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12600K",
+    "logical_cpus": 16,
+    "memory_total_kib": 32591908
+  },
+  "timing_note": "One measured run per cohort, same machine/executable, no cold-cache control. Source acquisition/preparation and compile/extract/frequency build are reported separately from robustness computation. No cross-tool speed claim.",
+  "preparation_measurements": {
+    "1": {
+      "subset": {
+        "elapsed_seconds": 207.83,
+        "peak_rss_kib": 50004,
+        "user_seconds": 204.53,
+        "system_seconds": 0.8,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr1.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr1.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr1.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 17.09,
+        "peak_rss_kib": 112892,
+        "user_seconds": 9.73,
+        "system_seconds": 0.74,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr1.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr1.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 1,
+      "source_loci": 136080,
+      "records": 135248,
+      "oriented_terms": 135984,
+      "common_callable_192": 133733,
+      "oracle_sha256": "80ac5d5a4280eaff647b4d2bccad589d426498f85b64437402fde135b521a3e1",
+      "frequency_sha256": "99558dc09add9741806881140fa77ca6327e1ced0798e37b4c77ef4d7b4523a0"
+    },
+    "2": {
+      "subset": {
+        "elapsed_seconds": 224.92,
+        "peak_rss_kib": 50400,
+        "user_seconds": 222.44,
+        "system_seconds": 0.47,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr2.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr2.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr2.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 9.29,
+        "peak_rss_kib": 106536,
+        "user_seconds": 9.2,
+        "system_seconds": 0.46,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr2.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr2.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 2,
+      "source_loci": 126698,
+      "records": 126064,
+      "oriented_terms": 126598,
+      "common_callable_192": 124545,
+      "oracle_sha256": "60817f31e3e9f44d6c599c6073bdd1444fea2f0fdbf978937a89f554f5f41d8c",
+      "frequency_sha256": "afc149ce7097efdb66eb7e6ac42ec014f3ccb7e54d8281e5956d3cf136c8d29c"
+    },
+    "3": {
+      "subset": {
+        "elapsed_seconds": 187.56,
+        "peak_rss_kib": 50068,
+        "user_seconds": 185.41,
+        "system_seconds": 0.49,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr3.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr3.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr3.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 14.17,
+        "peak_rss_kib": 103156,
+        "user_seconds": 9.14,
+        "system_seconds": 0.75,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr3.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr3.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 3,
+      "source_loci": 122949,
+      "records": 122217,
+      "oriented_terms": 122858,
+      "common_callable_192": 120725,
+      "oracle_sha256": "d5496ae97037ef17d82a6bfd1d8813ca220158d786be5619ada46f9e91432e2b",
+      "frequency_sha256": "28d0457c3bad545ea5358003697cd83213907f2a56ac6fb7ba38cfac29641d71"
+    },
+    "4": {
+      "subset": {
+        "elapsed_seconds": 184.72,
+        "peak_rss_kib": 50088,
+        "user_seconds": 181.71,
+        "system_seconds": 0.52,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr4.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr4.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr4.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 8.83,
+        "peak_rss_kib": 100020,
+        "user_seconds": 8.73,
+        "system_seconds": 0.7,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr4.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr4.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 4,
+      "source_loci": 117576,
+      "records": 116800,
+      "oriented_terms": 117523,
+      "common_callable_192": 115500,
+      "oracle_sha256": "88e3e8200ef7cb51cb4f519591386864d7b7dff9c8f5c1e2f68364dff5a31dde",
+      "frequency_sha256": "38c4c3adfd7b7ab9a000220d167f89e0dfa6ae3e2aaaae2d7c0098a392c861d3"
+    },
+    "5": {
+      "subset": {
+        "elapsed_seconds": 165.2,
+        "peak_rss_kib": 49792,
+        "user_seconds": 164.52,
+        "system_seconds": 0.78,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr5.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr5.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr5.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 8.25,
+        "peak_rss_kib": 101224,
+        "user_seconds": 8.23,
+        "system_seconds": 0.54,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr5.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr5.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 5,
+      "source_loci": 114211,
+      "records": 113535,
+      "oriented_terms": 114150,
+      "common_callable_192": 112248,
+      "oracle_sha256": "4db9951bc498bf2e5ea45730b5a398e4260a39614ba991115e880c4273629e4f",
+      "frequency_sha256": "3fb36e0cddc700544f5d215034c411a56c32559bf07adbcbe7fe78033d2b253e"
+    },
+    "6": {
+      "subset": {
+        "elapsed_seconds": 158.2,
+        "peak_rss_kib": 49508,
+        "user_seconds": 157.31,
+        "system_seconds": 0.82,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr6.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr6.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr6.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 7.77,
+        "peak_rss_kib": 97408,
+        "user_seconds": 7.82,
+        "system_seconds": 0.72,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr6.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr6.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 6,
+      "source_loci": 108759,
+      "records": 108045,
+      "oriented_terms": 108674,
+      "common_callable_192": 106650,
+      "oracle_sha256": "659ca151ad37af7a28c87cf6c520c5f2a913adf1ae6226422d967120a462f3d7",
+      "frequency_sha256": "e1e7533074901633ba2a52008c05a91c746d6d31979a48d2ce325a112662e5ac"
+    },
+    "7": {
+      "subset": {
+        "elapsed_seconds": 145.14,
+        "peak_rss_kib": 49764,
+        "user_seconds": 144.91,
+        "system_seconds": 0.44,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr7.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr7.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr7.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 7.16,
+        "peak_rss_kib": 92568,
+        "user_seconds": 7.24,
+        "system_seconds": 0.68,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr7.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr7.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 7,
+      "source_loci": 100615,
+      "records": 99839,
+      "oriented_terms": 100541,
+      "common_callable_192": 98687,
+      "oracle_sha256": "fd77cd19b8533c322e1377699d7070f23fb0c70cab5ed1e2cac7ad6f9b3b24f4",
+      "frequency_sha256": "1cb7c257e7569f424e4a1d127f1fd4eeffba7f69c65e9c568e8708c16881cf92"
+    },
+    "8": {
+      "subset": {
+        "elapsed_seconds": 142.04,
+        "peak_rss_kib": 49700,
+        "user_seconds": 141.92,
+        "system_seconds": 0.82,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr8.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr8.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr8.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 6.99,
+        "peak_rss_kib": 90560,
+        "user_seconds": 7.06,
+        "system_seconds": 0.7,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr8.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr8.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 8,
+      "source_loci": 97554,
+      "records": 96743,
+      "oriented_terms": 97476,
+      "common_callable_192": 95566,
+      "oracle_sha256": "da5c5355514efe5b19db7d7f6da28b7663330d7436d67de8edb7142360885334",
+      "frequency_sha256": "56313a14cab4adde2f4317596cc795a37de09873e6ca68dfeeee478faafc3a34"
+    },
+    "9": {
+      "subset": {
+        "elapsed_seconds": 108.6,
+        "peak_rss_kib": 50784,
+        "user_seconds": 108.53,
+        "system_seconds": 0.78,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr9.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr9.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr9.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 5.93,
+        "peak_rss_kib": 86016,
+        "user_seconds": 6.01,
+        "system_seconds": 0.71,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr9.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr9.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 9,
+      "source_loci": 82240,
+      "records": 81781,
+      "oriented_terms": 82168,
+      "common_callable_192": 80808,
+      "oracle_sha256": "40a802996d9cdca08219521654771f449c3a5763e7dcced01a57732799c99ebb",
+      "frequency_sha256": "1f41e5e30fea8dbf60605b7f4f1d1f3d17b371b0cf9f592ddba5e45f8432c76f"
+    },
+    "10": {
+      "subset": {
+        "elapsed_seconds": 123.74,
+        "peak_rss_kib": 50840,
+        "user_seconds": 123.57,
+        "system_seconds": 0.81,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr10.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr10.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr10.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 6.5,
+        "peak_rss_kib": 89100,
+        "user_seconds": 6.57,
+        "system_seconds": 0.7,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr10.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr10.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 10,
+      "source_loci": 91189,
+      "records": 90708,
+      "oriented_terms": 91129,
+      "common_callable_192": 89628,
+      "oracle_sha256": "08923bf588ad63115bdd0e9cbc09c21d133e244b8957c55a9e1cd70d681eff1c",
+      "frequency_sha256": "661815a58247d9dd8e4b4fa69b41634523bb6cd482273753eaeffd6574302aa5"
+    },
+    "11": {
+      "subset": {
+        "elapsed_seconds": 124.27,
+        "peak_rss_kib": 51064,
+        "user_seconds": 124.16,
+        "system_seconds": 0.81,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr11.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr11.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr11.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 6.32,
+        "peak_rss_kib": 87132,
+        "user_seconds": 6.37,
+        "system_seconds": 0.71,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr11.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr11.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 11,
+      "source_loci": 85350,
+      "records": 84783,
+      "oriented_terms": 85286,
+      "common_callable_192": 83734,
+      "oracle_sha256": "364b394b36a278d2923f0016b15c1ac56ed84d6e39040f6a1f7ad772c9962977",
+      "frequency_sha256": "d321b594d73481fd23f58fa5710ef3e83c6f4a4feebc2019f12a5944b1480236"
+    },
+    "12": {
+      "subset": {
+        "elapsed_seconds": 119.21,
+        "peak_rss_kib": 50720,
+        "user_seconds": 119.05,
+        "system_seconds": 0.82,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr12.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr12.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr12.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 6.25,
+        "peak_rss_kib": 86964,
+        "user_seconds": 6.32,
+        "system_seconds": 0.72,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr12.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr12.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 12,
+      "source_loci": 84555,
+      "records": 84070,
+      "oriented_terms": 84472,
+      "common_callable_192": 83050,
+      "oracle_sha256": "fd1f7c067e57d027672cc57ef2a220f6edb68e27fae7e71f60ad97c5d1c2c46a",
+      "frequency_sha256": "817f18608e40fb0a88fe558228bb0c56ea79e9e1ed9733156fdd2b07abf53c9a"
+    },
+    "13": {
+      "subset": {
+        "elapsed_seconds": 88.02,
+        "peak_rss_kib": 50484,
+        "user_seconds": 87.96,
+        "system_seconds": 0.75,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr13.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr13.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr13.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 4.7,
+        "peak_rss_kib": 78352,
+        "user_seconds": 4.83,
+        "system_seconds": 0.68,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr13.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr13.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 13,
+      "source_loci": 64870,
+      "records": 64553,
+      "oriented_terms": 64843,
+      "common_callable_192": 63778,
+      "oracle_sha256": "e2cdab1ec13bfc0a8104282e423838ae76b8faab952c7298b16aafb2d50017dd",
+      "frequency_sha256": "65a1e41e872bc3b843f72e3bf0388350f1d2e3435fcb00313b38ea9a96aa13a6"
+    },
+    "14": {
+      "subset": {
+        "elapsed_seconds": 81.54,
+        "peak_rss_kib": 50292,
+        "user_seconds": 81.49,
+        "system_seconds": 0.74,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr14.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr14.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr14.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 4.35,
+        "peak_rss_kib": 75768,
+        "user_seconds": 4.47,
+        "system_seconds": 0.64,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr14.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr14.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 14,
+      "source_loci": 58508,
+      "records": 58255,
+      "oriented_terms": 58477,
+      "common_callable_192": 57523,
+      "oracle_sha256": "7b27f0092abad1c0c90be32a06d90c89db8f05b168cb8681c8d5c17db0fc6d55",
+      "frequency_sha256": "49054c8d60db1dc5a48b8699c96d2075678973e734ac33e3ef84b3358a0566db"
+    },
+    "15": {
+      "subset": {
+        "elapsed_seconds": 74.17,
+        "peak_rss_kib": 49992,
+        "user_seconds": 74.11,
+        "system_seconds": 0.56,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr15.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr15.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr15.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 4.44,
+        "peak_rss_kib": 73608,
+        "user_seconds": 4.54,
+        "system_seconds": 0.64,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr15.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr15.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 15,
+      "source_loci": 52967,
+      "records": 52623,
+      "oriented_terms": 52913,
+      "common_callable_192": 51962,
+      "oracle_sha256": "7820467eaa5bbe1203bcb7cf33b68c442fc653142b6248267d3106fc08f0abd2",
+      "frequency_sha256": "7c6894f50fbe29c0f4e877933ef5749de1ee9c464db5585449ea383477351f1f"
+    },
+    "16": {
+      "subset": {
+        "elapsed_seconds": 81.76,
+        "peak_rss_kib": 50544,
+        "user_seconds": 81.75,
+        "system_seconds": 0.75,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr16.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr16.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr16.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 4.44,
+        "peak_rss_kib": 76840,
+        "user_seconds": 4.56,
+        "system_seconds": 0.69,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr16.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr16.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 16,
+      "source_loci": 59963,
+      "records": 59388,
+      "oriented_terms": 59920,
+      "common_callable_192": 58655,
+      "oracle_sha256": "8f0c563a197e8dd91dc5af922fc6dda301a28c39baa456b1b88482cf3d6a94bc",
+      "frequency_sha256": "f5cf27c5263a359e82af76f91450c8793d48a4e0ea38e82672783cfd1ffee35d"
+    },
+    "17": {
+      "subset": {
+        "elapsed_seconds": 70.79,
+        "peak_rss_kib": 49820,
+        "user_seconds": 70.74,
+        "system_seconds": 0.7,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr17.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr17.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr17.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 3.58,
+        "peak_rss_kib": 72104,
+        "user_seconds": 3.67,
+        "system_seconds": 0.72,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr17.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr17.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 17,
+      "source_loci": 49756,
+      "records": 49332,
+      "oriented_terms": 49717,
+      "common_callable_192": 48659,
+      "oracle_sha256": "56fc6b657917f742854fe246071cad89f5191a6ee9bb52b50cc276dce59b3bdf",
+      "frequency_sha256": "6d042f0cb325f71d24b6d2e2e6fc3a29ff0548a8df8532b81cd0aa1ef0c8d1ef"
+    },
+    "18": {
+      "subset": {
+        "elapsed_seconds": 69.91,
+        "peak_rss_kib": 50132,
+        "user_seconds": 69.84,
+        "system_seconds": 0.6,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr18.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr18.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr18.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 3.95,
+        "peak_rss_kib": 74040,
+        "user_seconds": 4.06,
+        "system_seconds": 0.69,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr18.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr18.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 18,
+      "source_loci": 54753,
+      "records": 54445,
+      "oriented_terms": 54731,
+      "common_callable_192": 53724,
+      "oracle_sha256": "e79549295c6f9e54d451097ebf768c925baa7ac727392866ed852ec2221604be",
+      "frequency_sha256": "b490c1a553d7783bfca69454aa57e86b68f077ce28e6afba8066762292d59921"
+    },
+    "19": {
+      "subset": {
+        "elapsed_seconds": 55.85,
+        "peak_rss_kib": 49632,
+        "user_seconds": 55.79,
+        "system_seconds": 0.73,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr19.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr19.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr19.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 2.92,
+        "peak_rss_kib": 67500,
+        "user_seconds": 3.07,
+        "system_seconds": 0.67,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr19.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr19.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 19,
+      "source_loci": 39593,
+      "records": 39166,
+      "oriented_terms": 39579,
+      "common_callable_192": 38671,
+      "oracle_sha256": "610ed2c18aa81662e8b1dc642fea016454cce14a7eceb41edd1a5c26d4946c99",
+      "frequency_sha256": "16a2edf8510e9d39a014a767dddfa3b3bad70049f757f739c7cfe05898ed286a"
+    },
+    "20": {
+      "subset": {
+        "elapsed_seconds": 57.51,
+        "peak_rss_kib": 49836,
+        "user_seconds": 57.58,
+        "system_seconds": 0.7,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr20.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr20.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr20.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 3.37,
+        "peak_rss_kib": 69404,
+        "user_seconds": 3.47,
+        "system_seconds": 0.59,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr20.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr20.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 20,
+      "source_loci": 44372,
+      "records": 44104,
+      "oriented_terms": 44343,
+      "common_callable_192": 43561,
+      "oracle_sha256": "e1256c347dff3255fa8fd90f8a73625ebca5f89bac5eb67672cf1eb545b0abe2",
+      "frequency_sha256": "f7003bea066de1852ad3868a11267c774231f80364c9a88bf34cf96cb80c487e"
+    },
+    "21": {
+      "subset": {
+        "elapsed_seconds": 32.89,
+        "peak_rss_kib": 49600,
+        "user_seconds": 33.01,
+        "system_seconds": 0.67,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr21.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr21.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr21.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 1.89,
+        "peak_rss_kib": 60848,
+        "user_seconds": 2.06,
+        "system_seconds": 0.8,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr21.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr21.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 21,
+      "source_loci": 26056,
+      "records": 25314,
+      "oriented_terms": 26044,
+      "common_callable_192": 24972,
+      "oracle_sha256": "d5ad0b291110c4d908a7650876066f564b8dd2429ea03914704b5162719cb825",
+      "frequency_sha256": "4223dca81180a9572c781cd1c3c78f2ad558ec4ae215b326324f2d93a6aa6784"
+    },
+    "22": {
+      "subset": {
+        "elapsed_seconds": 32.98,
+        "peak_rss_kib": 49752,
+        "user_seconds": 33.11,
+        "system_seconds": 0.7,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_subset",
+          "--source",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/sources/chr22.vcf.gz",
+          "--samples",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/samples192.txt",
+          "--bed",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr22.bed",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr22.bcf"
+        ]
+      },
+      "oracle": {
+        "elapsed_seconds": 1.96,
+        "peak_rss_kib": 60956,
+        "user_seconds": 2.16,
+        "system_seconds": 0.8,
+        "command": [
+          "/home/dyl/Documents/Codex/2026-09-29/t/work/public-validation-tools/bin/python",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/bench/robustness_genomewide.py",
+          "_oracle_chrom",
+          "--model",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr22.model.npz",
+          "--genotypes",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/chr22.bcf",
+          "--reference",
+          "/home/dyl/Documents/ChatGPT/Variant Hunter Validation/2026-09-07/inputs/GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "--selection",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared/selection.json",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/prepared"
+        ]
+      },
+      "chromosome": 22,
+      "source_loci": 26529,
+      "records": 26218,
+      "oriented_terms": 26516,
+      "common_callable_192": 25897,
+      "oracle_sha256": "02b62ab5aad41ada718a661cf84787d0ebc127ae0aafb460fbcb7f2ea98141ea",
+      "frequency_sha256": "6a6f29f33596d0a2bf7a243e8f23a2849cbd040198cff0be1884224df04306d5"
+    }
+  }
+}

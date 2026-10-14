@@ -1,0 +1,20 @@
+{
+  "schema": "pgsum-robustness-experiment-v1",
+  "genotypes": "targets.pgsc",
+  "packs": ["packs/MINI.pgsp"],
+  "cutoffs": [50, 90],
+  "scenarios": [
+    {"id": "control"},
+    {"id": "drop_last", "masks": [{"kind": "bed", "mode": "drop", "path": "inputs/drop-last.bed"}]},
+    {
+      "id": "drop_last_filled",
+      "masks": [{"kind": "bed", "mode": "drop", "path": "inputs/drop-last.bed"}],
+      "fill_frequencies": "reference.pgsf",
+      "frequency_source_note": "Frequencies are computed from the separate synthetic R1-R4 genotypes in inputs/reference.vcf; none of target samples A-D contributes."
+    },
+    {"id": "all_missing", "masks": [{"kind": "random", "rate": 1.0, "seed": 42, "unit": "sample_site"}]}
+  ],
+  "reference_sets": [{"id": "synthetic_reference", "genotypes": "reference.pgsc"}],
+  "regions": [{"id": "last_site", "path": "inputs/drop-last.bed"}],
+  "top_terms": 3
+}

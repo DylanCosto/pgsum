@@ -40,7 +40,7 @@ Done once per PGS Catalog release, independent of any sample.
 - SNV orientation against the reference FASTA is resolved at compile time (it does not depend on the
   sample), so `score` only needs genotypes.
 - Output: terms in source order, the source file's SHA-256, the score's metadata (weight type, licence,
-  publication), and per-term review reasons. Weights are stored exactly (see [Pack format](#pack-format-pgsum-pack-v1)).
+  publication), and per-term review reasons. Weights are stored exactly (see [Pack format](#pack-format-pgsum-pack-v3-v4-with-indel-orientations)).
 - **Packs and scoring files are never committed to this repo.** Users download scoring files themselves;
   individual scores carry their own licence terms, and the pack keeps each score's licence field.
 
@@ -311,6 +311,13 @@ and `chr_position` and {A, B} is the effect/other allele pair, as in the referen
 - **Longer alleles (indels, MNVs):** `sequence_reference_evidence_required` in v0. The effect/other strings
   alone don't say which allele is the reference sequence.
 - Frequency-based resolution of palindromic SNVs is out of scope for v0.
+
+The FASTA reader treats DNA IUPAC ambiguity codes (`RYSWKMBDHV`, including lowercase)
+as unknown `N` when interpreting reference sequence. It never chooses one of the possible
+bases. Affected SNVs remain unresolved, including under inference opt-ins, and an indel
+normalization that needs an ambiguous reference anchor is withheld. Non-IUPAC characters
+remain errors. The original FASTA bytes and identity hashes are unchanged. These rules use
+`COMPILE_RULES` `2026-10-11.reference-ambiguity`, invalidating older compiled Catalog caches.
 
 ## Genotype rules (extract time)
 

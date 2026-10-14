@@ -2,7 +2,7 @@
 
 Polygenic score calculation from gVCFs, with exact observed scores and optional population-frequency filling.
 
-**Status: early development; latest tagged release v0.5.1.** The full pipeline works; genotype calls are
+**Status: early development; v0.6.0 candidate, latest tagged release v0.5.1.** The full pipeline works; genotype calls are
 validated against GIAB truth sets on seven genomes, reference blocks on four of them (see [Validation](#validation)).
 
 ## What's different
@@ -61,6 +61,21 @@ gate checks term sums too, so matching totals cannot hide different contribution
 [comparison and migration instructions](docs/compare.md) for formats, commands and policy limitations.
 The [public-data comparison](docs/public-validation.md) verifies shared-term arithmetic against PLINK
 and traces default-policy differences from the actual pgsc_calc workflow on chromosome 22.
+
+## Investigate score robustness
+
+`pgsum robustness --experiment experiment.json --out experiment-results` runs deterministic
+random and BED coverage masks, optional frequency-filling experiments, alternative genotype
+extractions, and comparisons with frozen reference distributions. It produces an HTML report,
+exact score/variant deltas, rank changes, cutoff crossings and reproducible provenance. All
+comparisons use an explicit common-callable baseline; these are reconstruction diagnostics,
+not evidence of predictive accuracy. See [robustness experiments](docs/robustness.md).
+
+The candidate includes a [complete offline example](examples/robustness/README.md),
+a [genome-wide public-data benchmark](docs/genomewide-robustness-validation.md), and a
+[synthetic scale benchmark](bench/README.md#synthetic-genome-wide-robustness-scaling). These check numerical
+reconstruction, attribution and resource use as the model and cohort grow. The public
+benchmark records how many published model terms survive the common-callable baseline.
 
 ## Install
 

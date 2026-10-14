@@ -14,3 +14,9 @@
 /data/
 # Synthetic test fixtures are committed.
 !/tests/fixtures/**
+# The offline release example also contains wholly synthetic inputs.
+!/examples/robustness/frequencies.vcf
+!/examples/robustness/reference.vcf
+!/examples/robustness/targets.vcf
+!/examples/robustness/reference.fa
+!/examples/robustness/reference.fa.fai

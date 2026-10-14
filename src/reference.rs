@@ -90,8 +90,9 @@ impl Reference {
         self.entries.get(contig).map(|e| e.length)
     }
 
-    /// Upper-cased bases of the 0-based half-open interval `[start, end)`. Errors if the interval is outside
-    /// the contig or a base is not `ACGTN`.
+    /// Upper-cased bases of the 0-based half-open interval `[start, end)`. DNA IUPAC ambiguity codes are
+    /// returned as `N`: they cannot establish a concrete reference allele. The underlying file is unchanged.
+    /// Errors if the interval is outside the contig or contains a non-IUPAC base.
     pub fn fetch(&self, contig: &str, start: u64, end: u64) -> Result<String> {
         let Some(e) = self.entries.get(contig) else {
             return invalid!("{contig} is not in the reference");
@@ -109,10 +110,11 @@ impl Reference {
                 return invalid!("{}: unexpected end of file", self.path.display());
             };
             for &b in chunk {
-                let b = b.to_ascii_uppercase();
-                if !matches!(b, b'A' | b'C' | b'G' | b'T' | b'N') {
-                    return invalid!("{contig}:{}-{end} contains an unsupported base", start + 1);
-                }
+                let b = match b.to_ascii_uppercase() {
+                    b @ (b'A' | b'C' | b'G' | b'T' | b'N') => b,
+                    b'R' | b'Y' | b'S' | b'W' | b'K' | b'M' | b'B' | b'D' | b'H' | b'V' => b'N',
+                    _ => return invalid!("{contig}:{}-{end} contains an unsupported base", start + 1),
+                };
                 out.push(b as char);
             }
             cursor += take;

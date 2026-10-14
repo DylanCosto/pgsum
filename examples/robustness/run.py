@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""Run and independently check a wholly local, synthetic robustness example."""
+
+import argparse
+import csv
+from decimal import Decimal
+import gzip
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def digest(path):
+    result = hashlib.sha256()
+    with Path(path).open('rb') as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b''):
+            result.update(chunk)
+    return 'sha256:' + result.hexdigest()
+
+
+def read_rows(path):
+    with path.open(newline='') as source:
+        return list(csv.DictReader(source, delimiter='\t'))
+
+
+def percentile(value, reference):
+    less = sum(item < value for item in reference)
+    equal = sum(item == value for item in reference)
+    return 100 * (less + equal / 2) / len(reference)
+
+
+def run(binary, out, command, commands):
+    full = [str(binary)] + list(map(str, command))
+    commands.append(full)
+    (out / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
+    with (out / ('command-%02d.log' % len(commands))).open('w') as log:
+        subprocess.run(full, stdout=log, stderr=subprocess.STDOUT, check=True,
+                       env={**os.environ, 'PGSUM_CACHE_DIR': str(out / 'cache')})
+
+
+def verify(out, expected):
+    results = out / 'results'
+    report = json.loads((results / 'report.json').read_text())
+    require(report['scores'][0]['baseline_terms'] == 3, 'all three terms must remain eligible')
+    base = {sample: Decimal(score) for sample, score in expected['baseline'].items()}
+    references = [Decimal(score) for score in expected['reference'].values()]
+    values = {scenario: {sample: Decimal(score) for sample, score in samples.items()}
+              for scenario, samples in expected['scenarios'].items()}
+    sample_rows = read_rows(results / 'samples.tsv')
+    require(len(sample_rows) == 16, 'expected four samples in four scenarios')
+    seen = set()
+    for row in sample_rows:
+        scenario, sample = row['scenario'], row['sample']
+        key = (scenario, sample)
+        require(key not in seen, 'duplicate sample/scenario row')
+        seen.add(key)
+        score = values[scenario][sample]
+        require(Decimal(row['baseline_score']) == base[sample], 'baseline arithmetic differs')
+        require(Decimal(row['scenario_score']) == score, 'scenario arithmetic differs')
+        require(Decimal(row['delta']) == score - base[sample], 'delta arithmetic differs')
+        masked = expected['masked_terms'][scenario]
+        filled = expected['filled_terms'][scenario]
+        require(int(row['baseline_terms']) == 3, 'baseline term count differs')
+        require(int(row['masked_terms']) == masked, 'masked term count differs')
+        require(int(row['filled_terms']) == filled, 'filled term count differs')
+        require(int(row['retained_terms']) == 3 - masked, 'retained term count differs')
+        require(int(row['unfilled_terms']) == masked - filled, 'unfilled term count differs')
+        require(int(row['unavailable_alternate_terms']) == 0, 'unexpected unavailable alternate call')
+        require(float(row['baseline_percentile']) == percentile(base[sample], list(base.values())),
+                'baseline percentile differs')
+        require(float(row['fixed_baseline_percentile']) == percentile(score, list(base.values())),
+                'fixed-baseline percentile differs')
+        if scenario == 'all_missing':
+            require(row['reranked_percentile'] == '', 'constant scenarios have no informative percentile')
+        else:
+            require(float(row['reranked_percentile']) == percentile(score, list(values[scenario].values())),
+                    'reranked percentile differs')
+        require(Decimal(row['top_terms_delta']) + Decimal(row['other_terms_delta']) == score - base[sample],
+                'attribution does not reconcile')
+    reference_rows = read_rows(results / 'references.tsv')
+    require(len(reference_rows) == 16, 'expected 16 reference comparisons')
+    for row in reference_rows:
+        scenario, sample = row['scenario'], row['sample']
+        before = percentile(base[sample], references)
+        after = percentile(values[scenario][sample], references)
+        require(int(row['shared_sample_ids']) == 0, 'target/reference samples overlap')
+        require(int(row['reference_samples']) == 4, 'reference sample count differs')
+        require(float(row['baseline_percentile']) == before, 'reference baseline percentile differs')
+        require(float(row['scenario_percentile']) == after, 'reference scenario percentile differs')
+        require(float(row['percentile_delta']) == after - before, 'reference percentile delta differs')
+    region_rows = read_rows(results / 'regions.tsv')
+    require(len(region_rows) == 16, 'expected 16 region rows')
+    for row in region_rows:
+        scenario, sample = row['scenario'], row['sample']
+        original = Decimal(expected['last_site_contribution'][sample])
+        delta = Decimal(0) if scenario == 'control' else (Decimal(3) if scenario == 'drop_last_filled' else Decimal(0)) - original
+        require(Decimal(row['delta']) == delta, 'regional delta differs')
+    for name, expected_hash in report['outputs'].items():
+        require(digest(results / name) == expected_hash, 'output checksum differs: ' + name)
+    return {'sample_scenario_checks': len(sample_rows), 'reference_checks': len(reference_rows),
+            'region_checks': len(region_rows), 'output_hash_checks': len(report['outputs'])}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--binary', type=Path, required=True)
+    parser.add_argument('--out', type=Path, required=True, help='new output directory')
+    args = parser.parse_args()
+    binary = args.binary.expanduser().resolve()
+    require(binary.is_file(), 'binary does not exist: ' + str(binary))
+    source = Path(__file__).resolve().parent
+    out = args.out.expanduser().resolve()
+    out.mkdir()  # Refuse to overwrite an earlier run.
+    inputs = out / 'inputs'
+    inputs.mkdir()
+    for name in ['reference.fa', 'reference.fa.fai', 'score.tsv', 'targets.vcf', 'reference.vcf',
+                 'frequencies.vcf', 'drop-last.bed']:
+        shutil.copyfile(source / name, inputs / name)
+    with (inputs / 'frequencies.vcf.gz').open('wb') as target:
+        with gzip.GzipFile(filename='', mode='wb', fileobj=target, mtime=0) as compressed:
+            compressed.write((inputs / 'frequencies.vcf').read_bytes())
+    shutil.copyfile(source / 'experiment.json', out / 'experiment.json')
+    identity = digest(binary)
+    commands = []
+    run(binary, out, ['compile', inputs / 'score.tsv', '--reference', inputs / 'reference.fa',
+                      '--out', out / 'packs'], commands)
+    for name in ['targets', 'reference']:
+        run(binary, out, ['extract', '--gvcf', inputs / (name + '.vcf'), '--reference', inputs / 'reference.fa',
+                          '--pack', out / 'packs', '--all-samples', '--accept-missing-quality',
+                          '--out', out / (name + '.pgsc')], commands)
+    run(binary, out, ['frequencies', '--vcf', inputs / 'frequencies.vcf.gz', '--field', 'AF',
+                      '--out', out / 'reference.pgsf'], commands)
+    run(binary, out, ['robustness', '--experiment', out / 'experiment.json', '--out', out / 'results', '--terms'], commands)
+    checks = verify(out, json.loads((source / 'expected.json').read_text()))
+    require(digest(binary) == identity, 'binary changed during the example')
+    record = {'schema': 'pgsum-robustness-example-verification-v1', 'status': 'passed',
+              'binary_sha256': identity, 'version': subprocess.check_output([str(binary), '--version'], text=True).strip(),
+              'checks': checks, 'scope': 'Synthetic offline arithmetic and package integration only.'}
+    (out / 'verification.json').write_text(json.dumps(record, indent=2) + '\n')
+    print('Offline example passed: ' + str(out / 'verification.json'))
+    print('Open report: ' + str(out / 'results/report.html'))
+
+
+if __name__ == '__main__':
+    main()

@@ -15,7 +15,7 @@ jobs:
             rust: stable
           - os: ubuntu-latest
             rust: 1.88.0
-          - os: macos-14
+          - os: macos-15
             rust: stable
     runs-on: ${{ matrix.os }}
     steps:
@@ -29,6 +29,19 @@ jobs:
       - if: matrix.rust == 'stable'
         run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked
+      - if: matrix.rust == 'stable'
+        run: cargo build --locked
+      - if: matrix.rust == 'stable'
+        name: Verify packaged native binary and offline robustness example
+        run: |
+          python3 scripts/package_release.py build --binary target/debug/pgsum \
+            --target "$(rustc -vV | sed -n 's/^host: //p')" \
+            --output target/release-package-smoke --run-example
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.rust == 'stable'
+        with:
+          name: release-package-smoke-${{ matrix.os }}
+          path: target/release-package-smoke/
   performance-smoke:
     runs-on: ubuntu-latest
     steps:
@@ -46,3 +59,22 @@ jobs:
           path: |
             target/performance-smoke/
             target/missingness-smoke/
+  robustness-scale-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y zstd time
+      - run: cargo build --release --locked
+      - run: python3 -m unittest discover -s bench -p test_robustness_scale.py
+      # All 22 autosomes, both mask units, exact source-formula oracle and full attribution audit.
+      # Runtime/RSS are observations; numerical correctness and repeatability are the gates.
+      - run: python3 bench/robustness_scale.py --binary target/release/pgsum --output target/robustness-scale-smoke --terms 10000 --samples 32 128 --missing-rates 0 0.005 --threads 1 4 --full-audit
+      - run: python3 bench/robustness_scale.py --binary target/release/pgsum --output target/robustness-sample-site-smoke --terms 1000 --samples 8 32 --missing-rates 0.005 --threads 1 4 --repeats 2 --mask-unit sample_site --full-audit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: robustness-scale-smoke
+          path: |
+            target/robustness-scale-smoke/
+            target/robustness-sample-site-smoke/
