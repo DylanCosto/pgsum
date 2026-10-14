@@ -23,7 +23,7 @@ use crate::genotypes::GenotypeTable;
 use crate::pack::{Pack, TermRecord};
 use crate::score::{Contribution, ExactSum, Options, Plan};
 use crate::{Error, Result, invalid};
-use config::{Bed, Experiment, PreparedMasks};
+use config::{Bed, Experiment, PreparedMasks, RandomDrawCache};
 
 #[derive(Args, Debug)]
 pub struct RobustnessArgs {
@@ -482,6 +482,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
             .iter()
             .map(|r| vec![ExactSum::default(); r.indices.len()])
             .collect();
+        let mut mask_draws = RandomDrawCache::new(&samples);
         let mut accumulators: Vec<_> = scenarios.iter().map(|_| Accumulator::new(n, regions.len())).collect();
         let mut eligible = 0usize;
         let mut excluded = BTreeMap::new();
@@ -560,7 +561,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
                 let mut fill = None;
                 for s in 0..n {
                     let original = base[s].as_ref().expect("eligible");
-                    let hidden = runtime.masks.hidden(term.contig, anchor, &samples[s]);
+                    let hidden = runtime.masks.hidden_cached(&mut mask_draws, term.contig, anchor, s);
                     let alternate = &available[runtime.indices[s]];
                     let mut reason = "alternate_genotype";
                     let replacement = if hidden || alternate.is_none() {

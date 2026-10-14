@@ -245,6 +245,21 @@ The [comparison harness](../bench/compare_robustness_memory.py) requires identic
 score summaries and numerical payload bytes before writing `comparison.json`. It retains
 individual logs and peak-memory measurements. It does not rerun a source-genotype oracle.
 
+### Reusing paired random draws
+
+Within each genomic locus, scenarios with the same seed and mask unit share the same
+random draw. Each rate still applies its own threshold, and sample-site draws remain tied
+to the original sample identity. The cache is discarded as the locus changes, so its size
+depends on seeds and participants rather than the number of genome-wide terms.
+
+The [checked draw-cache comparison](../bench/results/mask-cache-comparison.json) preserves
+all numerical output bytes from the public pilot. Its observed elapsed time changed from
+45.81 to 35.25 seconds, with approximately 501 MiB peak RSS in both runs. This single shared-host
+measurement is not a controlled speedup estimate. Twelve additional synthetic runs check both
+mask units, repeated runs, one/four threads and full contribution attribution against an
+independent oracle. Boundary rates, Unicode sample identities and revisited loci are covered
+by the cache regression test.
+
 ## What is held fixed
 
 For each score, the baseline includes only autosomal terms that are scorable in **every

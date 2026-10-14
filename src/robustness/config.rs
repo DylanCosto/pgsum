@@ -404,6 +404,51 @@ impl PreparedMasks {
     }
 }
 
+/// Per-experiment, one-locus cache. Sample identities are frozen at construction.
+/// Sharing a seed/unit reuses the draw across policies and rates, not their decisions.
+pub(super) struct RandomDrawCache<'a> {
+    samples: &'a [String],
+    locus: Option<(u8, u32)>,
+    draws: BTreeMap<(u64, bool), Vec<Option<f64>>>,
+}
+impl<'a> RandomDrawCache<'a> {
+    pub(super) fn new(samples: &'a [String]) -> Self {
+        Self {
+            samples,
+            locus: None,
+            draws: BTreeMap::new(),
+        }
+    }
+    fn draw(&mut self, seed: u64, unit: RandomUnit, contig: u8, pos1: u32, sample: usize) -> f64 {
+        if self.locus != Some((contig, pos1)) {
+            for draws in self.draws.values_mut() {
+                draws.fill(None);
+            }
+            self.locus = Some((contig, pos1));
+        }
+        let per_sample = unit == RandomUnit::SampleSite;
+        let index = if per_sample { sample } else { 0 };
+        let name = &self.samples[sample];
+        let size = if per_sample { self.samples.len() } else { 1 };
+        let draws = self.draws.entry((seed, per_sample)).or_insert_with(|| vec![None; size]);
+        *draws[index].get_or_insert_with(|| random_draw(seed, contig, pos1, name, unit))
+    }
+}
+
+impl PreparedMasks {
+    pub(super) fn hidden_cached(&self, cache: &mut RandomDrawCache<'_>, contig: u8, pos1: u32, sample: usize) -> bool {
+        self.masks.iter().any(|mask| match mask {
+            PreparedMask::Random { rate, seed, unit } => {
+                *rate == 1.0 || (*rate > 0.0 && cache.draw(*seed, *unit, contig, pos1, sample) < *rate)
+            }
+            PreparedMask::Bed { intervals, mode } => match mode {
+                BedMode::Keep => !intervals.contains(contig, pos1),
+                BedMode::Drop => intervals.contains(contig, pos1),
+            },
+        })
+    }
+}
+
 fn random_draw(seed: u64, contig: u8, pos1: u32, sample: &str, unit: RandomUnit) -> f64 {
     let mut hasher = Sha256::new();
     hasher.update(MASK_ALGORITHM.as_bytes());
@@ -760,6 +805,65 @@ mod tests {
             assert!(all.hidden(1, pos, "a"));
         }
         assert!(samples_differ);
+    }
+
+    #[test]
+    fn cached_masks_match_uncached_masks_across_rates_units_samples_and_loci() {
+        let samples = vec!["a".into(), "NA12878".into(), "sample α".into()];
+        let mut masks = Vec::new();
+        for seed in [0, 12345, u64::MAX] {
+            for unit in [RandomUnit::Site, RandomUnit::SampleSite] {
+                for rate in [0.0, 0.2, 0.5, 0.8, 1.0] {
+                    masks.push(PreparedMasks::load(&[Mask::Random { rate, seed, unit }]).unwrap());
+                }
+            }
+        }
+        for mode in [BedMode::Keep, BedMode::Drop] {
+            masks.push(PreparedMasks {
+                masks: vec![
+                    PreparedMask::Bed {
+                        intervals: Bed::parse("1 1 3\n22 0 10\n").unwrap(),
+                        mode,
+                    },
+                    PreparedMask::Random {
+                        rate: 0.4,
+                        seed: 12345,
+                        unit: RandomUnit::SampleSite,
+                    },
+                    PreparedMask::Random {
+                        rate: 0.2,
+                        seed: 0,
+                        unit: RandomUnit::Site,
+                    },
+                ],
+            });
+        }
+        let mut cache = RandomDrawCache::new(&samples);
+        for (contig, pos) in [(1, 1000), (1, 2), (1, 2), (2, 2), (1, 1000), (22, u32::MAX), (1, 1)] {
+            for mask in masks.iter().rev() {
+                for sample in [2, 0, 1] {
+                    assert_eq!(
+                        mask.hidden_cached(&mut cache, contig, pos, sample),
+                        mask.hidden(contig, pos, &samples[sample])
+                    );
+                }
+            }
+        }
+        // Verify the cached values against independent SHA-256 vectors, including UTF-8 names.
+        assert_eq!(
+            cache.draw(12345, RandomUnit::Site, 1, 1000, 0),
+            3_076_170_996_652_624_f64 / ((1u64 << 53) as f64)
+        );
+        assert_eq!(
+            cache.draw(12345, RandomUnit::SampleSite, 1, 1000, 1),
+            3_112_782_897_755_573_f64 / ((1u64 << 53) as f64)
+        );
+        assert_eq!(
+            cache.draw(12345, RandomUnit::SampleSite, 1, 1000, 2),
+            2_833_699_031_287_665_f64 / ((1u64 << 53) as f64)
+        );
+        // Only one slot per seed/unit exists, not one slot per rate/policy or genomic term.
+        assert_eq!(cache.draws.len(), 6);
     }
 
     #[test]
