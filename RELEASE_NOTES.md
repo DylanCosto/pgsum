@@ -50,6 +50,21 @@ The optional offline paired study uses Python 3.9+ and independently checks its 
 python3 examples/robustness/run.py --binary ./pgsum --out example-output --study
 ```
 
+## Progress and participant-group diagnostics
+
+Long robustness runs now report stages and processed term counts, with human-readable, JSON
+or quiet modes. Completion is emitted only after final input verification and publication of
+the report. Progress settings leave scientific outputs unchanged.
+
+`robustness-groups` summarizes completed experiments for an explicit, exhaustive participant
+partition. Score errors and correlations use within-group pairs; percentile shifts and cutoff
+transitions retain the same full-cohort baseline for every group. Reports include group and
+scenario filters, unavailable reasons, membership and input/output fingerprints. The
+[checked 128-person technical partition](bench/results/group-summary-public128.json) passes
+588 score-metric, 168 cutoff and 84 reference comparisons. These artificial groups validate
+reporting only; they do not establish demographic or ancestry differences. The extracted
+offline study also checks a singleton group and a three-person group.
+
 ## Scoring and workflow changes since v0.5.1
 
 - Dense model compilation now accepts legitimate IUPAC ambiguity in the reference FASTA.

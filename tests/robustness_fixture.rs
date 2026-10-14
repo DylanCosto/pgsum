@@ -353,6 +353,150 @@ fn approximately(actual: &str, expected: f64) {
 }
 
 #[test]
+fn explicit_groups_preserve_global_cutoffs_reference_distributions_and_small_group_limits() {
+    let fixture = Fixture::new("groups", 4);
+    let table = fixture.standard_table();
+    let mut manifest = fixture.manifest(
+        &table,
+        json!([
+            {"id":"control"}, {"id":"all","masks":[{"kind":"random","rate":1.0,"seed":42,"unit":"sample_site"}]}
+        ]),
+    );
+    manifest["reference_sets"] = json!([{"id":"same_cohort","samples":["A","B","C"]}]);
+    let (native, _) = fixture.experiment("native", manifest);
+    let mapping = fixture.path("groups.tsv");
+    std::fs::write(&mapping, "sample\tgroup\nC\t<script>\nA\tsingleton\nB\t<script>\n").unwrap();
+    let out = fixture.path("grouped");
+    run(&[
+        "robustness-groups",
+        "--results",
+        text(&native),
+        "--groups",
+        text(&mapping),
+        "--out",
+        text(&out),
+    ]);
+    let report: Value = serde_json::from_slice(&std::fs::read(out.join("groups.json")).unwrap()).unwrap();
+    assert_eq!(report["percentile_basis"], "full_target_baseline");
+    let group_rows = report["scores"][0]["scenarios"].as_array().unwrap();
+    let upper = group_rows
+        .iter()
+        .find(|r| r["scenario"] == "all" && r["group"] == "<script>")
+        .unwrap();
+    let lower = group_rows
+        .iter()
+        .find(|r| r["scenario"] == "all" && r["group"] == "singleton")
+        .unwrap();
+    approximately(&upper["metrics"]["mae"].to_string(), 4.3);
+    approximately(
+        &upper["metrics"]["rmse"].to_string(),
+        ((1.7_f64.powi(2) + 6.9_f64.powi(2)) / 2.0).sqrt(),
+    );
+    approximately(&upper["metrics"]["mean_abs_percentile_shift"].to_string(), 200.0 / 3.0);
+    assert_eq!(upper["metrics"]["crossings"][0]["down"], 2);
+    assert_eq!(upper["metrics"]["crossings"][0]["evaluable"], 2);
+    assert!(upper["metrics"]["spearman"].is_null());
+    assert!(lower["metrics"]["pearson"].is_null());
+    assert!(lower["metrics"]["unavailable_reasons"]["pearson"].is_string());
+    approximately(&lower["metrics"]["mean_abs_percentile_shift"].to_string(), 100.0 / 6.0);
+    let reference = &upper["reference_comparisons"][0];
+    assert_eq!(reference["reference_samples"], 3);
+    assert_eq!(reference["source_cohort_shared_sample_ids"], 3);
+    assert_eq!(reference["evaluable"], 2);
+    approximately(&reference["mean_absolute_shift"].to_string(), 200.0 / 3.0);
+    let html = std::fs::read_to_string(out.join("groups.html")).unwrap();
+    assert!(html.contains("&lt;script&gt;"));
+    assert!(!html.contains("<td><script>"));
+    assert!(!html.contains("data-group=\"<script>\""));
+    for (name, hash) in report["outputs"].as_object().unwrap() {
+        assert_eq!(
+            pgsum::digest::file_sha256(&out.join(name)).unwrap(),
+            hash.as_str().unwrap()
+        );
+    }
+    let repeat = Command::new(env!("CARGO_BIN_EXE_pgsum"))
+        .args([
+            "robustness-groups",
+            "--results",
+            text(&native),
+            "--groups",
+            text(&mapping),
+            "--out",
+            text(&out),
+        ])
+        .output()
+        .unwrap();
+    assert!(!repeat.status.success());
+    for (i, contents) in [
+        "sample\tgroup\nA\tx\nB\tx\n",
+        "sample\tgroup\nA\tx\nB\tx\nD\ty\n",
+        "sample\tgroup\nA\tx\nA\tx\nB\ty\nC\ty\n",
+        "sample\tgroup\nA\t\nB\tx\nC\ty\n",
+    ]
+    .iter()
+    .enumerate()
+    {
+        let bad = fixture.path(&format!("bad-{i}.tsv"));
+        std::fs::write(&bad, contents).unwrap();
+        let dest = fixture.path(&format!("bad-{i}"));
+        let output = Command::new(env!("CARGO_BIN_EXE_pgsum"))
+            .args([
+                "robustness-groups",
+                "--results",
+                text(&native),
+                "--groups",
+                text(&bad),
+                "--out",
+                text(&dest),
+            ])
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        assert!(!dest.exists());
+    }
+    let constant = fixture.table("constant", &["A", "B", "C"], "GT", &vec![vec!["0/0"; 3]; 4], "gt");
+    let (constant_native, _) = fixture.experiment(
+        "constant-native",
+        fixture.manifest(&constant, json!([{"id":"control"}])),
+    );
+    let constant_out = fixture.path("constant-groups");
+    run(&[
+        "robustness-groups",
+        "--results",
+        text(&constant_native),
+        "--groups",
+        text(&mapping),
+        "--out",
+        text(&constant_out),
+    ]);
+    for row in rows(&constant_out.join("cutoffs.tsv")) {
+        assert_eq!(row["evaluable"], "0");
+        for key in ["up", "down", "unchanged", "changed_fraction"] {
+            assert_eq!(row[key], "");
+        }
+        assert!(row["unavailable_reason"].contains("constant"));
+    }
+    let original = std::fs::read(native.join("samples.tsv")).unwrap();
+    std::fs::write(native.join("samples.tsv"), b"corrupted").unwrap();
+    let output = Command::new(env!("CARGO_BIN_EXE_pgsum"))
+        .args([
+            "robustness-groups",
+            "--results",
+            text(&native),
+            "--groups",
+            text(&mapping),
+            "--out",
+            text(&fixture.path("corrupt")),
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("output hash differs"));
+    assert!(!fixture.path("corrupt").exists());
+    std::fs::write(native.join("samples.tsv"), original).unwrap();
+}
+
+#[test]
 fn no_mask_matches_ordinary_scoring_and_all_mask_changes_reconcile_exactly() {
     let fixture = Fixture::new("identity", 4);
     let table = fixture.standard_table();

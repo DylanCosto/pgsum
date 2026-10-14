@@ -22,7 +22,17 @@ impl Decimal {
     /// Parse `[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?` of at most 128 bytes whose adjusted exponent is in
     /// −1000..=100; anything else is `None`.
     pub fn parse(text: &str) -> Option<Decimal> {
-        if text.len() > MAX_TEXT {
+        Self::parse_bounded(text, MAX_TEXT, ADJUSTED_RANGE)
+    }
+
+    /// Parse an exact output score without imposing the narrower input-weight precision bound.
+    /// Limits guard pathological exponent expansion; no floating-point conversion occurs.
+    pub fn parse_score(text: &str) -> Option<Decimal> {
+        Self::parse_bounded(text, 32_768, -32_768..=32_768)
+    }
+
+    fn parse_bounded(text: &str, max_text: usize, adjusted_range: std::ops::RangeInclusive<i64>) -> Option<Decimal> {
+        if text.len() > max_text {
             return None;
         }
         let bytes = text.as_bytes();
@@ -88,7 +98,10 @@ impl Decimal {
             coefficient,
             exponent,
         };
-        ADJUSTED_RANGE.contains(&decimal.adjusted()).then_some(decimal)
+        let adjusted = decimal
+            .exponent
+            .checked_add(i64::try_from(decimal.coefficient.len() - 1).ok()?)?;
+        adjusted_range.contains(&adjusted).then_some(decimal)
     }
 
     /// Numerical ordering, ignoring trailing precision and the sign of zero; no float conversion.
@@ -266,5 +279,29 @@ mod tests {
     fn mantissa() {
         let d = Decimal::parse("-0.16220387987485377").unwrap();
         assert_eq!((d.mantissa_i64(), d.exponent), (Some(-16220387987485377), -17));
+    }
+
+    #[test]
+    fn score_parser_preserves_long_exact_sums_without_relaxing_input_weights() {
+        let long = format!("1.{}1", "0".repeat(300));
+        assert!(Decimal::parse(&long).is_none());
+        let score = Decimal::parse_score(&long).unwrap();
+        assert_eq!(score.to_python_string(), long);
+        assert_eq!(
+            score.numeric_cmp(&Decimal::parse("1").unwrap()),
+            std::cmp::Ordering::Greater
+        );
+        assert!(Decimal::parse_score("1e101").is_some());
+        for invalid in [
+            "NaN",
+            "inf",
+            "11e9223372036854775807",
+            "1e-9223372036854775807",
+            "1e32769",
+        ] {
+            assert!(Decimal::parse_score(invalid).is_none(), "{invalid}");
+            assert!(Decimal::parse(invalid).is_none(), "{invalid}");
+        }
+        assert!(Decimal::parse_score(&"1".repeat(32769)).is_none());
     }
 }

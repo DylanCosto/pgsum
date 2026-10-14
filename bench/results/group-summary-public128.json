@@ -1,0 +1,3922 @@
+{
+  "schema": "pgsum-public-group-summary-v1",
+  "scope": "Descriptive group sensitivity checked from completed native exact scores and participant reference rows. Artificial technical groups do not establish ancestry or demographic effects, phenotype prediction or calibration. No new source-genotype validation.",
+  "design": {
+    "model": "PGS000018",
+    "targets": 128,
+    "reference_samples": 64,
+    "scenarios": 42,
+    "group_sizes": [
+      64,
+      64
+    ],
+    "group_assignment": "First 64 and last 64 participants in the original native target order; explicit exhaustive technical partition, not inferred ancestry or demographics.",
+    "percentile_basis": "full_target_baseline",
+    "correlation_basis": "within_group"
+  },
+  "verification": {
+    "passed": true,
+    "sample_scenario_rows": 5376,
+    "groups": 2,
+    "group_scenario_rows": 84,
+    "score_metric_checks": 588,
+    "cutoff_checks": 168,
+    "reference_checks": 84,
+    "verifier_sha256": "8e0d670f2c4f4b0ece42f7225bf27a84ad813ae711b6f61076acc197e9293fb9",
+    "supporting_verifier_sha256": "8f8164ce3b74a101d03818dfb3a9646b6667a6dfcb57810c5de3e4065800b0cb",
+    "scope": "Group metrics derived from native exact sums with whole-cohort percentile thresholds; reference shifts derived from native participant reference rows. No source-genotype or phenotype validation."
+  },
+  "ui_verification": {
+    "all_rows": 840,
+    "one_group_rows": 420,
+    "one_group_one_scenario_rows": 10,
+    "passed": true
+  },
+  "summary": {
+    "correlation_basis": "within_group",
+    "executable_sha256": "sha256:4cc98efc0a9a54d8046c112b200624ca5ad20aab193b5f9a26420cd5ea20767c",
+    "groups": [
+      {
+        "id": "selection_first64",
+        "members": [
+          "HG00096",
+          "HG00110",
+          "HG00138",
+          "HG00154",
+          "HG00234",
+          "HG00250",
+          "HG00277",
+          "HG00308",
+          "HG00341",
+          "HG00358",
+          "HG00407",
+          "HG00448",
+          "HG00553",
+          "HG00590",
+          "HG00641",
+          "HG00683",
+          "HG00844",
+          "HG01047",
+          "HG01089",
+          "HG01111",
+          "HG01174",
+          "HG01205",
+          "HG01312",
+          "HG01354",
+          "HG01412",
+          "HG01455",
+          "HG01509",
+          "HG01528",
+          "HG01606",
+          "HG01625",
+          "HG01705",
+          "HG01767",
+          "HG01805",
+          "HG01841",
+          "HG01870",
+          "HG01890",
+          "HG01948",
+          "HG01973",
+          "HG02020",
+          "HG02050",
+          "HG02090",
+          "HG02128",
+          "HG02169",
+          "HG02188",
+          "HG02272",
+          "HG02298",
+          "HG02358",
+          "HG02385",
+          "HG02439",
+          "HG02477",
+          "HG02554",
+          "HG02582",
+          "HG02645",
+          "HG02667",
+          "HG02728",
+          "HG02771",
+          "HG02820",
+          "HG02879",
+          "HG02977",
+          "HG03021",
+          "HG03078",
+          "HG03100",
+          "HG03162",
+          "HG03198"
+        ],
+        "samples": 64
+      },
+      {
+        "id": "selection_last64",
+        "members": [
+          "HG03294",
+          "HG03352",
+          "HG03437",
+          "HG03462",
+          "HG03556",
+          "HG03585",
+          "HG03652",
+          "HG03686",
+          "HG03729",
+          "HG03750",
+          "HG03788",
+          "HG03814",
+          "HG03864",
+          "HG03885",
+          "HG03928",
+          "HG03953",
+          "HG04015",
+          "HG04039",
+          "HG04141",
+          "HG04173",
+          "HG04235",
+          "NA07048",
+          "NA12003",
+          "NA12234",
+          "NA12751",
+          "NA12827",
+          "NA18520",
+          "NA18536",
+          "NA18567",
+          "NA18595",
+          "NA18627",
+          "NA18640",
+          "NA18874",
+          "NA18917",
+          "NA18962",
+          "NA18975",
+          "NA19003",
+          "NA19024",
+          "NA19067",
+          "NA19083",
+          "NA19131",
+          "NA19171",
+          "NA19256",
+          "NA19320",
+          "NA19384",
+          "NA19428",
+          "NA19468",
+          "NA19657",
+          "NA19725",
+          "NA19750",
+          "NA19819",
+          "NA19921",
+          "NA20340",
+          "NA20504",
+          "NA20533",
+          "NA20582",
+          "NA20773",
+          "NA20798",
+          "NA20831",
+          "NA20859",
+          "NA20891",
+          "NA20906",
+          "NA21110",
+          "NA21123"
+        ],
+        "samples": 64
+      }
+    ],
+    "notes": [
+      "Groups are an explicit exhaustive partition supplied by the researcher; labels are not inferred or verified demographic or ancestry assignments.",
+      "Every group retains the original whole-cohort common-callable term universe. Grouping never rescans genotypes or recovers excluded terms.",
+      "Percentile movement and cutoff membership use the same full target baseline distribution for every group. Pearson and Spearman correlations use pairs within each group.",
+      "External-reference shifts retain the authored frozen reference distribution. Source-cohort shared sample counts describe the whole input cohort, not overlap within a particular group.",
+      "These are descriptive masking-sensitivity statistics, not predictive accuracy, calibration, ancestry normalization, population uncertainty or a causal comparison between groups.",
+      "Small or constant groups may have unavailable correlations. Null metrics retain their reasons; group sizes and percentile denominators remain explicit."
+    ],
+    "outputs": {
+      "cutoffs.tsv": "sha256:16b06956d6f5af8a7440744b1dc4c5a92e692770671e7e0f70f4670807f7ab9d",
+      "groups.html": "sha256:31d5169e5d4093749fd1ebe6197bd8d45a5cc5338c78664244624f3781e5b6a0",
+      "metrics.tsv": "sha256:8fa8c500fe3a21b11d3ad238a44fdfd4cbc2d18f3ac544f36953ee383cc1f5a1",
+      "references.tsv": "sha256:b582827df8c2058e0d0936fc0d61d148ad1a1e51f505a5c0ec75f33f62bf373a"
+    },
+    "percentile_basis": "full_target_baseline",
+    "pgsum_version": "0.6.0",
+    "schema": "pgsum-robustness-groups-v1",
+    "scores": [
+      {
+        "baseline_term_fraction": 0.9811463465925272,
+        "baseline_term_sha256": "76b3fe675f11fc739eca88fb306000f07801571fcbe802a69aed177fd5d053ea",
+        "baseline_terms": 1712276,
+        "baseline_weight_fraction": 0.9759183184684546,
+        "excluded_terms": {
+          "baseline_target_not_common_callable": 31661,
+          "model_or_orientation_unscorable": 1201,
+          "reference_not_common_callable": 5,
+          "unresolved_position": 36
+        },
+        "pgs_id": "PGS000018",
+        "scenarios": [
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.0,
+              "max_abs_change": 0.0,
+              "max_abs_percentile_shift": 0.0,
+              "mean_abs_percentile_shift": 0.0,
+              "n": 64,
+              "pearson": 1.0,
+              "rmse": 0.0,
+              "spearman": 0.9999999999999998,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 0.0,
+                "mean_absolute_shift": 0.0,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.6103515625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.0,
+              "max_abs_change": 0.0,
+              "max_abs_percentile_shift": 0.0,
+              "mean_abs_percentile_shift": 0.0,
+              "n": 64,
+              "pearson": 1.0,
+              "rmse": 0.0,
+              "spearman": 0.9999999999999998,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 0.0,
+                "mean_absolute_shift": 0.0,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.75390625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.0,
+              "max_abs_change": 0.0,
+              "max_abs_percentile_shift": 0.0,
+              "mean_abs_percentile_shift": 0.0,
+              "n": 64,
+              "pearson": 1.0,
+              "rmse": 0.0,
+              "spearman": 0.9999999999999998,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 0.0,
+                "mean_absolute_shift": 0.0,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.6103515625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.0,
+              "max_abs_change": 0.0,
+              "max_abs_percentile_shift": 0.0,
+              "mean_abs_percentile_shift": 0.0,
+              "n": 64,
+              "pearson": 1.0,
+              "rmse": 0.0,
+              "spearman": 0.9999999999999998,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 0.0,
+                "mean_absolute_shift": 0.0,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.75390625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 1
+                }
+              ],
+              "mae": 0.08452952818673438,
+              "max_abs_change": 0.29330674608,
+              "max_abs_percentile_shift": 13.671875,
+              "mean_abs_percentile_shift": 3.7353515625,
+              "n": 64,
+              "pearson": 0.9872368924624317,
+              "rmse": 0.1042235156694565,
+              "spearman": 0.9885531135531134,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 21.875,
+                "mean_absolute_shift": 4.052734375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 48.9013671875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=11"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.06505354237210938,
+              "max_abs_change": 0.215927418984,
+              "max_abs_percentile_shift": 15.234375,
+              "mean_abs_percentile_shift": 3.06396484375,
+              "n": 64,
+              "pearson": 0.9909482018160315,
+              "rmse": 0.08336340821750542,
+              "spearman": 0.9865842490842489,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 12.5,
+                "mean_absolute_shift": 3.173828125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 46.97265625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=11"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 1
+                }
+              ],
+              "mae": 0.018869908301183104,
+              "max_abs_change": 0.1367288334151875,
+              "max_abs_percentile_shift": 11.328125,
+              "mean_abs_percentile_shift": 1.3427734375,
+              "n": 64,
+              "pearson": 0.9989369599963728,
+              "rmse": 0.02953572341804917,
+              "spearman": 0.9973443223443221,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 6.25,
+                "mean_absolute_shift": 0.732421875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.2685546875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=11"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.021613987036417967,
+              "max_abs_change": 0.13665675166521876,
+              "max_abs_percentile_shift": 7.421875,
+              "mean_abs_percentile_shift": 1.1474609375,
+              "n": 64,
+              "pearson": 0.9988346140016778,
+              "rmse": 0.030602693368264298,
+              "spearman": 0.9985347985347983,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 15.625,
+                "mean_absolute_shift": 0.9765625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.998046875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=11"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 2
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.0757741458418125,
+              "max_abs_change": 0.1982776313,
+              "max_abs_percentile_shift": 16.015625,
+              "mean_abs_percentile_shift": 3.8818359375,
+              "n": 64,
+              "pearson": 0.9899128588423542,
+              "rmse": 0.09249182075540997,
+              "spearman": 0.9822802197802196,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 15.625,
+                "mean_absolute_shift": 3.0029296875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 51.611328125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=22"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.07456061647479688,
+              "max_abs_change": 0.413968725006,
+              "max_abs_percentile_shift": 21.484375,
+              "mean_abs_percentile_shift": 3.69873046875,
+              "n": 64,
+              "pearson": 0.9864919478003354,
+              "rmse": 0.10115961835479255,
+              "spearman": 0.9847527472527471,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 25.0,
+                "mean_absolute_shift": 3.7109375,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.33984375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=22"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.01666334416819946,
+              "max_abs_change": 0.07784573170503124,
+              "max_abs_percentile_shift": 5.078125,
+              "mean_abs_percentile_shift": 1.23291015625,
+              "n": 64,
+              "pearson": 0.9993681257343764,
+              "rmse": 0.022404930617983026,
+              "spearman": 0.9976190476190474,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 3.125,
+                "mean_absolute_shift": 0.6103515625,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.5859375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=22"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.016627667725091066,
+              "max_abs_change": 0.07679958199390625,
+              "max_abs_percentile_shift": 4.296875,
+              "mean_abs_percentile_shift": 1.123046875,
+              "n": 64,
+              "pearson": 0.9993772646072193,
+              "rmse": 0.021619897327645923,
+              "spearman": 0.9983058608058606,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 7.8125,
+                "mean_absolute_shift": 0.7080078125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.8271484375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=22"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 2
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 2
+                }
+              ],
+              "mae": 0.08822528253059375,
+              "max_abs_change": 0.344947248434,
+              "max_abs_percentile_shift": 14.453125,
+              "mean_abs_percentile_shift": 4.30908203125,
+              "n": 64,
+              "pearson": 0.9830632246476807,
+              "rmse": 0.11939368996521066,
+              "spearman": 0.9828754578754577,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 18.75,
+                "mean_absolute_shift": 3.369140625,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 51.6845703125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=33"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.09411514412478125,
+              "max_abs_change": 0.309334367588,
+              "max_abs_percentile_shift": 18.359375,
+              "mean_abs_percentile_shift": 4.40673828125,
+              "n": 64,
+              "pearson": 0.9819873310240543,
+              "rmse": 0.11617784697659604,
+              "spearman": 0.9782509157509156,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 23.4375,
+                "mean_absolute_shift": 4.296875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.2421875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=33"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 1
+                }
+              ],
+              "mae": 0.018797153875092773,
+              "max_abs_change": 0.085654550387375,
+              "max_abs_percentile_shift": 5.859375,
+              "mean_abs_percentile_shift": 1.23291015625,
+              "n": 64,
+              "pearson": 0.999257710132077,
+              "rmse": 0.024564572219408654,
+              "spearman": 0.9972985347985346,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 3.125,
+                "mean_absolute_shift": 0.6103515625,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.5859375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=33"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.015650879194248048,
+              "max_abs_change": 0.04480341251809375,
+              "max_abs_percentile_shift": 5.078125,
+              "mean_abs_percentile_shift": 1.13525390625,
+              "n": 64,
+              "pearson": 0.9995284158620381,
+              "rmse": 0.019623807990125763,
+              "spearman": 0.9993589743589741,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 7.8125,
+                "mean_absolute_shift": 0.390625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.705078125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=33"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.08604246543129687,
+              "max_abs_change": 0.36284651988,
+              "max_abs_percentile_shift": 13.671875,
+              "mean_abs_percentile_shift": 4.06494140625,
+              "n": 64,
+              "pearson": 0.9852043063710393,
+              "rmse": 0.11244792448304894,
+              "spearman": 0.979120879120879,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 20.3125,
+                "mean_absolute_shift": 4.19921875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 51.6357421875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=44"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.08280188144851562,
+              "max_abs_change": 0.349190689178,
+              "max_abs_percentile_shift": 19.140625,
+              "mean_abs_percentile_shift": 3.91845703125,
+              "n": 64,
+              "pearson": 0.9860788387077435,
+              "rmse": 0.1020131119893397,
+              "spearman": 0.9803113553113552,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 21.875,
+                "mean_absolute_shift": 4.2236328125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.0224609375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=44"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.020492608876350828,
+              "max_abs_change": 0.090419546855625,
+              "max_abs_percentile_shift": 6.640625,
+              "mean_abs_percentile_shift": 1.1962890625,
+              "n": 64,
+              "pearson": 0.999175448199798,
+              "rmse": 0.02684780204405351,
+              "spearman": 0.9974816849816848,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 6.25,
+                "mean_absolute_shift": 0.78125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.7568359375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=44"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.019756804545283203,
+              "max_abs_change": 0.0792352066688125,
+              "max_abs_percentile_shift": 4.296875,
+              "mean_abs_percentile_shift": 1.07421875,
+              "n": 64,
+              "pearson": 0.9991499689547766,
+              "rmse": 0.025398946890747717,
+              "spearman": 0.9988553113553111,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 9.375,
+                "mean_absolute_shift": 0.9765625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.94921875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=44"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 1
+                }
+              ],
+              "mae": 0.08263361343396874,
+              "max_abs_change": 0.289708303838,
+              "max_abs_percentile_shift": 12.109375,
+              "mean_abs_percentile_shift": 3.57666015625,
+              "n": 64,
+              "pearson": 0.9875670674387562,
+              "rmse": 0.1043544298262731,
+              "spearman": 0.9862179487179485,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 15.625,
+                "mean_absolute_shift": 3.1005859375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 49.658203125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=55"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.08675092738346875,
+              "max_abs_change": 0.341089699886,
+              "max_abs_percentile_shift": 14.453125,
+              "mean_abs_percentile_shift": 4.0771484375,
+              "n": 64,
+              "pearson": 0.9822249291864166,
+              "rmse": 0.11642802947440709,
+              "spearman": 0.982142857142857,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 23.4375,
+                "mean_absolute_shift": 4.0283203125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.6806640625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.01/seed=55"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 1
+                }
+              ],
+              "mae": 0.0209575345053396,
+              "max_abs_change": 0.08100833044984375,
+              "max_abs_percentile_shift": 5.859375,
+              "mean_abs_percentile_shift": 1.3671875,
+              "n": 64,
+              "pearson": 0.9991126924874952,
+              "rmse": 0.026650128512187628,
+              "spearman": 0.9970695970695969,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 9.375,
+                "mean_absolute_shift": 0.87890625,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.2685546875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=55"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.02024085847686133,
+              "max_abs_change": 0.0728428498758125,
+              "max_abs_percentile_shift": 5.078125,
+              "mean_abs_percentile_shift": 1.123046875,
+              "n": 64,
+              "pearson": 0.9990413703303046,
+              "rmse": 0.02685973236169589,
+              "spearman": 0.99775641025641,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 6.25,
+                "mean_absolute_shift": 0.830078125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.94921875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.01/seed=55"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 2
+                }
+              ],
+              "mae": 0.1882745589535156,
+              "max_abs_change": 0.669460654172,
+              "max_abs_percentile_shift": 34.765625,
+              "mean_abs_percentile_shift": 8.23974609375,
+              "n": 64,
+              "pearson": 0.9333566894160921,
+              "rmse": 0.23631461188900468,
+              "spearman": 0.9275641025641024,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 43.75,
+                "mean_absolute_shift": 8.251953125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 47.3876953125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=11"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.19622452756843753,
+              "max_abs_change": 0.724572282043,
+              "max_abs_percentile_shift": 41.015625,
+              "mean_abs_percentile_shift": 8.984375,
+              "n": 64,
+              "pearson": 0.9058236922832116,
+              "rmse": 0.2591480346054586,
+              "spearman": 0.9072802197802197,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 43.75,
+                "mean_absolute_shift": 9.1064453125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.4619140625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=11"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.05209644330536157,
+              "max_abs_change": 0.175909848181125,
+              "max_abs_percentile_shift": 8.203125,
+              "mean_abs_percentile_shift": 2.74658203125,
+              "n": 64,
+              "pearson": 0.9955872544390337,
+              "rmse": 0.06505300603280376,
+              "spearman": 0.9927655677655676,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 14.0625,
+                "mean_absolute_shift": 2.0751953125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.9765625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=11"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.052170814510345706,
+              "max_abs_change": 0.2799226952295,
+              "max_abs_percentile_shift": 16.015625,
+              "mean_abs_percentile_shift": 2.392578125,
+              "n": 64,
+              "pearson": 0.994701271008455,
+              "rmse": 0.07003697109166118,
+              "spearman": 0.993727106227106,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 20.3125,
+                "mean_absolute_shift": 2.392578125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.583984375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=11"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 2
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 2
+                }
+              ],
+              "mae": 0.17336693254395313,
+              "max_abs_change": 0.519593115754,
+              "max_abs_percentile_shift": 26.171875,
+              "mean_abs_percentile_shift": 8.53271484375,
+              "n": 64,
+              "pearson": 0.9445354885649525,
+              "rmse": 0.21380516195966337,
+              "spearman": 0.9322802197802196,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 32.8125,
+                "mean_absolute_shift": 8.0810546875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 51.953125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=22"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 2
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.22560578628714062,
+              "max_abs_change": 0.600820843752,
+              "max_abs_percentile_shift": 33.203125,
+              "mean_abs_percentile_shift": 10.48583984375,
+              "n": 64,
+              "pearson": 0.917526437876351,
+              "rmse": 0.27050183269496486,
+              "spearman": 0.9027014652014651,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 39.0625,
+                "mean_absolute_shift": 10.791015625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 52.63671875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=22"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.04342779191716382,
+              "max_abs_change": 0.2011997038296094,
+              "max_abs_percentile_shift": 12.109375,
+              "mean_abs_percentile_shift": 2.2705078125,
+              "n": 64,
+              "pearson": 0.9963992122595003,
+              "rmse": 0.056511253055525845,
+              "spearman": 0.9945054945054943,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 18.75,
+                "mean_absolute_shift": 1.904296875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.5615234375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=22"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.045514835974515624,
+              "max_abs_change": 0.16212757291310936,
+              "max_abs_percentile_shift": 9.765625,
+              "mean_abs_percentile_shift": 2.35595703125,
+              "n": 64,
+              "pearson": 0.9960169525470368,
+              "rmse": 0.05862842428632041,
+              "spearman": 0.9952838827838826,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 15.625,
+                "mean_absolute_shift": 1.904296875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.046875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=22"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 2
+                }
+              ],
+              "mae": 0.19485768165034376,
+              "max_abs_change": 0.869633393048,
+              "max_abs_percentile_shift": 48.046875,
+              "mean_abs_percentile_shift": 9.06982421875,
+              "n": 64,
+              "pearson": 0.912997319202387,
+              "rmse": 0.2580639323578157,
+              "spearman": 0.9078296703296702,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 42.1875,
+                "mean_absolute_shift": 7.9345703125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 52.9296875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=33"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 2
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.15642165199131253,
+              "max_abs_change": 0.596450863131,
+              "max_abs_percentile_shift": 30.078125,
+              "mean_abs_percentile_shift": 6.787109375,
+              "n": 64,
+              "pearson": 0.9536435261024543,
+              "rmse": 0.19816277935483229,
+              "spearman": 0.9454670329670328,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 42.1875,
+                "mean_absolute_shift": 6.9580078125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 49.2919921875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=33"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.038945591238883054,
+              "max_abs_change": 0.149912746587125,
+              "max_abs_percentile_shift": 6.640625,
+              "mean_abs_percentile_shift": 2.11181640625,
+              "n": 64,
+              "pearson": 0.9972702498025484,
+              "rmse": 0.05083013060260225,
+              "spearman": 0.9959249084249082,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 7.8125,
+                "mean_absolute_shift": 1.46484375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.9521484375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=33"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.04843741498398657,
+              "max_abs_change": 0.1435335251810625,
+              "max_abs_percentile_shift": 9.765625,
+              "mean_abs_percentile_shift": 2.06298828125,
+              "n": 64,
+              "pearson": 0.9957085617194336,
+              "rmse": 0.05840679209511139,
+              "spearman": 0.996657509157509,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 6.25,
+                "mean_absolute_shift": 1.904296875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.14453125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=33"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 2
+                }
+              ],
+              "mae": 0.18677969005014064,
+              "max_abs_change": 0.566624370386,
+              "max_abs_percentile_shift": 26.953125,
+              "mean_abs_percentile_shift": 7.92236328125,
+              "n": 64,
+              "pearson": 0.938140348427373,
+              "rmse": 0.23463661906560093,
+              "spearman": 0.9381868131868131,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 32.8125,
+                "mean_absolute_shift": 8.2763671875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 52.734375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=44"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 2
+                }
+              ],
+              "mae": 0.21516203324189062,
+              "max_abs_change": 0.71374697627,
+              "max_abs_percentile_shift": 34.765625,
+              "mean_abs_percentile_shift": 9.41162109375,
+              "n": 64,
+              "pearson": 0.9062423689692961,
+              "rmse": 0.26230736779691183,
+              "spearman": 0.9059981684981684,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 50.0,
+                "mean_absolute_shift": 9.6435546875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.3642578125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=44"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.054553092220991944,
+              "max_abs_change": 0.1543522081735,
+              "max_abs_percentile_shift": 8.203125,
+              "mean_abs_percentile_shift": 2.69775390625,
+              "n": 64,
+              "pearson": 0.9956852662754166,
+              "rmse": 0.06655693012810299,
+              "spearman": 0.9936813186813185,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 12.5,
+                "mean_absolute_shift": 1.953125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.5615234375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=44"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.05903005033935278,
+              "max_abs_change": 0.17245315115679688,
+              "max_abs_percentile_shift": 9.765625,
+              "mean_abs_percentile_shift": 2.67333984375,
+              "n": 64,
+              "pearson": 0.9944445260554604,
+              "rmse": 0.07192000212082345,
+              "spearman": 0.9926282051282049,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 14.0625,
+                "mean_absolute_shift": 2.1484375,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.193359375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=44"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 57,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 2
+                }
+              ],
+              "mae": 0.18258196598646875,
+              "max_abs_change": 0.525775963648,
+              "max_abs_percentile_shift": 26.171875,
+              "mean_abs_percentile_shift": 7.75146484375,
+              "n": 64,
+              "pearson": 0.935369180279265,
+              "rmse": 0.22981063696274776,
+              "spearman": 0.9469780219780218,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 34.375,
+                "mean_absolute_shift": 7.6904296875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 49.70703125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=55"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 2
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 2
+                }
+              ],
+              "mae": 0.2124355090279844,
+              "max_abs_change": 0.493148326614,
+              "max_abs_percentile_shift": 26.953125,
+              "mean_abs_percentile_shift": 9.375,
+              "n": 64,
+              "pearson": 0.9198216912734694,
+              "rmse": 0.2534219713800126,
+              "spearman": 0.9113095238095237,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 35.9375,
+                "mean_absolute_shift": 9.8388671875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.0224609375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.05/seed=55"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 1
+                }
+              ],
+              "mae": 0.05576930920792603,
+              "max_abs_change": 0.1940107802076875,
+              "max_abs_percentile_shift": 12.109375,
+              "mean_abs_percentile_shift": 2.7099609375,
+              "n": 64,
+              "pearson": 0.9947142341142441,
+              "rmse": 0.07153494433175057,
+              "spearman": 0.9934065934065932,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 10.9375,
+                "mean_absolute_shift": 2.34375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.1220703125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=55"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.049913304794766356,
+              "max_abs_change": 0.14075378000164063,
+              "max_abs_percentile_shift": 9.765625,
+              "mean_abs_percentile_shift": 2.3681640625,
+              "n": 64,
+              "pearson": 0.9956463876236559,
+              "rmse": 0.06085381177797932,
+              "spearman": 0.9941391941391939,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 17.1875,
+                "mean_absolute_shift": 2.2216796875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.1201171875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.05/seed=55"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 1
+                }
+              ],
+              "mae": 0.24369200436376565,
+              "max_abs_change": 0.946446927842,
+              "max_abs_percentile_shift": 45.703125,
+              "mean_abs_percentile_shift": 10.77880859375,
+              "n": 64,
+              "pearson": 0.8720648380946933,
+              "rmse": 0.3148945924391751,
+              "spearman": 0.8721153846153845,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 60.9375,
+                "mean_absolute_shift": 10.205078125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 49.1455078125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=11"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 1
+                }
+              ],
+              "mae": 0.2862920505304219,
+              "max_abs_change": 0.838686353685,
+              "max_abs_percentile_shift": 48.046875,
+              "mean_abs_percentile_shift": 13.09814453125,
+              "n": 64,
+              "pearson": 0.8108973667233272,
+              "rmse": 0.36262862933945944,
+              "spearman": 0.7922619047619046,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 51.5625,
+                "mean_absolute_shift": 13.9404296875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 50.4638671875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=11"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.07657995390466406,
+              "max_abs_change": 0.27500625139065626,
+              "max_abs_percentile_shift": 12.109375,
+              "mean_abs_percentile_shift": 3.466796875,
+              "n": 64,
+              "pearson": 0.9928740480694092,
+              "rmse": 0.09956046715726748,
+              "spearman": 0.9895604395604394,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 12.5,
+                "mean_absolute_shift": 2.63671875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.5615234375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=11"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.08211529320321266,
+              "max_abs_change": 0.27650035104979687,
+              "max_abs_percentile_shift": 16.015625,
+              "mean_abs_percentile_shift": 3.8330078125,
+              "n": 64,
+              "pearson": 0.9888898842790935,
+              "rmse": 0.10446427852166253,
+              "spearman": 0.989194139194139,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 20.3125,
+                "mean_absolute_shift": 3.466796875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.14453125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=11"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 58,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 2
+                }
+              ],
+              "mae": 0.23478816532414065,
+              "max_abs_change": 0.911154118168,
+              "max_abs_percentile_shift": 45.703125,
+              "mean_abs_percentile_shift": 11.1083984375,
+              "n": 64,
+              "pearson": 0.8833655854473658,
+              "rmse": 0.3150829792167536,
+              "spearman": 0.8490384615384614,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 45.3125,
+                "mean_absolute_shift": 9.7412109375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 51.904296875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=22"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 1
+                }
+              ],
+              "mae": 0.3112692789690938,
+              "max_abs_change": 0.832699157784,
+              "max_abs_percentile_shift": 40.234375,
+              "mean_abs_percentile_shift": 14.404296875,
+              "n": 64,
+              "pearson": 0.8423470102306576,
+              "rmse": 0.3688642852033619,
+              "spearman": 0.8203754578754577,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 53.125,
+                "mean_absolute_shift": 15.8447265625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 54.0771484375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=22"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.07215128569944433,
+              "max_abs_change": 0.19859433905960938,
+              "max_abs_percentile_shift": 10.546875,
+              "mean_abs_percentile_shift": 3.40576171875,
+              "n": 64,
+              "pearson": 0.9922985650132773,
+              "rmse": 0.08690371243475756,
+              "spearman": 0.9882326007326006,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 18.75,
+                "mean_absolute_shift": 2.978515625,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 51.0009765625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=22"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.07314064142888037,
+              "max_abs_change": 0.26593527370217185,
+              "max_abs_percentile_shift": 13.671875,
+              "mean_abs_percentile_shift": 3.35693359375,
+              "n": 64,
+              "pearson": 0.9926073030719759,
+              "rmse": 0.09338950595707508,
+              "spearman": 0.9880952380952379,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 25.0,
+                "mean_absolute_shift": 3.125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.216796875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=22"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 5,
+                  "evaluable": 64,
+                  "unchanged": 57,
+                  "up": 2
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 2
+                }
+              ],
+              "mae": 0.3077376815629062,
+              "max_abs_change": 1.080451289652,
+              "max_abs_percentile_shift": 56.640625,
+              "mean_abs_percentile_shift": 13.9892578125,
+              "n": 64,
+              "pearson": 0.8166139189511165,
+              "rmse": 0.37888861886366254,
+              "spearman": 0.835164835164835,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 59.375,
+                "mean_absolute_shift": 13.6962890625,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 54.8828125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=33"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 58,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.24513682735159376,
+              "max_abs_change": 0.711796963774,
+              "max_abs_percentile_shift": 40.234375,
+              "mean_abs_percentile_shift": 10.4248046875,
+              "n": 64,
+              "pearson": 0.8894048710149817,
+              "rmse": 0.2993862475528624,
+              "spearman": 0.8907967032967031,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 45.3125,
+                "mean_absolute_shift": 11.2060546875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 49.0966796875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=33"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.08639838267334767,
+              "max_abs_change": 0.3065534848543125,
+              "max_abs_percentile_shift": 18.359375,
+              "mean_abs_percentile_shift": 4.11376953125,
+              "n": 64,
+              "pearson": 0.9870293053100998,
+              "rmse": 0.11303171673740893,
+              "spearman": 0.9847069597069595,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 15.625,
+                "mean_absolute_shift": 3.076171875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 49.7314453125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=33"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.07301535313257983,
+              "max_abs_change": 0.22244087289210937,
+              "max_abs_percentile_shift": 11.328125,
+              "mean_abs_percentile_shift": 3.22265625,
+              "n": 64,
+              "pearson": 0.9916317874060488,
+              "rmse": 0.09129529827797936,
+              "spearman": 0.9919413919413917,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 17.1875,
+                "mean_absolute_shift": 3.2958984375,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.7783203125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=33"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 53,
+                  "up": 9
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 4
+                }
+              ],
+              "mae": 0.2929693337961719,
+              "max_abs_change": 0.811878253988,
+              "max_abs_percentile_shift": 36.328125,
+              "mean_abs_percentile_shift": 12.58544921875,
+              "n": 64,
+              "pearson": 0.8661521825413512,
+              "rmse": 0.3622581328777641,
+              "spearman": 0.8541666666666665,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 39.0625,
+                "mean_absolute_shift": 12.20703125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 52.2216796875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=44"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                }
+              ],
+              "mae": 0.2786714785607969,
+              "max_abs_change": 0.998984667756,
+              "max_abs_percentile_shift": 48.046875,
+              "mean_abs_percentile_shift": 12.7197265625,
+              "n": 64,
+              "pearson": 0.842121721623261,
+              "rmse": 0.34874209819415486,
+              "spearman": 0.8412087912087911,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 68.75,
+                "mean_absolute_shift": 13.4521484375,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.1201171875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=44"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.08224045132812109,
+              "max_abs_change": 0.23129414369798437,
+              "max_abs_percentile_shift": 13.671875,
+              "mean_abs_percentile_shift": 3.7841796875,
+              "n": 64,
+              "pearson": 0.9919161024806882,
+              "rmse": 0.09935132477466688,
+              "spearman": 0.9869963369963368,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 17.1875,
+                "mean_absolute_shift": 3.076171875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.5126953125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=44"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.08443457959599757,
+              "max_abs_change": 0.2442731237415469,
+              "max_abs_percentile_shift": 10.546875,
+              "mean_abs_percentile_shift": 3.52783203125,
+              "n": 64,
+              "pearson": 0.9895679741259464,
+              "rmse": 0.10331775793174888,
+              "spearman": 0.9894230769230767,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 12.5,
+                "mean_absolute_shift": 2.978515625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.75390625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=44"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 5,
+                  "evaluable": 64,
+                  "unchanged": 58,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 2
+                }
+              ],
+              "mae": 0.25003184349589064,
+              "max_abs_change": 0.952440390416,
+              "max_abs_percentile_shift": 35.546875,
+              "mean_abs_percentile_shift": 10.58349609375,
+              "n": 64,
+              "pearson": 0.8660041180116724,
+              "rmse": 0.3305081605940531,
+              "spearman": 0.8795329670329669,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 39.0625,
+                "mean_absolute_shift": 10.595703125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 49.1943359375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=55"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 2
+                }
+              ],
+              "mae": 0.22515706235906252,
+              "max_abs_change": 0.703347982821,
+              "max_abs_percentile_shift": 42.578125,
+              "mean_abs_percentile_shift": 10.53466796875,
+              "n": 64,
+              "pearson": 0.8924764469660881,
+              "rmse": 0.2901080271910356,
+              "spearman": 0.8669413919413917,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 45.3125,
+                "mean_absolute_shift": 10.546875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.291015625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.1/seed=55"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 1
+                }
+              ],
+              "mae": 0.08350641547235009,
+              "max_abs_change": 0.29232468877796874,
+              "max_abs_percentile_shift": 12.109375,
+              "mean_abs_percentile_shift": 3.662109375,
+              "n": 64,
+              "pearson": 0.9898969069744209,
+              "rmse": 0.10880469202604807,
+              "spearman": 0.9874999999999998,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 12.5,
+                "mean_absolute_shift": 3.125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.1220703125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=55"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 64,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.07001793731999535,
+              "max_abs_change": 0.21580253071342187,
+              "max_abs_percentile_shift": 13.671875,
+              "mean_abs_percentile_shift": 3.1005859375,
+              "n": 64,
+              "pearson": 0.9920101559367366,
+              "rmse": 0.08631931875940413,
+              "spearman": 0.9898809523809522,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 10.9375,
+                "mean_absolute_shift": 2.83203125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.65625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.1/seed=55"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 56,
+                  "up": 4
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 3
+                }
+              ],
+              "mae": 0.33383546519587504,
+              "max_abs_change": 1.12060024509,
+              "max_abs_percentile_shift": 55.859375,
+              "mean_abs_percentile_shift": 15.00244140625,
+              "n": 64,
+              "pearson": 0.763531988822269,
+              "rmse": 0.42444636970919075,
+              "spearman": 0.733653846153846,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 70.3125,
+                "mean_absolute_shift": 15.7958984375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 49.12109375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=11"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 2
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 2
+                }
+              ],
+              "mae": 0.4148437981902344,
+              "max_abs_change": 1.187450642993,
+              "max_abs_percentile_shift": 63.671875,
+              "mean_abs_percentile_shift": 19.091796875,
+              "n": 64,
+              "pearson": 0.6211967410759751,
+              "rmse": 0.5122241309791042,
+              "spearman": 0.5930860805860805,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 71.875,
+                "mean_absolute_shift": 20.6298828125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 49.7314453125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=11"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 5,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                }
+              ],
+              "mae": 0.14349930612425854,
+              "max_abs_change": 0.4591871398192656,
+              "max_abs_percentile_shift": 15.234375,
+              "mean_abs_percentile_shift": 6.54296875,
+              "n": 64,
+              "pearson": 0.9803141911676498,
+              "rmse": 0.17042804743755577,
+              "spearman": 0.9779304029304028,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 21.875,
+                "mean_absolute_shift": 5.17578125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.3662109375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=11"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.1479315805555403,
+              "max_abs_change": 0.4305693768445,
+              "max_abs_percentile_shift": 18.359375,
+              "mean_abs_percentile_shift": 6.33544921875,
+              "n": 64,
+              "pearson": 0.9747514565168574,
+              "rmse": 0.18079874553913347,
+              "spearman": 0.9749084249084248,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 26.5625,
+                "mean_absolute_shift": 6.1767578125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 48.7548828125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=11"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 56,
+                  "up": 5
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 58,
+                  "up": 4
+                }
+              ],
+              "mae": 0.3333833090159063,
+              "max_abs_change": 1.05077632255,
+              "max_abs_percentile_shift": 53.515625,
+              "mean_abs_percentile_shift": 15.07568359375,
+              "n": 64,
+              "pearson": 0.787405977473099,
+              "rmse": 0.42512815466196174,
+              "spearman": 0.7805860805860805,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 56.25,
+                "mean_absolute_shift": 15.0146484375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 53.22265625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=22"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 1
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 2
+                }
+              ],
+              "mae": 0.3693723351665625,
+              "max_abs_change": 1.078240123678,
+              "max_abs_percentile_shift": 58.984375,
+              "mean_abs_percentile_shift": 16.83349609375,
+              "n": 64,
+              "pearson": 0.7595325117971133,
+              "rmse": 0.45819482438120607,
+              "spearman": 0.6929029304029303,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 64.0625,
+                "mean_absolute_shift": 18.212890625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 53.41796875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=22"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.11012439703247022,
+              "max_abs_change": 0.26682997767746874,
+              "max_abs_percentile_shift": 16.796875,
+              "mean_abs_percentile_shift": 5.322265625,
+              "n": 64,
+              "pearson": 0.9858834807921979,
+              "rmse": 0.13271149487640624,
+              "spearman": 0.9772893772893771,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 23.4375,
+                "mean_absolute_shift": 4.6142578125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 50.78125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=22"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.11785088559631861,
+              "max_abs_change": 0.3487633515388125,
+              "max_abs_percentile_shift": 14.453125,
+              "mean_abs_percentile_shift": 5.2490234375,
+              "n": 64,
+              "pearson": 0.9833891444783958,
+              "rmse": 0.14109306104660388,
+              "spearman": 0.979120879120879,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 26.5625,
+                "mean_absolute_shift": 5.1025390625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 46.3134765625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=22"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 5,
+                  "evaluable": 64,
+                  "unchanged": 55,
+                  "up": 4
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 57,
+                  "up": 4
+                }
+              ],
+              "mae": 0.43196911857392184,
+              "max_abs_change": 1.531008321275,
+              "max_abs_percentile_shift": 76.953125,
+              "mean_abs_percentile_shift": 19.53125,
+              "n": 64,
+              "pearson": 0.631074708140273,
+              "rmse": 0.5469878487035572,
+              "spearman": 0.6198717948717948,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 79.6875,
+                "mean_absolute_shift": 20.3125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 59.0087890625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=33"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 57,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 2
+                }
+              ],
+              "mae": 0.3392284872773594,
+              "max_abs_change": 1.119316316888,
+              "max_abs_percentile_shift": 54.296875,
+              "mean_abs_percentile_shift": 15.31982421875,
+              "n": 64,
+              "pearson": 0.7783694368291156,
+              "rmse": 0.42024017466304364,
+              "spearman": 0.7733516483516483,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 56.25,
+                "mean_absolute_shift": 17.041015625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 55.078125,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=33"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.12034401049605468,
+              "max_abs_change": 0.45461759441717187,
+              "max_abs_percentile_shift": 19.921875,
+              "mean_abs_percentile_shift": 5.908203125,
+              "n": 64,
+              "pearson": 0.9779070341941688,
+              "rmse": 0.15325629193734605,
+              "spearman": 0.9702380952380951,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 18.75,
+                "mean_absolute_shift": 4.4189453125,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 49.462890625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=33"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 63,
+                  "up": 0
+                }
+              ],
+              "mae": 0.13562459010080494,
+              "max_abs_change": 0.37470874907365626,
+              "max_abs_percentile_shift": 19.140625,
+              "mean_abs_percentile_shift": 5.8837890625,
+              "n": 64,
+              "pearson": 0.9773937173052201,
+              "rmse": 0.16148654113188354,
+              "spearman": 0.9720238095238094,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 29.6875,
+                "mean_absolute_shift": 6.0791015625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.6318359375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=33"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 57,
+                  "up": 5
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 58,
+                  "up": 5
+                }
+              ],
+              "mae": 0.4024103526512031,
+              "max_abs_change": 1.216885902117,
+              "max_abs_percentile_shift": 55.859375,
+              "mean_abs_percentile_shift": 16.259765625,
+              "n": 64,
+              "pearson": 0.7748543969797698,
+              "rmse": 0.503218867552932,
+              "spearman": 0.7482142857142856,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 75.0,
+                "mean_absolute_shift": 16.30859375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 51.0009765625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=44"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 2
+                }
+              ],
+              "mae": 0.4258079044862031,
+              "max_abs_change": 1.204588276062,
+              "max_abs_percentile_shift": 52.734375,
+              "mean_abs_percentile_shift": 19.22607421875,
+              "n": 64,
+              "pearson": 0.6603907885367591,
+              "rmse": 0.5247345812836318,
+              "spearman": 0.6575091575091574,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 71.875,
+                "mean_absolute_shift": 20.8251953125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 50.1708984375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=44"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.12321780019808398,
+              "max_abs_change": 0.349630969717125,
+              "max_abs_percentile_shift": 21.484375,
+              "mean_abs_percentile_shift": 5.50537109375,
+              "n": 64,
+              "pearson": 0.9816630699962721,
+              "rmse": 0.15394952625995392,
+              "spearman": 0.9801739926739925,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 20.3125,
+                "mean_absolute_shift": 4.833984375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 49.0478515625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=44"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.1398457403196089,
+              "max_abs_change": 0.40157278682945313,
+              "max_abs_percentile_shift": 18.359375,
+              "mean_abs_percentile_shift": 5.92041015625,
+              "n": 64,
+              "pearson": 0.9746352296859591,
+              "rmse": 0.1726190704138572,
+              "spearman": 0.9717948717948717,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 20.3125,
+                "mean_absolute_shift": 5.9814453125,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.4365234375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=44"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 57,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 58,
+                  "up": 4
+                }
+              ],
+              "mae": 0.37164499780875,
+              "max_abs_change": 1.02354541393,
+              "max_abs_percentile_shift": 44.921875,
+              "mean_abs_percentile_shift": 16.49169921875,
+              "n": 64,
+              "pearson": 0.7564081923051188,
+              "rmse": 0.4586637938683623,
+              "spearman": 0.7356227106227105,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 56.25,
+                "mean_absolute_shift": 15.3076171875,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 46.484375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=55"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 1,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 3
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 0,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 3
+                }
+              ],
+              "mae": 0.3232566393056719,
+              "max_abs_change": 1.313725352041,
+              "max_abs_percentile_shift": 54.296875,
+              "mean_abs_percentile_shift": 14.6240234375,
+              "n": 64,
+              "pearson": 0.7891276668104221,
+              "rmse": 0.4163031872121195,
+              "spearman": 0.775595238095238,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 68.75,
+                "mean_absolute_shift": 14.7216796875,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 51.0009765625,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "omit/rate=0.2/seed=55"
+          },
+          {
+            "group": "selection_first64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 5,
+                  "evaluable": 64,
+                  "unchanged": 59,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 4,
+                  "evaluable": 64,
+                  "unchanged": 60,
+                  "up": 0
+                }
+              ],
+              "mae": 0.13851772815411106,
+              "max_abs_change": 0.5131383952433125,
+              "max_abs_percentile_shift": 20.703125,
+              "mean_abs_percentile_shift": 6.14013671875,
+              "n": 64,
+              "pearson": 0.9751706537286163,
+              "rmse": 0.1774748296609897,
+              "spearman": 0.97257326007326,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 23.4375,
+                "mean_absolute_shift": 5.8349609375,
+                "mean_baseline_percentile": 50.6103515625,
+                "mean_scenario_percentile": 48.779296875,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=55"
+          },
+          {
+            "group": "selection_last64",
+            "metrics": {
+              "crossings": [
+                {
+                  "cutoff": 90.0,
+                  "down": 3,
+                  "evaluable": 64,
+                  "unchanged": 61,
+                  "up": 0
+                },
+                {
+                  "cutoff": 95.0,
+                  "down": 2,
+                  "evaluable": 64,
+                  "unchanged": 62,
+                  "up": 0
+                }
+              ],
+              "mae": 0.12058194712458863,
+              "max_abs_change": 0.42168335776765625,
+              "max_abs_percentile_shift": 19.921875,
+              "mean_abs_percentile_shift": 5.13916015625,
+              "n": 64,
+              "pearson": 0.9813812394143873,
+              "rmse": 0.14656833322374013,
+              "spearman": 0.9795329670329669,
+              "unavailable_reasons": {}
+            },
+            "reference_comparisons": [
+              {
+                "evaluable": 64,
+                "id": "fixed_reference64",
+                "max_absolute_shift": 29.6875,
+                "mean_absolute_shift": 5.322265625,
+                "mean_baseline_percentile": 47.75390625,
+                "mean_scenario_percentile": 47.021484375,
+                "reference_samples": 64,
+                "source_cohort_shared_sample_ids": 0,
+                "unavailable": 0
+              }
+            ],
+            "scenario": "fill/rate=0.2/seed=55"
+          }
+        ],
+        "source_samples": 128,
+        "total_model_terms": 1745179
+      }
+    ],
+    "source_sha256": {
+      "../pgsum-genomewide-evidence/public-study128-results/references.tsv": "sha256:292d5abb350a3ebb8b6ab22ca288af7e0b936d5ce0aec7137ec520132e09459d",
+      "../pgsum-genomewide-evidence/public-study128-results/regions.tsv": "sha256:ad7e6af4188863fda923bd724e8afbd7d86e977a01516ba56bae329642ebc938",
+      "../pgsum-genomewide-evidence/public-study128-results/report.html": "sha256:6673e920daa4d4afbfbf1becc35b8824d5f69f7c36a0545493c26dbfc330eae2",
+      "../pgsum-genomewide-evidence/public-study128-results/report.json": "sha256:7fe5bb4213a54016e707aec26be1f492b931f88ea19299db9199a5cbcfab283e",
+      "../pgsum-genomewide-evidence/public-study128-results/samples.tsv": "sha256:32ead0f5b7a6928379004ea1c7147b4750d34a0e16d65e35ec0f1b1555a2ee12",
+      "../pgsum-genomewide-evidence/public-study128-results/top-changes.jsonl": "sha256:4c6621c71b3a4a616dba13ca6f9bb27e1fc12ef351d387c08d4252237d72e79b",
+      "../pgsum-genomewide-evidence/public-study128-technical-groups.tsv": "sha256:a3bf2b3e39d759d6fa51af60d0964119e1a742492aff8cb7abe053d17562cfa2"
+    }
+  }
+}

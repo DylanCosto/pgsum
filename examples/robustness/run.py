@@ -143,7 +143,23 @@ def study(binary, out, source, commands):
     missing = [r for r in rows if r['policy'] == 'omit' and r['rate'] == 1 and r['metric'] in ('pearson', 'spearman')]
     require(len(missing) == 2 and all(r['distribution']['available'] == 0 for r in missing),
             'constant boundary scenario must have unavailable correlations')
-    (out / 'study-verification.json').write_text(verification)
+    mapping = out / 'groups.tsv'
+    mapping.write_text('sample\tgroup\nA\tsynthetic_singleton\nB\tsynthetic_group\nC\tsynthetic_group\nD\tsynthetic_group\n')
+    grouped = out / 'study-groups'
+    run(binary, out, ['robustness-groups', '--results', results, '--groups', mapping, '--out', grouped], commands)
+    group_checker = source.parents[1] / 'bench/check_group_summary.py'
+    command = [sys.executable, str(group_checker), str(results), str(mapping), str(grouped)]
+    commands.append(command)
+    (out / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
+    group_checker_hash = digest(group_checker)
+    group_verification = subprocess.check_output(command, text=True)
+    require(digest(group_checker) == group_checker_hash, 'group checker changed during verification')
+    group_checks = json.loads(group_verification)
+    require(group_checks['passed'] and group_checks['group_scenario_rows'] == 52, 'incomplete group example')
+    checks['groups'] = group_checks
+    (out / 'group-verification.json').write_text(group_verification)
+    (out / 'study-verification.json').write_text(json.dumps(checks, indent=2) + '\n')
+    print('Offline group analysis passed: ' + str(grouped / 'groups.html'))
     print('Offline study passed: ' + str(out / 'study-verification.json'))
     print('Open study summary: ' + str(summary / 'summary.html'))
     return checks
