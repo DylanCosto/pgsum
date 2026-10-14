@@ -28,7 +28,7 @@ TOP_FILES = ['README.md', 'DESIGN.md', 'RELEASE_NOTES.md', 'LICENSE-MIT', 'LICEN
 BENCH_FILES = ['README.md', 'performance.py', 'missingness.py', 'compare_plink.py',
                'public_chr22.py', 'public_chr22.requirements.txt', 'robustness_public.py',
                'robustness_genomewide.py', 'robustness_genomewide.requirements.txt',
-               'robustness_scale.py', 'test_robustness_scale.py', 'check_study_summary.py', 'test_study_summary.py', 'check_group_summary.py', 'test_group_summary.py', 'compare_robustness_memory.py']
+               'robustness_scale.py', 'test_robustness_scale.py', 'check_study_summary.py', 'test_study_summary.py', 'check_group_study.py', 'check_group_summary.py', 'test_group_summary.py', 'compare_robustness_memory.py']
 
 
 def require(condition, message):

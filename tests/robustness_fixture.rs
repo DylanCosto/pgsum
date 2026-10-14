@@ -1010,6 +1010,7 @@ fn planned_sweeps_execute_paired_masks_and_preserve_controls_across_directories(
     let table = fixture.standard_table();
     let template = fixture.path("policies.json");
     let mut manifest = fixture.manifest(&table, json!([{"id":"omit"},{"id":"same-policy"}]));
+    manifest["cutoffs"] = json!([50, 90]);
     manifest["reference_sets"] = json!([{"id":"cohort","samples":["A","B","C"]},{"id":"singleton","samples":["A"]}]);
     std::fs::write(&template, serde_json::to_vec(&manifest).unwrap()).unwrap();
     let planned = fixture.path("planned experiments");
@@ -1082,6 +1083,69 @@ fn planned_sweeps_execute_paired_masks_and_preserve_controls_across_directories(
             pgsum::digest::file_sha256(&summarized.join(name)).unwrap()
         );
     }
+    let mapping = fixture.path("groups.tsv");
+    std::fs::write(&mapping, "sample\tgroup\nA\tsingle\nB\t<script>\nC\t<script>\n").unwrap();
+    let group_out = fixture.path("group study");
+    run(&[
+        "robustness-summarize",
+        "--plan",
+        text(&planned),
+        "--results",
+        text(&out),
+        "--groups",
+        text(&mapping),
+        "--reference-policy",
+        "omit",
+        "--out",
+        text(&group_out),
+    ]);
+    let grouped: Value = serde_json::from_slice(&std::fs::read(group_out.join("summary.json")).unwrap()).unwrap();
+    assert_eq!(grouped["schema"], "pgsum-robustness-group-study-v1");
+    assert_eq!(grouped["percentile_basis"], "full_target_baseline");
+    assert_eq!(grouped["scores"].as_array().unwrap().len(), 2);
+    for score in grouped["scores"].as_array().unwrap() {
+        assert_eq!(score["source_samples"], 3);
+        assert_eq!(score["reference_sets"][0]["source_cohort_shared_sample_ids"], 3);
+        assert!(score["reference_sets"][0].get("shared_sample_ids").is_none());
+        for row in score["comparisons"].as_array().unwrap() {
+            if score["group"] == "single" && ["pearson", "spearman"].contains(&row["metric"].as_str().unwrap()) {
+                assert_eq!(row["distribution"]["available"], 0);
+                assert_eq!(row["distribution"]["unavailable"], 2);
+            } else if row["distribution"]["available"].as_u64().unwrap() > 0 {
+                assert_eq!(row["distribution"]["mean"], 0.0);
+            }
+        }
+        if score["group"] == "<script>" {
+            let row = score["percentile_summaries"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|r| {
+                    r["policy"] == "omit" && r["rate"] == 1.0 && r["cutoff"] == 50.0 && r["metric"] == "down_count"
+                })
+                .unwrap();
+            assert_eq!(row["distribution"]["mean"], 2.0);
+            assert_eq!(row["seeds"][0]["evaluable"], 2);
+        }
+    }
+    let html = std::fs::read_to_string(group_out.join("summary.html")).unwrap();
+    assert!(html.contains("&lt;script&gt;") && !html.contains("<td><script>"));
+    let tabular = rows(&group_out.join("summaries.tsv"));
+    assert_eq!(tabular[0]["source_samples"], "3");
+    assert_eq!(tabular.len(), 84);
+    for (name, hash) in grouped["outputs"].as_object().unwrap() {
+        assert_eq!(
+            hash.as_str().unwrap(),
+            pgsum::digest::file_sha256(&group_out.join(name)).unwrap()
+        );
+    }
+    assert!(
+        grouped["source_sha256"]
+            .as_object()
+            .unwrap()
+            .values()
+            .any(|h| h.as_str() == Some(pgsum::digest::file_sha256(&mapping).unwrap().as_str()))
+    );
     // Corrupted output cannot be summarized even if report.json still exists.
     std::fs::write(out.join("references.tsv"), "corrupted").unwrap();
     let rejected = fixture.path("rejected study");

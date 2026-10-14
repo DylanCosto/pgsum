@@ -157,6 +157,31 @@ def study(binary, out, source, commands):
     group_checks = json.loads(group_verification)
     require(group_checks['passed'] and group_checks['group_scenario_rows'] == 52, 'incomplete group example')
     checks['groups'] = group_checks
+    group_study = out / 'group-study'
+    run(binary, out, ['robustness-summarize', '--plan', plan, '--results', results,
+                     '--groups', mapping, '--reference-policy', 'omit', '--out', group_study], commands)
+    group_study_checker = source.parents[1] / 'bench/check_group_study.py'
+    command = [sys.executable, str(group_study_checker), str(plan), str(results), str(mapping), str(group_study)]
+    commands.append(command)
+    (out / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
+    checker_hash = digest(group_study_checker)
+    group_study_verification = subprocess.check_output(command, text=True)
+    require(digest(group_study_checker) == checker_hash, 'group study checker changed during verification')
+    checks['group_study'] = json.loads(group_study_verification)
+    require(checks['group_study']['passed'] and checks['group_study']['score_group_rows'] == 2, 'group study inventory')
+    # An aggregate-only checker could miss broken pairing. Corrupt one seed value and
+    # require rejection while retaining the original verified result unmodified.
+    tampered = out / 'group-study-tampered'
+    shutil.copytree(group_study, tampered)
+    altered = json.loads((tampered / 'summary.json').read_text())
+    pair = altered['scores'][0]['comparisons'][0]['pairs'][0]
+    pair['difference'] = 123456.0
+    (tampered / 'summary.json').write_text(json.dumps(altered))
+    rejection = subprocess.run(command[:-1] + [str(tampered)], capture_output=True, text=True)
+    require(rejection.returncode != 0 and '123456' in rejection.stderr, 'checker accepted a changed seed pair')
+    checks['group_study']['changed_pair_rejected'] = True
+    (out / 'group-study-verification.json').write_text(json.dumps(checks['group_study'], indent=2) + '\n')
+    shutil.rmtree(tampered)
     (out / 'group-verification.json').write_text(group_verification)
     (out / 'study-verification.json').write_text(json.dumps(checks, indent=2) + '\n')
     print('Offline group analysis passed: ' + str(grouped / 'groups.html'))

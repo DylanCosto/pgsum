@@ -9,6 +9,8 @@ use serde_json::{Value, json};
 use super::config::{self, Experiment, Mask};
 use crate::{Error, Result, invalid};
 
+#[path = "study_groups.rs"]
+mod participant_groups;
 #[path = "study_percentiles.rs"]
 mod percentiles;
 
@@ -33,6 +35,9 @@ pub struct StudyArgs {
     /// Authored policy ID against which other policies are paired by seed.
     #[arg(long)]
     pub reference_policy: String,
+    /// Optional exhaustive sample/group TSV; compare policies across seeds within each group.
+    #[arg(long)]
+    pub groups: Option<PathBuf>,
     /// New directory for JSON, TSV and HTML summaries.
     #[arg(long)]
     pub out: PathBuf,
@@ -195,6 +200,16 @@ fn validate_plan(plan: &Plan, experiment: &Experiment) -> Result<()> {
 }
 
 fn summarize(plan: &Plan, experiment: &Experiment, report: &Value, reference: &str) -> Result<Value> {
+    summarize_scoped(plan, experiment, report, reference, None)
+}
+
+fn summarize_scoped(
+    plan: &Plan,
+    experiment: &Experiment,
+    report: &Value,
+    reference: &str,
+    source_samples: Option<u64>,
+) -> Result<Value> {
     validate_plan(plan, experiment)?;
     if report["schema"] != "pgsum-robustness-report-v1"
         || report["mask_algorithm"] != config::MASK_ALGORITHM
@@ -256,7 +271,7 @@ fn summarize(plan: &Plan, experiment: &Experiment, report: &Value, reference: &s
             return invalid!("missing or unexpected scenario results");
         }
         let (percentile_summaries, percentile_comparisons, reference_sets) =
-            percentiles::summarize(experiment, &groups, &scenarios, reference)?;
+            percentiles::summarize(experiment, &groups, &scenarios, reference, source_samples)?;
         let mut summaries = Vec::new();
         let mut comparisons = Vec::new();
         for ((policy, rate), arms) in &groups {
@@ -330,7 +345,13 @@ pub fn run(args: &StudyArgs) -> Result<()> {
         return invalid!("report does not record the planned manifest hash");
     }
     super::verify_report_outputs(&args.results, &report, &mut provenance)?;
-    let mut summary = summarize(&plan, &experiment, &report, &args.reference_policy)?;
+    let mut summary = if let Some(mapping) = &args.groups {
+        provenance.insert(mapping.clone(), crate::digest::file_sha256(mapping)?);
+        let grouped = super::groups::analyze(&report, &args.results, mapping)?;
+        participant_groups::summarize(&plan, &experiment, &report, &grouped, &args.reference_policy)?
+    } else {
+        summarize(&plan, &experiment, &report, &args.reference_policy)?
+    };
     summary["source_sha256"] = value(&provenance)?;
     summary["pgsum_version"] = json!(env!("CARGO_PKG_VERSION"));
     summary["executable_sha256"] = json!(crate::digest::file_sha256(
@@ -348,6 +369,7 @@ pub fn run(args: &StudyArgs) -> Result<()> {
     for note in array(&summary, "notes")? {
         html.push_str(&format!("<p>{}</p>", note.as_str().unwrap()));
     }
+    let grouped = args.groups.is_some();
     for kind in [
         "summaries",
         "comparisons",
@@ -364,6 +386,9 @@ pub fn run(args: &StudyArgs) -> Result<()> {
         let mut tsv = String::from(
             "pgs_id\tpolicy\treference_policy\trate\tmetric\trequested\tavailable\tunavailable\tmean\tmedian\tmin\tmax\tsample_sd\n",
         );
+        if grouped {
+            tsv = tsv.replacen("pgs_id\t", "pgs_id\tgroup\tsamples\tsource_samples\t", 1);
+        }
         if extended {
             tsv = tsv.replacen("metric\t", "scope\tcutoff\treference_set\tmetric\t", 1);
         }
@@ -372,7 +397,12 @@ pub fn run(args: &StudyArgs) -> Result<()> {
         } else {
             ""
         };
-        html.push_str(&format!("<h2>{title}</h2><div style=\"overflow-x:auto\"><table><tr><th>Score</th><th>Policy</th><th>Reference</th><th>Rate</th>{dimensions}<th>Metric</th><th>Seeds</th><th>Available</th><th>Unavailable</th><th>Mean</th><th>Median</th><th>Min</th><th>Max</th><th>SD</th></tr>"));
+        let group_headers = if grouped {
+            "<th>Group</th><th>Participants</th><th>Source participants</th>"
+        } else {
+            ""
+        };
+        html.push_str(&format!("<h2>{title}</h2><div style=\"overflow-x:auto\"><table><tr><th>Score</th>{group_headers}<th>Policy</th><th>Reference</th><th>Rate</th>{dimensions}<th>Metric</th><th>Seeds</th><th>Available</th><th>Unavailable</th><th>Mean</th><th>Median</th><th>Min</th><th>Max</th><th>SD</th></tr>"));
         for score in array(&summary, "scores")? {
             for row in array(score, kind)? {
                 let mut cells = vec![
@@ -381,6 +411,16 @@ pub fn run(args: &StudyArgs) -> Result<()> {
                     row["reference_policy"].clone(),
                     row["rate"].clone(),
                 ];
+                if grouped {
+                    cells.splice(
+                        1..1,
+                        [
+                            score["group"].clone(),
+                            score["samples"].clone(),
+                            score["source_samples"].clone(),
+                        ],
+                    );
+                }
                 if extended {
                     cells.extend([
                         row["scope"].clone(),
@@ -420,7 +460,7 @@ pub fn run(args: &StudyArgs) -> Result<()> {
                 tsv.push('\n');
                 html.push_str("<tr>");
                 for (index, mut c) in cells.into_iter().enumerate() {
-                    if index >= if extended { 11 } else { 8 }
+                    if index >= (if extended { 11 } else { 8 }) + if grouped { 3 } else { 0 }
                         && let Ok(v) = c.parse::<f64>()
                     {
                         c = if v != 0.0 && (v.abs() < 1e-4 || v.abs() >= 1e6) {
@@ -459,6 +499,11 @@ pub fn run(args: &StudyArgs) -> Result<()> {
         hashes.insert(name, crate::digest::file_sha256(&args.out.join(name))?);
     }
     summary["outputs"] = value(&hashes)?;
+    for (path, hash) in &provenance {
+        if crate::digest::file_sha256(path)? != *hash {
+            return invalid!("input changed during study publication");
+        }
+    }
     let tmp = args.out.join(".summary.json.pending");
     super::write_json(&tmp, &summary)?;
     std::fs::rename(&tmp, args.out.join("summary.json")).map_err(Error::io(&tmp))?;

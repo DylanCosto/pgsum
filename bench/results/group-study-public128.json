@@ -1,0 +1,787 @@
+{
+  "schema": "pgsum-public-group-study-check-v1",
+  "design": {
+    "model": "PGS000018",
+    "targets": 128,
+    "disjoint_reference_samples": 64,
+    "groups": "Two artificial 64-person partitions in target selection order; no ancestry or demographic interpretation.",
+    "rates": [
+      0.01,
+      0.05,
+      0.1,
+      0.2
+    ],
+    "seeds": [
+      11,
+      22,
+      33,
+      44,
+      55
+    ],
+    "policies": [
+      "omit",
+      "fill"
+    ],
+    "scenarios": 42
+  },
+  "verification": {
+    "passed": true,
+    "groups": 2,
+    "score_group_rows": 2,
+    "seed_distribution_checks": 168,
+    "percentile_distribution_checks": 432,
+    "verifier_sha256": "4313ab31fdba635e1259d2767eca783ce7fa679b51f75bb4772a5b062ed32206",
+    "supporting_verifiers": {
+      "check_group_summary.py": "8e0d670f2c4f4b0ece42f7225bf27a84ad813ae711b6f61076acc197e9293fb9",
+      "check_study_summary.py": "8f8164ce3b74a101d03818dfb3a9646b6667a6dfcb57810c5de3e4065800b0cb"
+    },
+    "scope": "Within-group paired seed distributions from native exact sums and reference rows; full-target percentile basis. No genotype reconstruction or phenotype validation."
+  },
+  "whole_cohort_regression": {
+    "passed": true,
+    "outputs_identical": {
+      "comparisons.tsv": "sha256:354188b0c8080b1f2366030f2184f6ebf1822f42d158e539df7b6462347cd247",
+      "percentile_comparisons.tsv": "sha256:7eef86ab102c011c84ae6d4faa7a5ee965a2f9331a4bdc23971517870b6b7553",
+      "percentile_summaries.tsv": "sha256:bd7944eb61a542507d0fcfcb973d526c61bf36653e3fe0a92d8ad16bb8852006",
+      "summaries.tsv": "sha256:d632348b102d32d3a02824db5efbcce0a0baed7f3bf46e5fea83412aea66f013",
+      "summary.html": "sha256:783957ad98163359ce8c87e878a18e6ce6a8bd5d2f66e1f5208704043b550354"
+    },
+    "scores_identical": true,
+    "notes_identical": true
+  },
+  "summary_sha256": "669e48ae2d09e62fc2ba4723e7add9f31d93cfffe3961f39e8844a5f693916f0",
+  "summary_metadata": {
+    "correlation_basis": "within_group",
+    "executable_sha256": "sha256:e17702d870a9c2a4173a880d749a5359cd00399b20b5d316cfad8dce24c6ce98",
+    "groups": [
+      {
+        "id": "selection_first64",
+        "members": [
+          "HG00096",
+          "HG00110",
+          "HG00138",
+          "HG00154",
+          "HG00234",
+          "HG00250",
+          "HG00277",
+          "HG00308",
+          "HG00341",
+          "HG00358",
+          "HG00407",
+          "HG00448",
+          "HG00553",
+          "HG00590",
+          "HG00641",
+          "HG00683",
+          "HG00844",
+          "HG01047",
+          "HG01089",
+          "HG01111",
+          "HG01174",
+          "HG01205",
+          "HG01312",
+          "HG01354",
+          "HG01412",
+          "HG01455",
+          "HG01509",
+          "HG01528",
+          "HG01606",
+          "HG01625",
+          "HG01705",
+          "HG01767",
+          "HG01805",
+          "HG01841",
+          "HG01870",
+          "HG01890",
+          "HG01948",
+          "HG01973",
+          "HG02020",
+          "HG02050",
+          "HG02090",
+          "HG02128",
+          "HG02169",
+          "HG02188",
+          "HG02272",
+          "HG02298",
+          "HG02358",
+          "HG02385",
+          "HG02439",
+          "HG02477",
+          "HG02554",
+          "HG02582",
+          "HG02645",
+          "HG02667",
+          "HG02728",
+          "HG02771",
+          "HG02820",
+          "HG02879",
+          "HG02977",
+          "HG03021",
+          "HG03078",
+          "HG03100",
+          "HG03162",
+          "HG03198"
+        ],
+        "samples": 64
+      },
+      {
+        "id": "selection_last64",
+        "members": [
+          "HG03294",
+          "HG03352",
+          "HG03437",
+          "HG03462",
+          "HG03556",
+          "HG03585",
+          "HG03652",
+          "HG03686",
+          "HG03729",
+          "HG03750",
+          "HG03788",
+          "HG03814",
+          "HG03864",
+          "HG03885",
+          "HG03928",
+          "HG03953",
+          "HG04015",
+          "HG04039",
+          "HG04141",
+          "HG04173",
+          "HG04235",
+          "NA07048",
+          "NA12003",
+          "NA12234",
+          "NA12751",
+          "NA12827",
+          "NA18520",
+          "NA18536",
+          "NA18567",
+          "NA18595",
+          "NA18627",
+          "NA18640",
+          "NA18874",
+          "NA18917",
+          "NA18962",
+          "NA18975",
+          "NA19003",
+          "NA19024",
+          "NA19067",
+          "NA19083",
+          "NA19131",
+          "NA19171",
+          "NA19256",
+          "NA19320",
+          "NA19384",
+          "NA19428",
+          "NA19468",
+          "NA19657",
+          "NA19725",
+          "NA19750",
+          "NA19819",
+          "NA19921",
+          "NA20340",
+          "NA20504",
+          "NA20533",
+          "NA20582",
+          "NA20773",
+          "NA20798",
+          "NA20831",
+          "NA20859",
+          "NA20891",
+          "NA20906",
+          "NA21110",
+          "NA21123"
+        ],
+        "samples": 64
+      }
+    ],
+    "notes": [
+      "Descriptive variation across masking seeds on one frozen cohort and common-callable baseline; not confidence intervals, phenotype validation or population uncertainty.",
+      "Paired differences are policy minus reference policy within the same score, rate and seed. Error metrics favor smaller values; correlation metrics favor larger values. No automatic best-policy selection is performed.",
+      "Undefined metrics are excluded with requested/available/unavailable counts. Paired differences require both metrics to be available and their difference representable.",
+      "Mean, median, range and sample standard deviation describe the available seed-level metrics, not pooled participant observations. Sample SD is unavailable with fewer than two values; unrepresentable aggregates are null.",
+      "Cutoff counts and fractions describe membership transitions at percentile >= cutoff in the frozen target baseline distribution. Fractions range from 0 to 1; zero evaluable participants yields unavailable values, including counts. Per-seed denominators remain explicit.",
+      "Reference metrics use the authored frozen reference score distribution. Percentiles and absolute shifts are in percentile points; reference identities, participant counts and target overlap are retained. Neither membership nor percentile shifts imply clinical risk.",
+      "Controls are retained separately. Scores with different scales, baselines, cutoffs or reference sets are never pooled.",
+      "Groups are an explicit exhaustive partition supplied by the researcher; labels are not inferred or verified demographic or ancestry assignments.",
+      "Every group retains the original whole-cohort common-callable term universe. Grouping never rescans genotypes or recovers excluded terms.",
+      "Percentile movement and cutoff membership use the same full target baseline distribution for every group. Pearson and Spearman correlations use pairs within each group.",
+      "External-reference shifts retain the authored frozen reference distribution. Source-cohort shared sample counts describe the whole input cohort, not overlap within a particular group.",
+      "These are descriptive masking-sensitivity statistics, not predictive accuracy, calibration, ancestry normalization, population uncertainty or a causal comparison between groups.",
+      "Small or constant groups may have unavailable correlations. Null metrics retain their reasons; group sizes and percentile denominators remain explicit.",
+      "Policy differences are paired within each participant group, rate and seed. Groups are never pooled or compared as causal effects. Reference overlap counts remain source-cohort counts. The full-target baseline defines all percentile thresholds."
+    ],
+    "outputs": {
+      "comparisons.tsv": "sha256:5a4211f64f4114ff23c2356b1ce5f47c204a7c716b829e1f5671f0dc1e438b98",
+      "percentile_comparisons.tsv": "sha256:0e335e46886c607512e016d8968d5de0d29de7ac0f204c6b3d2a77689d49c4c8",
+      "percentile_summaries.tsv": "sha256:cda8570bd0a4da033eb1e8019c5b72cbc9d052c37e92f9c4593857230d7d9674",
+      "summaries.tsv": "sha256:4515f2d4e3e2479ffeded93da16c7612341929d98f512e42f49e6eb181a0f99f",
+      "summary.html": "sha256:5dd3e746b48f14c80908d1803a5d24008e3fe68a9f1355a1aaca911a7cbfae5d"
+    },
+    "percentile_basis": "full_target_baseline",
+    "pgsum_version": "0.6.0",
+    "reference_policy": "omit",
+    "schema": "pgsum-robustness-group-study-v1",
+    "source_sha256": {
+      "../pgsum-genomewide-evidence/planned-public-study/experiment.json": "sha256:072ca355ac8fc19fac43d080f4d42bedcef203acc289d7577d6c87dfa37230d3",
+      "../pgsum-genomewide-evidence/planned-public-study/plan.json": "sha256:db0a36dc2a05b93fa92879abafee68bb39ebe29f8878f97260ef8566a5c23448",
+      "../pgsum-genomewide-evidence/public-study128-results/references.tsv": "sha256:292d5abb350a3ebb8b6ab22ca288af7e0b936d5ce0aec7137ec520132e09459d",
+      "../pgsum-genomewide-evidence/public-study128-results/regions.tsv": "sha256:ad7e6af4188863fda923bd724e8afbd7d86e977a01516ba56bae329642ebc938",
+      "../pgsum-genomewide-evidence/public-study128-results/report.html": "sha256:6673e920daa4d4afbfbf1becc35b8824d5f69f7c36a0545493c26dbfc330eae2",
+      "../pgsum-genomewide-evidence/public-study128-results/report.json": "sha256:7fe5bb4213a54016e707aec26be1f492b931f88ea19299db9199a5cbcfab283e",
+      "../pgsum-genomewide-evidence/public-study128-results/samples.tsv": "sha256:32ead0f5b7a6928379004ea1c7147b4750d34a0e16d65e35ec0f1b1555a2ee12",
+      "../pgsum-genomewide-evidence/public-study128-results/top-changes.jsonl": "sha256:4c6621c71b3a4a616dba13ca6f9bb27e1fc12ef351d387c08d4252237d72e79b",
+      "../pgsum-genomewide-evidence/public-study128-technical-groups.tsv": "sha256:a3bf2b3e39d759d6fa51af60d0964119e1a742492aff8cb7abe053d17562cfa2"
+    }
+  },
+  "scores": [
+    {
+      "baseline_term_fraction": 0.9811463465925272,
+      "baseline_term_sha256": "76b3fe675f11fc739eca88fb306000f07801571fcbe802a69aed177fd5d053ea",
+      "baseline_terms": 1712276,
+      "baseline_weight_fraction": 0.9759183184684546,
+      "excluded_terms": {
+        "baseline_target_not_common_callable": 31661,
+        "model_or_orientation_unscorable": 1201,
+        "reference_not_common_callable": 5,
+        "unresolved_position": 36
+      },
+      "group": "selection_first64",
+      "pgs_id": "PGS000018",
+      "reference_sets": [
+        {
+          "evaluable": 64,
+          "id": "fixed_reference64",
+          "mean_baseline_percentile": 50.6103515625,
+          "reference_samples": 64,
+          "source_cohort_shared_sample_ids": 0
+        }
+      ],
+      "samples": 64,
+      "source_samples": 128,
+      "total_model_terms": 1745179,
+      "selected_error_and_shift_distributions": [
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.0209575345053396,
+            "mean": 0.019156109945233153,
+            "median": 0.018869908301183104,
+            "min": 0.01666334416819946,
+            "requested": 5,
+            "sample_sd": 0.0016923358043789173,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "fill",
+          "rate": 0.01
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 1.3671875,
+            "mean": 1.2744140625,
+            "median": 1.23291015625,
+            "min": 1.1962890625,
+            "requested": 5,
+            "sample_sd": 0.07554564671272362,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "fill",
+          "rate": 0.01
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.05576930920792603,
+            "mean": 0.048958445578065286,
+            "median": 0.05209644330536157,
+            "min": 0.038945591238883054,
+            "requested": 5,
+            "sample_sd": 0.007388848795902011,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "fill",
+          "rate": 0.05
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 2.74658203125,
+            "mean": 2.50732421875,
+            "median": 2.69775390625,
+            "min": 2.11181640625,
+            "requested": 5,
+            "sample_sd": 0.2945665657059113,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "fill",
+          "rate": 0.05
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.08639838267334767,
+            "mean": 0.08017529781558544,
+            "median": 0.08224045132812109,
+            "min": 0.07215128569944433,
+            "requested": 5,
+            "sample_sd": 0.005731475754512007,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "fill",
+          "rate": 0.1
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 4.11376953125,
+            "mean": 3.6865234375,
+            "median": 3.662109375,
+            "min": 3.40576171875,
+            "requested": 5,
+            "sample_sd": 0.28274499076905435,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "fill",
+          "rate": 0.1
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.14349930612425854,
+            "mean": 0.1271406484009957,
+            "median": 0.12321780019808398,
+            "min": 0.11012439703247022,
+            "requested": 5,
+            "sample_sd": 0.01367643467507549,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "fill",
+          "rate": 0.2
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 6.54296875,
+            "mean": 5.8837890625,
+            "median": 5.908203125,
+            "min": 5.322265625,
+            "requested": 5,
+            "sample_sd": 0.4897286895975955,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "fill",
+          "rate": 0.2
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.08822528253059375,
+            "mean": 0.08344100708488125,
+            "median": 0.08452952818673438,
+            "min": 0.0757741458418125,
+            "requested": 5,
+            "sample_sd": 0.004750642090438045,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "omit",
+          "rate": 0.01
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 4.30908203125,
+            "mean": 3.91357421875,
+            "median": 3.8818359375,
+            "min": 3.57666015625,
+            "requested": 5,
+            "sample_sd": 0.285315691124743,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "omit",
+          "rate": 0.01
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.19485768165034376,
+            "mean": 0.1851721658368844,
+            "median": 0.18677969005014064,
+            "min": 0.17336693254395313,
+            "requested": 5,
+            "sample_sd": 0.007938684747562458,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "omit",
+          "rate": 0.05
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 9.06982421875,
+            "mean": 8.30322265625,
+            "median": 8.23974609375,
+            "min": 7.75146484375,
+            "requested": 5,
+            "sample_sd": 0.5229398724800894,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "omit",
+          "rate": 0.05
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.3077376815629062,
+            "mean": 0.265843805708575,
+            "median": 0.25003184349589064,
+            "min": 0.23478816532414065,
+            "requested": 5,
+            "sample_sd": 0.032388517871506914,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "omit",
+          "rate": 0.1
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 13.9892578125,
+            "mean": 11.80908203125,
+            "median": 11.1083984375,
+            "min": 10.58349609375,
+            "requested": 5,
+            "sample_sd": 1.450033981648529,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "omit",
+          "rate": 0.1
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.43196911857392184,
+            "mean": 0.3746486486491312,
+            "median": 0.37164499780875,
+            "min": 0.3333833090159063,
+            "requested": 5,
+            "sample_sd": 0.043110075964045085,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "omit",
+          "rate": 0.2
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 19.53125,
+            "mean": 16.47216796875,
+            "median": 16.259765625,
+            "min": 15.00244140625,
+            "requested": 5,
+            "sample_sd": 1.838052221606536,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "omit",
+          "rate": 0.2
+        }
+      ],
+      "distribution_counts": {
+        "summaries": 56,
+        "comparisons": 28,
+        "percentile_summaries": 144,
+        "percentile_comparisons": 72
+      }
+    },
+    {
+      "baseline_term_fraction": 0.9811463465925272,
+      "baseline_term_sha256": "76b3fe675f11fc739eca88fb306000f07801571fcbe802a69aed177fd5d053ea",
+      "baseline_terms": 1712276,
+      "baseline_weight_fraction": 0.9759183184684546,
+      "excluded_terms": {
+        "baseline_target_not_common_callable": 31661,
+        "model_or_orientation_unscorable": 1201,
+        "reference_not_common_callable": 5,
+        "unresolved_position": 36
+      },
+      "group": "selection_last64",
+      "pgs_id": "PGS000018",
+      "reference_sets": [
+        {
+          "evaluable": 64,
+          "id": "fixed_reference64",
+          "mean_baseline_percentile": 47.75390625,
+          "reference_samples": 64,
+          "source_cohort_shared_sample_ids": 0
+        }
+      ],
+      "samples": 64,
+      "source_samples": 128,
+      "total_model_terms": 1745179,
+      "selected_error_and_shift_distributions": [
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.021613987036417967,
+            "mean": 0.018778039395580322,
+            "median": 0.019756804545283203,
+            "min": 0.015650879194248048,
+            "requested": 5,
+            "sample_sd": 0.00252703626559081,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "fill",
+          "rate": 0.01
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 1.1474609375,
+            "mean": 1.12060546875,
+            "median": 1.123046875,
+            "min": 1.07421875,
+            "requested": 5,
+            "sample_sd": 0.027836314089334423,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "fill",
+          "rate": 0.01
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.05903005033935278,
+            "mean": 0.05101328412059341,
+            "median": 0.049913304794766356,
+            "min": 0.045514835974515624,
+            "requested": 5,
+            "sample_sd": 0.005091326093237361,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "fill",
+          "rate": 0.05
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 2.67333984375,
+            "mean": 2.37060546875,
+            "median": 2.3681640625,
+            "min": 2.06298828125,
+            "requested": 5,
+            "sample_sd": 0.2162057877696619,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "fill",
+          "rate": 0.05
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.08443457959599757,
+            "mean": 0.07654476093613315,
+            "median": 0.07314064142888037,
+            "min": 0.07001793731999535,
+            "requested": 5,
+            "sample_sd": 0.006323057879770968,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "fill",
+          "rate": 0.1
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 3.8330078125,
+            "mean": 3.408203125,
+            "median": 3.35693359375,
+            "min": 3.1005859375,
+            "requested": 5,
+            "sample_sd": 0.2856810456762989,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "fill",
+          "rate": 0.1
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.1479315805555403,
+            "mean": 0.1323669487393723,
+            "median": 0.13562459010080494,
+            "min": 0.11785088559631861,
+            "requested": 5,
+            "sample_sd": 0.012829698618311137,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "fill",
+          "rate": 0.2
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 6.33544921875,
+            "mean": 5.70556640625,
+            "median": 5.8837890625,
+            "min": 5.13916015625,
+            "requested": 5,
+            "sample_sd": 0.5009792989615202,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "fill",
+          "rate": 0.2
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.09411514412478125,
+            "mean": 0.08065642236073438,
+            "median": 0.08280188144851562,
+            "min": 0.06505354237210938,
+            "requested": 5,
+            "sample_sd": 0.011219312490411025,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "omit",
+          "rate": 0.01
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 4.40673828125,
+            "mean": 3.8330078125,
+            "median": 3.91845703125,
+            "min": 3.06396484375,
+            "requested": 5,
+            "sample_sd": 0.5013806830545129,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "omit",
+          "rate": 0.01
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.22560578628714062,
+            "mean": 0.20116990162335316,
+            "median": 0.2124355090279844,
+            "min": 0.15642165199131253,
+            "requested": 5,
+            "sample_sd": 0.02714161328293759,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "omit",
+          "rate": 0.05
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 10.48583984375,
+            "mean": 9.0087890625,
+            "median": 9.375,
+            "min": 6.787109375,
+            "requested": 5,
+            "sample_sd": 1.361480791898541,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "omit",
+          "rate": 0.05
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.3112692789690938,
+            "mean": 0.2693053395541938,
+            "median": 0.2786714785607969,
+            "min": 0.22515706235906252,
+            "requested": 5,
+            "sample_sd": 0.03417028124805126,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "omit",
+          "rate": 0.1
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 14.404296875,
+            "mean": 12.236328125,
+            "median": 12.7197265625,
+            "min": 10.4248046875,
+            "requested": 5,
+            "sample_sd": 1.7214640949215483,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "omit",
+          "rate": 0.1
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 0.4258079044862031,
+            "mean": 0.3745018328852063,
+            "median": 0.3693723351665625,
+            "min": 0.3232566393056719,
+            "requested": 5,
+            "sample_sd": 0.045156333083020715,
+            "unavailable": 0
+          },
+          "metric": "mae",
+          "policy": "omit",
+          "rate": 0.2
+        },
+        {
+          "distribution": {
+            "available": 5,
+            "max": 19.22607421875,
+            "mean": 17.01904296875,
+            "median": 16.83349609375,
+            "min": 14.6240234375,
+            "requested": 5,
+            "sample_sd": 2.1109942120120793,
+            "unavailable": 0
+          },
+          "metric": "mean_abs_percentile_shift",
+          "policy": "omit",
+          "rate": 0.2
+        }
+      ],
+      "distribution_counts": {
+        "summaries": 56,
+        "comparisons": 28,
+        "percentile_summaries": 144,
+        "percentile_comparisons": 72
+      }
+    }
+  ]
+}
