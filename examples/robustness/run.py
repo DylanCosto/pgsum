@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import sys
 
 
 def require(condition, message):
@@ -109,11 +110,52 @@ def verify(out, expected):
             'region_checks': len(region_rows), 'output_hash_checks': len(report['outputs'])}
 
 
+def study(binary, out, source, commands):
+    """Use the same synthetic inputs to demonstrate paired policies and missing metrics."""
+    template = json.loads((out / 'experiment.json').read_text())
+    template['scenarios'] = [
+        {'id': 'omit'},
+        {'id': 'fill', 'fill_frequencies': 'reference.pgsf',
+         'frequency_source_note': 'Frozen frequencies from synthetic R1-R4; no target participants contribute.'}
+    ]
+    policies = out / 'policies.json'
+    policies.write_text(json.dumps(template, indent=2) + '\n')
+    plan, results, summary = (out / name for name in ('study-plan', 'study-results', 'study-summary'))
+    run(binary, out, ['robustness-plan', '--template', policies, '--rates', '0,0.1,0.2,1',
+                     '--seeds', '11,22,33', '--out', plan], commands)
+    run(binary, out, ['robustness', '--experiment', plan / 'experiment.json', '--out', results], commands)
+    run(binary, out, ['robustness-summarize', '--plan', plan, '--results', results,
+                     '--reference-policy', 'omit', '--out', summary], commands)
+    checker = source.parents[1] / 'bench/check_study_summary.py'
+    command = [sys.executable, str(checker), str(plan), str(results), str(summary)]
+    commands.append(command)
+    (out / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
+    checker_hash = digest(checker)
+    verification = subprocess.check_output(command, text=True)
+    require(digest(checker) == checker_hash, 'study checker changed during verification')
+    checks = json.loads(verification)
+    require(checks['passed'] and checks['sample_scenario_rows'] == 104, 'incomplete study example')
+    result = json.loads((summary / 'summary.json').read_text())
+    for name, expected_hash in result['outputs'].items():
+        require(digest(summary / name) == expected_hash, 'study output checksum differs: ' + name)
+    # Boundary rate 1 erases target variation; correlation must be unavailable, not zero.
+    rows = result['scores'][0]['summaries']
+    missing = [r for r in rows if r['policy'] == 'omit' and r['rate'] == 1 and r['metric'] in ('pearson', 'spearman')]
+    require(len(missing) == 2 and all(r['distribution']['available'] == 0 for r in missing),
+            'constant boundary scenario must have unavailable correlations')
+    (out / 'study-verification.json').write_text(verification)
+    print('Offline study passed: ' + str(out / 'study-verification.json'))
+    print('Open study summary: ' + str(summary / 'summary.html'))
+    return checks
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--binary', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True, help='new output directory')
+    parser.add_argument('--study', action='store_true', help='also plan, run and independently check paired seed/rate comparisons (Python 3.9+)')
     args = parser.parse_args()
+    require(not args.study or sys.version_info >= (3, 9), '--study requires Python 3.9 or newer')
     binary = args.binary.expanduser().resolve()
     require(binary.is_file(), 'binary does not exist: ' + str(binary))
     source = Path(__file__).resolve().parent
@@ -140,6 +182,8 @@ def main():
                       '--out', out / 'reference.pgsf'], commands)
     run(binary, out, ['robustness', '--experiment', out / 'experiment.json', '--out', out / 'results', '--terms'], commands)
     checks = verify(out, json.loads((source / 'expected.json').read_text()))
+    if args.study:
+        checks['study'] = study(binary, out, source, commands)
     require(digest(binary) == identity, 'binary changed during the example')
     record = {'schema': 'pgsum-robustness-example-verification-v1', 'status': 'passed',
               'binary_sha256': identity, 'version': subprocess.check_output([str(binary), '--version'], text=True).strip(),

@@ -36,7 +36,7 @@ jobs:
         run: |
           python3 scripts/package_release.py build --binary target/debug/pgsum \
             --target "$(rustc -vV | sed -n 's/^host: //p')" \
-            --output target/release-package-smoke --run-example
+            --output target/release-package-smoke --run-study-example
       - uses: actions/upload-artifact@v4
         if: always() && matrix.rust == 'stable'
         with:

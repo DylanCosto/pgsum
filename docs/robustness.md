@@ -69,6 +69,13 @@ Optional `scoring` has the four boolean production opt-ins:
 and `accept_informational_descriptions`. Defaults are false. They apply identically across
 every arm; masks never override term review or orientation rules.
 
+Try the full workflow without downloading data using the included
+[offline paired study](../examples/robustness/README.md#paired-missingness-study):
+
+```sh
+python3 examples/robustness/run.py --binary ./pgsum --study --out study-example-output
+```
+
 ## Plan repeated sensitivity experiments
 
 `robustness-plan` expands policies over a Cartesian product of missingness rates and

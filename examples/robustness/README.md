@@ -26,6 +26,26 @@ The baseline scores for A-D are `3, -1.5, 3, 1.5`. Dropping the last site gives
 a masked zero contribution and tied baseline scores. Samples A-D never contribute to
 reference frequencies.
 
+## Paired missingness study
+
+To try the complete planning and comparison workflow, use Python 3.9 or newer:
+
+```sh
+python3 examples/robustness/run.py --binary ./pgsum --study --out study-example-output
+```
+
+This also plans omission versus frequency filling at 0%, 10%, 20% and 100% missingness,
+with three reproducible sample-site masking seeds. The 26 scenarios include two controls
+and produce 104 participant/scenario rows. It runs `robustness-plan`, `robustness` and
+`robustness-summarize`, then checks score metrics, cutoff transitions and frozen-reference
+shifts independently from the participant output files. The 100% omission boundary checks
+that undefined correlations stay unavailable.
+
+Open `study-example-output/study-summary/summary.html` to compare policies and seed
+variation. JSON and TSV files retain full precision; `study-verification.json` records
+the independent checks. `policies.json`, `study-plan/` and `commands.json` show the complete
+reproducible workflow. The original hand-calculated example still runs and is checked first.
+
 The tiny sequence uses the pipeline's GRCh38 coordinate label but is entirely invented;
 these are synthetic arithmetic fixtures, not human genomes or a biological PGS. Their
 results establish that the packaged commands run together, not predictive accuracy,
