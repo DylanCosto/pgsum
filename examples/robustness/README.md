@@ -12,6 +12,10 @@ Use a new output directory. The runner works from any current directory when its
 are supplied explicitly, and leaves the example inputs unchanged. In a source checkout,
 build the executable first and use `--binary target/release/pgsum`.
 
+The runner checks a preflight report against the completed experiment: identical input
+fingerprints, 48 candidate cells, 16 score rows and no target/reference overlap. Open
+`preflight/preflight.txt` for the planning summary. Preflight does not calculate scores.
+
 The runner compiles the three-term model, extracts four synthetic targets and four
 separate synthetic reference samples, builds the frozen frequency table, and runs four
 scenarios: unchanged control, omission of the last site, omission with mean filling,

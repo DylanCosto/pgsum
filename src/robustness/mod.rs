@@ -2,6 +2,7 @@
 pub mod config;
 pub mod groups;
 pub mod planner;
+mod preflight;
 mod progress;
 pub use progress::ProgressFormat;
 mod report;
@@ -36,6 +37,9 @@ pub struct RobustnessArgs {
     /// New directory for the report and auditable tables; existing directories are never overwritten.
     #[arg(long)]
     pub out: PathBuf,
+    /// Validate experiment inputs and report planned dimensions without scoring.
+    #[arg(long)]
+    pub preflight: bool,
     /// Also write every changed term/sample/scenario to terms.tsv.zst (can be large).
     #[arg(long)]
     pub terms: bool,
@@ -323,16 +327,32 @@ fn optional(v: Option<f64>) -> String {
     v.map(|x| x.to_string()).unwrap_or_default()
 }
 
-/// All output is written under a newly created directory. report.json is the completion marker.
-pub fn run(args: &RobustnessArgs) -> Result<()> {
-    let mut progress = progress::Progress::new(args.progress, args.progress_interval);
-    progress.stage("preparing");
-    let experiment = config::load(&args.experiment)?;
+struct Prepared {
+    experiment: Experiment,
+    baseline: Source,
+    samples: Vec<String>,
+    scenarios: Vec<ScenarioRuntime>,
+    references: Vec<ReferenceRuntime>,
+    regions: Vec<Bed>,
+    metadata: BTreeMap<String, serde_json::Value>,
+    input_sha256: BTreeMap<String, String>,
+    models: Vec<serde_json::Value>,
+}
+
+fn prepare(path: &Path) -> Result<Prepared> {
+    let manifest_hash = crate::digest::file_sha256(path)?;
+    let experiment = config::load(path)?;
+    let paths = preflight::input_paths(path, &experiment);
+    let input_sha256: BTreeMap<String, String> = paths
+        .iter()
+        .map(|p| Ok((p.display().to_string(), crate::digest::file_sha256(p)?)))
+        .collect::<Result<_>>()?;
+    if input_sha256[&path.display().to_string()] != manifest_hash {
+        return invalid!("manifest changed during preparation");
+    }
     let baseline = Source::open(&experiment.genotypes)?;
     let samples = baseline.samples();
     let n = samples.len();
-    let options = Options::from(&experiment.scoring);
-    let mut paths = BTreeSet::from([args.experiment.clone(), experiment.genotypes.clone()]);
     let mut metadata = BTreeMap::from([(experiment.genotypes.display().to_string(), baseline.metadata())]);
     let mut scenarios = Vec::new();
     // Decoded frequency blocks are immutable but potentially large. A rate/seed sweep
@@ -352,7 +372,6 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
             (0..n).collect()
         };
         if let (Some(path), Some(t)) = (&scenario.genotypes, &source) {
-            paths.insert(path.clone());
             metadata.insert(path.display().to_string(), t.metadata());
         }
         let fill = scenario
@@ -367,19 +386,11 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
                 }
             })
             .transpose()?;
-        if let Some(path) = &scenario.fill_frequencies {
-            paths.insert(path.clone());
-            if let Some(table) = &fill {
-                metadata.insert(
-                    path.display().to_string(),
-                    serde_json::to_value(&table.header).expect("serializable header"),
-                );
-            }
-        }
-        for mask in &scenario.masks {
-            if let config::Mask::Bed { path, .. } = mask {
-                paths.insert(path.clone());
-            }
+        if let (Some(path), Some(table)) = (&scenario.fill_frequencies, &fill) {
+            metadata.insert(
+                path.display().to_string(),
+                serde_json::to_value(&table.header).expect("serializable header"),
+            );
         }
         scenarios.push(ScenarioRuntime {
             masks: PreparedMasks::load(&scenario.masks)?,
@@ -397,7 +408,6 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
             return invalid!("reference {} selects no samples", reference.id);
         }
         if let (Some(path), Some(t)) = (&reference.genotypes, &source) {
-            paths.insert(path.clone());
             metadata.insert(path.display().to_string(), t.metadata());
         }
         references.push(ReferenceRuntime {
@@ -410,26 +420,75 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
     let regions: Vec<_> = experiment
         .regions
         .iter()
-        .map(|r| {
-            paths.insert(r.path.clone());
-            Bed::load(&r.path)
-        })
+        .map(|r| Bed::load(&r.path))
         .collect::<Result<_>>()?;
     // Open/validate packs before creating any outputs. The experiment never repairs its input files.
     let mut ids = BTreeSet::new();
+    let mut models = Vec::new();
     for path in &experiment.packs {
-        paths.insert(path.clone());
         let pack = Pack::open(path)?;
         checked_text(&pack.header.pgs_id)?;
+        baseline.check(&pack)?;
+        for source in scenarios
+            .iter()
+            .filter_map(|s| s.source.as_ref())
+            .chain(references.iter().filter_map(|r| r.source.as_ref()))
+        {
+            source.check(&pack)?;
+        }
+        models.push(serde_json::json!({"pgs_id":pack.header.pgs_id,"terms":pack.columns.len(),
+            "inventory":pack.header.inventory,"records_sha256":pack.header.records_sha256,"reference":pack.header.reference}));
         if !ids.insert(pack.header.pgs_id) {
             return invalid!("duplicate score IDs in experiment");
         }
     }
-    progress.stage("fingerprinting");
-    let mut input_sha256 = BTreeMap::new();
-    for path in paths {
-        input_sha256.insert(path.display().to_string(), crate::digest::file_sha256(&path)?);
+    Ok(Prepared {
+        experiment,
+        baseline,
+        samples,
+        scenarios,
+        references,
+        regions,
+        metadata,
+        input_sha256,
+        models,
+    })
+}
+
+fn verify_inputs(inputs: &BTreeMap<String, String>) -> Result<()> {
+    for (path, hash) in inputs {
+        if crate::digest::file_sha256(Path::new(path))? != *hash {
+            return invalid!("input changed during experiment: {path}");
+        }
     }
+    Ok(())
+}
+
+/// All output is written under a newly created directory. report.json is the completion marker.
+pub fn run(args: &RobustnessArgs) -> Result<()> {
+    let mut progress = progress::Progress::new(args.progress, args.progress_interval);
+    progress.stage("preparing");
+    let prepared = prepare(&args.experiment)?;
+    progress.stage("fingerprinting");
+    verify_inputs(&prepared.input_sha256)?;
+    if args.preflight {
+        preflight::write(args, &prepared)?;
+        progress.stage("preflight_complete");
+        return Ok(());
+    }
+    let Prepared {
+        experiment,
+        baseline,
+        samples,
+        scenarios,
+        references,
+        regions,
+        metadata,
+        input_sha256,
+        ..
+    } = prepared;
+    let n = samples.len();
+    let options = Options::from(&experiment.scoring);
     std::fs::create_dir(&args.out).map_err(Error::io(&args.out))?;
     let mut scores = writer(&args.out, "samples.tsv")?;
     writeln!(scores,"pgs_id\tscenario\tsample\tbaseline_terms\tretained_terms\tmasked_terms\tunavailable_alternate_terms\tfilled_terms\tunfilled_terms\tbaseline_score\tscenario_score\tdelta\tbaseline_percentile\tfixed_baseline_percentile\treranked_percentile\tchanged_terms\ttop_terms_delta\tother_terms_delta").map_err(Error::io(&args.out))?;
