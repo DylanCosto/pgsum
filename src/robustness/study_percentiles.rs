@@ -62,6 +62,7 @@ pub(super) fn summarize(
     groups: &BTreeMap<(String, String), BTreeMap<u64, &Arm>>,
     scenarios: &BTreeMap<&str, &Value>,
     reference_policy: &str,
+    source_samples: Option<u64>,
 ) -> Result<(Vec<Value>, Vec<Value>, Vec<Value>)> {
     let expected_cutoffs: BTreeSet<_> = experiment.cutoffs.iter().map(|r| rate_key(*r)).collect();
     let expected_refs: BTreeSet<_> = experiment.reference_sets.iter().map(|r| r.id.as_str()).collect();
@@ -123,15 +124,31 @@ pub(super) fn summarize(
             }
             let (samples, shared, evaluable) = (
                 count(r, "reference_samples")?,
-                count(r, "shared_sample_ids")?,
+                count(
+                    r,
+                    if source_samples.is_some() {
+                        "source_cohort_shared_sample_ids"
+                    } else {
+                        "shared_sample_ids"
+                    },
+                )?,
                 count(r, "evaluable")?,
             );
-            if samples == 0 || shared > n.min(samples) || evaluable > n || (evaluable > 0 && samples < 2) {
+            if samples == 0
+                || shared > source_samples.unwrap_or(n).min(samples)
+                || evaluable > n
+                || (evaluable > 0 && samples < 2)
+            {
                 return invalid!("invalid reference participant counts");
             }
             let baseline = percentile(r, "mean_baseline_percentile", evaluable)?;
-            let identity = json!({"id":reference,"reference_samples":samples,"shared_sample_ids":shared,
+            let mut identity = json!({"id":reference,"reference_samples":samples,
                 "mean_baseline_percentile":baseline,"evaluable":evaluable});
+            identity[if source_samples.is_some() {
+                "source_cohort_shared_sample_ids"
+            } else {
+                "shared_sample_ids"
+            }] = json!(shared);
             // The current engine uses one immutable reference distribution and complete target scores.
             // Its eligibility and baseline percentile must therefore be identical across scenarios.
             if let Some(previous) = reference_identity.insert(reference, identity.clone())

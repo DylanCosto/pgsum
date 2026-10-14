@@ -612,6 +612,13 @@ group.addEventListener('change',filter);scenario.addEventListener('change',filte
     Ok(hashes)
 }
 
+pub(super) fn analyze(report: &Value, results: &Path, mapping: &Path) -> Result<Value> {
+    let assignments = load_groups(mapping)?;
+    let rows = load_scores(&results.join("samples.tsv"))?;
+    let references = load_references(&results.join("references.tsv"))?;
+    summarize(report, &rows, &references, &assignments)
+}
+
 pub fn run(args: &GroupsArgs) -> Result<()> {
     let report_path = args.results.join("report.json");
     let mut provenance = BTreeMap::new();
@@ -621,10 +628,7 @@ pub fn run(args: &GroupsArgs) -> Result<()> {
     let report: Value = serde_json::from_slice(&std::fs::read(&report_path).map_err(Error::io(&report_path))?)
         .map_err(|e| Error::Invalid(e.to_string()))?;
     super::verify_report_outputs(&args.results, &report, &mut provenance)?;
-    let assignments = load_groups(&args.groups)?;
-    let rows = load_scores(&args.results.join("samples.tsv"))?;
-    let references = load_references(&args.results.join("references.tsv"))?;
-    let mut grouped = summarize(&report, &rows, &references, &assignments)?;
+    let mut grouped = analyze(&report, &args.results, &args.groups)?;
     grouped["source_sha256"] = serde_json::to_value(&provenance).map_err(|e| Error::Invalid(e.to_string()))?;
     grouped["pgsum_version"] = json!(env!("CARGO_PKG_VERSION"));
     grouped["executable_sha256"] = json!(crate::digest::file_sha256(

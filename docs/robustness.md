@@ -168,6 +168,38 @@ scenarios, the independent checker passes 588 score-metric, 168 cutoff and 84 re
 comparisons. This validates the reporting path; the technical split supports no ancestry or
 demographic conclusion.
 
+## Paired policy comparisons within groups
+
+Pass the same exhaustive mapping to `robustness-summarize` to compare repeated policies
+within each group without rerunning the experiment:
+
+```sh
+pgsum robustness-summarize --plan planned-study --results study-results \
+  --groups participants.tsv --reference-policy omit --out group-study
+python3 bench/check_group_study.py planned-study study-results participants.tsv group-study
+```
+
+The command verifies native results and calculates each group's scenario metrics before
+pairing policies by rate and seed. Every group keeps the original full-target percentile
+thresholds and common-callable terms. Error and correlation calculations use selected pairs
+within the group. Groups never become replicates, and participants are not pooled across seeds.
+
+This opt-in output uses `pgsum-robustness-group-study-v1`. Each JSON score entry has `group`,
+`samples` and `source_samples`; the four TSVs add those dimensions after `pgs_id`. JSON records
+explicit memberships, per-seed comparisons, availability counts, controls and fingerprints.
+`reference_sets` retains `source_cohort_shared_sample_ids`, which describes the entire source
+cohort even when it exceeds a group's size. The HTML tables identify groups and both sample counts.
+Without `--groups`, the existing whole-cohort schema and table columns stay unchanged.
+
+The independent checker reconstructs group errors and whole-cohort cutoff membership from
+exact native score strings, then checks paired distributions, missing metrics and reference
+shifts. These summaries describe masking variability within an authored partition. They do not
+estimate uncertainty about populations, validate group labels, or establish causal group effects.
+
+The [checked 128-person group study](../bench/results/group-study-public128.json) passes 168
+score-metric and 432 cutoff/reference distribution checks across two artificial 64-person groups,
+four omission rates and five seeds. Whole-cohort outputs remain byte-identical without grouping.
+
 ## Plan repeated sensitivity experiments
 
 `robustness-plan` expands policies over a Cartesian product of missingness rates and

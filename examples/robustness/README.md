@@ -59,3 +59,8 @@ The paired study also runs `robustness-groups` with one synthetic singleton and 
 group. Open `study-groups/groups.html` to inspect score errors, whole-cohort cutoff transitions
 and frozen-reference shifts by group. `group-verification.json` records the independent check;
 these artificial labels have no demographic or biological meaning.
+
+The same mapping is passed to `robustness-summarize --groups` to compare policies by rate and
+seed within each group. Open `group-study/summary.html`; `group-study-verification.json`
+records independent checks against the native participant rows. Singleton correlations remain
+unavailable while percentile shifts retain the full four-person target baseline.

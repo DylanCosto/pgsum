@@ -64,6 +64,9 @@ scenario filters, unavailable reasons, membership and input/output fingerprints.
 588 score-metric, 168 cutoff and 84 reference comparisons. These artificial groups validate
 reporting only; they do not establish demographic or ancestry differences. The extracted
 offline study also checks a singleton group and a three-person group.
+The same mapping can now be supplied to `robustness-summarize --groups` for policy comparisons
+paired within each group, rate and seed. It retains global percentile thresholds and explicit
+source-cohort reference overlap, with a separate group-study schema and independent checker.
 
 ## Scoring and workflow changes since v0.5.1
 
