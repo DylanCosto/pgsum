@@ -1,8 +1,8 @@
 # 0.6.0 candidate (unreleased)
 
 This is release preparation, not an announcement of a published release. The latest
-previous tag is v0.5.1. Candidate checks, including the dense genome-wide validation,
-must finish before the 0.6.0 release is finalized and tagged.
+previous tag is v0.5.1. The original dense genome-wide validation is complete. The additional
+paired-study checks below accompany this follow-on candidate; no version has been tagged.
 
 ## Robustness experiments
 
@@ -22,6 +22,33 @@ Filling is an experimental reconstruction, including below production coverage g
 never changes ordinary scoring rules, replaces observed calls, or uses hidden evaluation
 calls to estimate frequencies. The source's independence is a recorded user declaration.
 See the [experiment guide](docs/robustness.md) for the manifest and interpretation.
+
+## Paired robustness studies
+
+`robustness-plan` expands authored policies across omission rates and seeds while retaining
+controls. `robustness-summarize` verifies the completed experiment and compares score errors,
+correlations, cutoff transitions and frozen-reference percentile shifts. Comparisons pair
+policies within each seed before calculating descriptive distributions. Undefined metrics and
+participant denominators remain explicit. See the [study guide](docs/robustness.md).
+
+Repeated scenarios share decoded frequency tables and reuse deterministic random draws at
+each locus. These changes preserve the public pilot's numerical outputs. The recorded pilot
+memory comparison fell from 2,060.48 to 501.14 MiB peak RSS; observed timings are shared-host
+measurements, not controlled speed claims. The follow-on passes all 179 tests on stable Rust and
+Rust 1.88, formatting, Clippy and twelve synthetic full-attribution runs.
+
+The completed [128-person study](docs/robustness.md#completed-128-person-public-study)
+checks 42 scenarios across four omission rates and five seeds. All 5,376 participant/scenario
+rows, 294 score-metric checks and 300 distribution checks pass. Its exact baselines match the
+source-verified genome-wide run; new masked scores are checked descriptively, not independently
+reconstructed from source genotypes. Frozen-reference filling lowers mean absolute error at
+each tested rate in this cohort, without establishing predictive or clinical validity.
+
+The optional offline paired study uses Python 3.9+ and independently checks its summaries:
+
+```sh
+python3 examples/robustness/run.py --binary ./pgsum --out example-output --study
+```
 
 ## Scoring and workflow changes since v0.5.1
 
@@ -84,7 +111,7 @@ The separate [public chromosome-22 comparison](docs/public-validation.md) has al
 the actual pgsc_calc workflow and PLINK 2 alongside pgsum. Its shared-term arithmetic checks
 cover chromosome contributions and do not establish whole-genome or phenotype performance.
 
-The final Linux candidate passes formatting, Clippy, and all 169 tests on both stable Rust
+The original Linux candidate passed formatting, Clippy, and all 169 tests on both stable Rust
 and the Rust 1.88 minimum; one optional local-data parity test is ignored. Six deliberate
 output-corruption checks and 16 smaller full-attribution benchmark runs also pass. Hosted
 CI covers macOS/Linux tests and extracted-package checks; the release workflow adds native

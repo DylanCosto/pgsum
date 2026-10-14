@@ -219,6 +219,78 @@ After running a planned experiment and summarizing it, verify the same evidence 
 python3 bench/check_study_summary.py planned-study study-results study-summary
 ```
 
+### Completed 128-person public study
+
+The [checked larger-study record](../bench/results/public-study128.json) contains 128 targets,
+64 disjoint references and the full PGS000018 input inventory across all 22 autosomes.
+Omission and frequency filling are paired across 1%, 5%, 10% and 20% sample-site omissions
+and seeds 11/22/33/44/55, with two controls: 42 scenarios and **5,376 participant/scenario rows**.
+The frozen baseline retains 1,712,276 common-callable terms.
+
+All 128 exact baseline scores, the baseline term digest and the source-input fingerprints
+match the earlier source-verified genome-wide run. The independent summary checker passes
+294 score-metric checks, 84 score-distribution checks and 216 cutoff/reference-distribution
+checks, including 5,376 participant/reference rows. The new masks are not independently
+reconstructed from source genotypes; this adds descriptive seed/policy validation to the
+separately source-verified baseline, not phenotype validation.
+
+| Missingness | Mean MAE, omission | Mean MAE, filling |
+|---:|---:|---:|
+| 1% | 0.08205 | 0.01897 |
+| 5% | 0.19317 | 0.04999 |
+| 10% | 0.26757 | 0.07836 |
+| 20% | 0.37458 | 0.12975 |
+
+In this fixed cohort, filling lowers mean absolute score error at each tested rate. At 20%
+omission, the mean fraction crossing the frozen target 90th-percentile cutoff falls from
+9.84375% to 6.09375%; the mean absolute shift against the 64-person reference distribution
+falls from 17.41699 to 5.35400 percentile points. Five masking seeds characterize this
+experiment's sensitivity, not population uncertainty or a general recommendation.
+
+The native run took 2,070.04 seconds with 6,527.38 MiB peak RSS using the original frozen
+release binary, before frequency sharing and random-draw caching. Development checks ran
+concurrently. These measurements do not describe the optimized candidate's 128-person
+performance and are not controlled scaling measurements.
+
+### Reproduce the larger public study
+
+First complete the input preparation and 128-person run in the
+[genome-wide guide](genomewide-robustness-validation.md#reproduce). From the same checkout,
+create two policies beside that run's manifest, preserving its relative input paths:
+
+```sh
+python3 - "$EVIDENCE/native/cohort128/experiment.json" <<'PYTHON'
+import json
+from pathlib import Path
+import sys
+source = Path(sys.argv[1])
+experiment = json.loads(source.read_text())
+policies = []
+for original, name in [('no_mask', 'omit'), ('random20_fill', 'fill')]:
+    policy = dict(next(s for s in experiment['scenarios'] if s['id'] == original))
+    policy.update(id=name, masks=[])
+    policies.append(policy)
+experiment['scenarios'] = policies
+with source.with_name('study-policies.json').open('x') as output:
+    json.dump(experiment, output, indent=2)
+PYTHON
+pgsum robustness-plan --template "$EVIDENCE/native/cohort128/study-policies.json" \
+  --rates 0.01,0.05,0.1,0.2 --seeds 11,22,33,44,55 --mask-unit sample-site \
+  --out "$EVIDENCE/planned-study128"
+pgsum --threads 4 robustness --experiment "$EVIDENCE/planned-study128/experiment.json" \
+  --out "$EVIDENCE/study128-results"
+pgsum robustness-summarize --plan "$EVIDENCE/planned-study128" \
+  --results "$EVIDENCE/study128-results" --reference-policy omit \
+  --out "$EVIDENCE/study128-summary"
+python3 bench/check_study_summary.py "$EVIDENCE/planned-study128" \
+  "$EVIDENCE/study128-results" "$EVIDENCE/study128-summary"
+```
+
+Use the candidate's `pgsum` executable on your `PATH`. This creates 42 scenarios, including
+two controls, and retains the same 90/95 percentile cutoffs, 9p21 region and disjoint reference
+set. New output directories are required. Relocating inputs changes path-bearing manifest
+fingerprints; retain each run's own plan, native results and summary together.
+
 ### Memory use when reusing frequencies
 
 Scenarios that name the same resolved frequency-table path share its decoded blocks for
