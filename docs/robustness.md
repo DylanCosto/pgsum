@@ -219,6 +219,32 @@ After running a planned experiment and summarizing it, verify the same evidence 
 python3 bench/check_study_summary.py planned-study study-results study-summary
 ```
 
+### Memory use when reusing frequencies
+
+Scenarios that name the same resolved frequency-table path share its decoded blocks for
+the duration of the experiment. This avoids retaining one large frequency table for every
+rate, seed and policy. Different paths keep separate tables and their own input fingerprints.
+
+The [checked memory comparison](../bench/results/shared-frequency-memory.json) reruns the
+14-scenario public pilot above using the original release-candidate binary and a build with
+shared frequency tables. Peak RSS fell from **2,060.48 MiB to 501.14 MiB** (75.7%). All score
+summaries and all four numerical output files were identical, and those files also match
+the independently checked public pilot. This is one sequential observation on a shared host,
+with the 128-person study running concurrently; it does not establish a universal memory
+reduction or controlled runtime improvement.
+
+To compare two native builds on your own experiment (Linux with GNU `time`, Python 3.9+):
+
+```sh
+python3 bench/compare_robustness_memory.py --before /path/to/previous/pgsum \
+  --after /path/to/current/pgsum --experiment planned-study/experiment.json \
+  --out memory-comparison --threads 4
+```
+
+The [comparison harness](../bench/compare_robustness_memory.py) requires identical inputs,
+score summaries and numerical payload bytes before writing `comparison.json`. It retains
+individual logs and peak-memory measurements. It does not rerun a source-genotype oracle.
+
 ## What is held fixed
 
 For each score, the baseline includes only autosomal terms that are scorable in **every

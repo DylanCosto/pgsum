@@ -393,6 +393,26 @@ fn external_frequency_fill_uses_the_effect_allele_and_reconciles_changes() {
         "--out",
         text(&frequencies),
     ]);
+    let zero_population = fixture.path("zero.vcf.gz");
+    let mut gzip = flate2::write::GzEncoder::new(
+        std::fs::File::create(&zero_population).unwrap(),
+        flate2::Compression::fast(),
+    );
+    gzip.write_all(b"##fileformat=VCFv4.3\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+        .unwrap();
+    for &(pos, reference, alt, _, _, _) in &SITES {
+        writeln!(gzip, "1\t{pos}\t.\t{reference}\t{alt}\t.\tPASS\tAF=0").unwrap();
+    }
+    gzip.finish().unwrap();
+    run(&[
+        "frequencies",
+        "--vcf",
+        text(&zero_population),
+        "--field",
+        "AF",
+        "--out",
+        text(&fixture.path("zero.pgsf")),
+    ]);
     let (out, report) = fixture.experiment(
         "experiment",
         fixture.manifest(
@@ -400,6 +420,12 @@ fn external_frequency_fill_uses_the_effect_allele_and_reconciles_changes() {
             json!([{
                 "id":"fill", "masks":[{"kind":"random","rate":1.0,"seed":5,"unit":"site"}],
                 "fill_frequencies":"population.pgsf", "frequency_source_note":"independent synthetic population; fixed before masking"
+            }, {
+                "id":"different_input", "masks":[{"kind":"random","rate":1.0,"seed":5,"unit":"site"}],
+                "fill_frequencies":"zero.pgsf", "frequency_source_note":"second synthetic population"
+            }, {
+                "id":"same_input_again", "masks":[{"kind":"random","rate":1.0,"seed":5,"unit":"site"}],
+                "fill_frequencies":"population.pgsf", "frequency_source_note":"same frozen population reused"
             }]),
         ),
     );
@@ -418,6 +444,23 @@ fn external_frequency_fill_uses_the_effect_allele_and_reconciles_changes() {
         assert_eq!(sample["filled_terms"], "4");
         assert_eq!(sample["unfilled_terms"], "0");
         assert_eq!(sample["retained_terms"], "0");
+    }
+    for name in ["A", "B", "C"] {
+        // Repeated inputs share storage, while a different input retains its own frequencies.
+        exact(&row(&samples, "same_input_again", name)["scenario_score"], "1.6");
+        exact(&row(&samples, "different_input", name)["scenario_score"], "3");
+        for key in [
+            "delta",
+            "filled_terms",
+            "changed_terms",
+            "top_terms_delta",
+            "other_terms_delta",
+        ] {
+            assert_eq!(
+                row(&samples, "fill", name)[key],
+                row(&samples, "same_input_again", name)[key]
+            );
+        }
     }
     assert_eq!(report["scores"][0]["scenarios"][0]["filled_observations"], 12);
     assert!(

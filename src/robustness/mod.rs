@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 use clap::Args;
 use num_bigint::BigInt;
@@ -151,7 +152,7 @@ struct ScenarioRuntime {
     masks: PreparedMasks,
     source: Option<Source>,
     indices: Vec<usize>,
-    fill: Option<FrequencyTable>,
+    fill: Option<Rc<FrequencyTable>>,
 }
 struct ReferenceRuntime {
     id: String,
@@ -323,6 +324,9 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
     let mut paths = BTreeSet::from([args.experiment.clone(), experiment.genotypes.clone()]);
     let mut metadata = BTreeMap::from([(experiment.genotypes.display().to_string(), baseline.metadata())]);
     let mut scenarios = Vec::new();
+    // Decoded frequency blocks are immutable but potentially large. A rate/seed sweep
+    // reuses each authored input across many scenarios; keep one table per resolved path.
+    let mut frequency_tables: BTreeMap<PathBuf, Rc<FrequencyTable>> = BTreeMap::new();
     for scenario in &experiment.scenarios {
         let source = scenario.genotypes.as_deref().map(Source::open).transpose()?;
         let indices = if let Some(t) = &source {
@@ -343,7 +347,14 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
         let fill = scenario
             .fill_frequencies
             .as_deref()
-            .map(FrequencyTable::open)
+            .map(|path| -> Result<Rc<FrequencyTable>> {
+                match frequency_tables.entry(path.to_owned()) {
+                    std::collections::btree_map::Entry::Occupied(entry) => Ok(Rc::clone(entry.get())),
+                    std::collections::btree_map::Entry::Vacant(entry) => {
+                        Ok(Rc::clone(entry.insert(Rc::new(FrequencyTable::open(path)?))))
+                    }
+                }
+            })
             .transpose()?;
         if let Some(path) = &scenario.fill_frequencies {
             paths.insert(path.clone());
