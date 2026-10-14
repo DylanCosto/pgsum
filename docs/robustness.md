@@ -175,3 +175,19 @@ Run `cargo test --locked` for arithmetic, masks, schema validation, input-policy
 attribution and CLI regression checks. The public coronary-artery-disease experiment is
 documented in [public-robustness-validation.md](public-robustness-validation.md), including
 the complete score inventories, actual shared-term coverage, independent oracle and its limits.
+
+The [dense genome-wide benchmark](genomewide-robustness-validation.md) runs the downloaded
+PGS000018 inventory against public genotypes on all 22 autosomes, with nested target cohorts
+and a fixed, disjoint reference group. Each experiment freezes its own common-callable
+baseline across scenarios. Coverage and the baseline digest are compared across cohort sizes,
+so exclusions caused by adding samples remain visible.
+
+The [synthetic scale benchmark](../bench/README.md#synthetic-genome-wide-robustness-scaling)
+separately varies model size, sample count and missingness. Its exact source-formula oracle
+checks scores, masks, ranks, cutoff crossings, attribution and thread-count repeatability.
+Recorded time and memory cover native commands separately from data generation and checking.
+
+For a quick local check, the [offline example](../examples/robustness/README.md) includes
+synthetic genotypes, a miniature model, a reference FASTA and hand-calculated expectations.
+It requires only the `pgsum` binary and Python 3.8+; no downloads are needed. Candidate
+release archives include the example and verify it after extraction.

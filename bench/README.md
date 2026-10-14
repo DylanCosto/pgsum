@@ -436,6 +436,91 @@ checks, not performance measurements or justification for a general numerical to
 This test does not validate public real data, pgsc_calc execution, DS/GP, gVCF reference blocks,
 multiallelic variants, indels or sex chromosomes. Those cross-tool validation requirements remain open.
 
+## Synthetic genome-wide robustness scaling
+
+`robustness_scale.py` generates a mixed REF/ALT additive GT score spread across all 22 autosomes,
+with signed weights, zero contributions and nested cohorts. The three scenarios are unchanged
+control, deterministic 20% random masking, and chromosome 9 dropout. A separate integer oracle
+reconstructs scores, coverage, fixed-baseline percentiles, reranked percentiles, correlations, cutoff
+crossings, top-term attribution, remainders and chromosome 9 contributions from source formulas.
+It does not use compiled packs, extracted tables or native contributions as expected answers. It
+independently reproduces the specified SHA-256 mask protocol, including sample names for
+`--mask-unit sample_site`, and pins protocol test vectors before running.
+
+```sh
+cargo build --release --locked
+python3 -m unittest discover -s bench -p test_robustness_scale.py
+python3 bench/robustness_scale.py --binary target/release/pgsum \
+  --output /tmp/robustness-scale-small --terms 10000 100000 --samples 32 128 \
+  --missing-rates 0 0.005 --threads 1 4
+python3 bench/robustness_scale.py --binary target/release/pgsum \
+  --output /tmp/robustness-scale-million --terms 1000000 --samples 32 128 \
+  --missing-rates 0 0.005 --threads 1 4
+```
+
+These are Cartesian products: the first command has eight generated cases and 16 native robustness
+runs; the second has four cases and eight runs. Each run evaluates all three scenarios. Add
+`--repeats N` for fresh-output repetitions; exact evidence must match across repetitions and thread
+counts. Add `--full-audit` to request `robustness --terms` and stream-check every nonzero changed
+contribution against the oracle, including original source ordinals and signed deltas. This requires
+`zstd`. CI uses full audits on 10,000-term, 32/128-sample cases and smaller repeated sample-site cases.
+The regression tests deliberately corrupt valid output while updating its checksum, ensuring that
+the numerical and attribution gates also reject it.
+
+Baseline missingness uses a deterministic arithmetic grid with thresholds shared across nested
+sample prefixes. It is a synthetic stress pattern, not a model of empirical or independent errors.
+The runner records actual missing cells and the common-callable term count for each cohort, and
+checks that increasing cohort size or missingness cannot increase that common universe. With the
+nonzero default missingness, this makes shared-term attrition visible as cohort size increases;
+scores from different cases therefore need not have the same baseline term universe.
+
+Each compile, extraction and robustness command runs in its own GNU `time` process. Native wall
+time, CPU time and peak RSS exclude Python generation, oracle construction and verification, whose
+wall times are recorded separately. No warm-up or OS-cache flush is performed. Results include
+commands, environment, binary/harness/source/output hashes, exact evidence digests and every run;
+timings are observations, not pass/fail thresholds. GNU `time` is required (`gtime` on macOS).
+Use Python 3.9 or newer without `-O`. The output directory must be new.
+
+Generation and the oracle stream variants with bounded per-sample state. By default, each generated
+VCF and extracted cohort is deleted after its case passes, and model/FASTA/pack inputs are deleted
+after their model size passes; logs, input hashes, experiment manifests and native evidence remain.
+Use `--keep-inputs` to retain every source for immediate reruns. Full contribution audits increase
+retained output size substantially and are optional for million-term runs. `results.json` appears
+only after all gates pass; `progress.json` records completed cases during an incomplete run.
+
+### Checked scale run (2026-10-11)
+
+The [complete measurement record](results/robustness-scale.json) passed all 12 cases and
+24 native runs with pgsum 0.6.0, checking 5,760 sample/scenario scores. Runs with one and
+four threads produced identical numerical evidence. The table shows one-thread observations
+for three scenarios per run, without the optional full changed-term audit:
+
+| Model terms | Samples | Requested missingness | Common terms | Wall time | Peak RSS |
+|---:|---:|---:|---:|---:|---:|
+| 10,000 | 32 | 0% | 10,000 | 0.10 s | 9.0 MiB |
+| 10,000 | 32 | 0.5% | 8,495 | 0.09 s | 9.1 MiB |
+| 10,000 | 128 | 0% | 10,000 | 0.35 s | 10.2 MiB |
+| 10,000 | 128 | 0.5% | 4,845 | 0.25 s | 10.6 MiB |
+| 100,000 | 32 | 0% | 100,000 | 0.87 s | 16.4 MiB |
+| 100,000 | 32 | 0.5% | 85,184 | 0.78 s | 16.7 MiB |
+| 100,000 | 128 | 0% | 100,000 | 4.57 s | 18.9 MiB |
+| 100,000 | 128 | 0.5% | 48,726 | 1.75 s | 19.9 MiB |
+| 1,000,000 | 32 | 0% | 1,000,000 | 8.40 s | 92.5 MiB |
+| 1,000,000 | 32 | 0.5% | 847,770 | 7.24 s | 93.1 MiB |
+| 1,000,000 | 128 | 0% | 1,000,000 | 29.85 s | 105.9 MiB |
+| 1,000,000 | 128 | 0.5% | 484,356 | 14.42 s | 111.4 MiB |
+
+The host was an Intel Core i5-12600K with 16 logical CPUs, Linux/glibc 2.39, and Rust 1.98.
+Other validation work and background applications shared this machine, so these are
+observations under uncontrolled load, not isolated throughput estimates. Actual missing-cell counts, compilation/extraction times,
+and generation/oracle times are retained in the record. Smaller missing-data runs do less
+work because the common baseline shrinks; lower runtime is not evidence of preserved coverage.
+Thread-count checks establish determinism and do not claim parallel speedup.
+
+This benchmark establishes synthetic numerical reconstruction, determinism and observed scaling
+for additive diploid GT. It does not establish real-data performance, DS/GP behavior, ancestry
+portability, outcome prediction or clinical usefulness. Those require separate evidence.
+
 ## Public chromosome 22 validation
 
 The [public-data validation](../docs/public-validation.md) runs pgsum, the unmodified pgsc_calc v2.3.0

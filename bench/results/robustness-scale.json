@@ -1,0 +1,1934 @@
+{
+  "schema": "pgsum-robustness-scale-v1",
+  "generator": "pgsum-robustness-scale-generator-v1",
+  "passed": true,
+  "scope": "Synthetic mixed REF/ALT additive diploid GT model on 22 autosomes; score reconstruction only. No phenotype, portability or clinical-performance validation.",
+  "oracle": "Integer 10^-4-unit source formulas, original global ordinals, independently reproduced mask protocol. No engine pack/table/contribution as oracle input.",
+  "command": [
+    "/usr/bin/python3",
+    "bench/robustness_scale.py",
+    "--binary",
+    "target/release/pgsum",
+    "--output",
+    "../pgsum-genomewide-evidence/synthetic-scale-final",
+    "--terms",
+    "10000",
+    "100000",
+    "1000000",
+    "--samples",
+    "32",
+    "128",
+    "--missing-rates",
+    "0",
+    "0.005",
+    "--threads",
+    "1",
+    "4"
+  ],
+  "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release",
+  "harness_sha256": "552cad8213ad63c4f8625a78ae9a44322ded14431f60e7624e25c87ee9a2474e",
+  "environment": {
+    "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "logical_cpus": 16,
+    "machine": "x86_64",
+    "gnu_time": "time (GNU Time) UNKNOWN",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-12600K",
+    "available_rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.0\nLLVM version: 22.1.8",
+    "checkout_revision": "896d2d2464ae6e0588fa1f915ac6576adb1669ae"
+  },
+  "binary": {
+    "path": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+    "sha256": "64f392051c91312189a9f7718866c4e9485dc98ef605c86653642282fea96c0b",
+    "version": "pgsum 0.6.0"
+  },
+  "parameters": {
+    "terms": [
+      10000,
+      100000,
+      1000000
+    ],
+    "samples": [
+      32,
+      128
+    ],
+    "missing_rates": [
+      0.0,
+      0.005
+    ],
+    "threads": [
+      1,
+      4
+    ],
+    "repeats": 1,
+    "seed": 42,
+    "mask_unit": "site",
+    "full_audit": false,
+    "keep_inputs": false
+  },
+  "case_count": 12,
+  "native_robustness_runs": 24,
+  "measurement_policy": "No warm-up; no OS-cache flush. Every native invocation uses GNU time in its own child process; generation, oracle construction and verification are timed separately. Shared-runner wall times are observations, not performance gates.",
+  "retention_policy": "Logs, manifests, summaries, output evidence and input hashes retained. Without --keep-inputs, generated VCF/cohort and model inputs are deleted only after verification; regenerate from pinned harness/parameters.",
+  "models": [
+    {
+      "terms": 10000,
+      "generation_seconds": 0.006088377005653456,
+      "input_sha256": {
+        "model.tsv": "a897b66a1cdf1a2b145c7a5ff0d529eb6da1f20a9d27aee0e1c61f64e604608d",
+        "reference.fa": "0fa464df076634c875620efc18d5684415210f5e538c2196996ce542f20cf655",
+        "reference.fa.fai": "56a384b9c8908b7ec1d7b79eed6737c24b8a356f3d022dbc50db1b281c760c00",
+        "chr9.bed": "5b961ec8745426434d2caebfa90bc51e7e919e023b45b6c1615cae1f6991a567"
+      },
+      "compile": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "compile",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/model.tsv",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/reference.fa",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/packs",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/compile.log",
+        "wall_seconds": 0.3361184840032365,
+        "gnu_time_elapsed_seconds": 0.33,
+        "cpu_seconds": 0.0,
+        "peak_rss_mib": 8.875,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "pack_sha256": "1a4b10589049ec7c0944de8ab700c5d3defe5997c0618d0c5d181cc1d271745d"
+    },
+    {
+      "terms": 100000,
+      "generation_seconds": 0.05944022499897983,
+      "input_sha256": {
+        "model.tsv": "58914b97be5e78cc8ade6e21cd51f54f932f9290b0f5f4df7cf406bd4790c050",
+        "reference.fa": "4af618fdac8efbb8d22dae57e3f97f6f6fa97843b3bd0a2d96468a26c222f8cd",
+        "reference.fa.fai": "278e9b8f19d03f794a8ba3bda654a0df5956fca130d06709c473bd098c617386",
+        "chr9.bed": "35b574c5aa22bd51fecc9af51e28c42d6ceac9fd0946b7bf7cb51fd299481bd1"
+      },
+      "compile": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "compile",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/model.tsv",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/reference.fa",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/packs",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/compile.log",
+        "wall_seconds": 0.07316126400110079,
+        "gnu_time_elapsed_seconds": 0.07,
+        "cpu_seconds": 0.060000000000000005,
+        "peak_rss_mib": 17.96484375,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "pack_sha256": "b6ab542ddcd8cca5fc654e1cbf7fbc1e4c4fd47684a815cf4c5fb19f254704a1"
+    },
+    {
+      "terms": 1000000,
+      "generation_seconds": 0.6140885330023593,
+      "input_sha256": {
+        "model.tsv": "14577ee0d22b0876c1da5dce23c5c2019b2740c39242f67f044713b2950c7657",
+        "reference.fa": "890df64df7378e2d5b70ef17d17f5f20be295fb3b5e9634a2e5214766b204e07",
+        "reference.fa.fai": "e697e7f5b620c4029655755782ed106f3237c608448501dbc3a63c07688bc828",
+        "chr9.bed": "5c962177cb885ce619013c91d750dca6666d7efb7a1e87931b9335185da254d4"
+      },
+      "compile": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "compile",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/model.tsv",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/reference.fa",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/packs",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/compile.log",
+        "wall_seconds": 0.5412090030004038,
+        "gnu_time_elapsed_seconds": 0.54,
+        "cpu_seconds": 0.52,
+        "peak_rss_mib": 119.828125,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "pack_sha256": "7467215924363de7478d0fd2891e2eccb0386ce01f665856e2be405bb2af2e90"
+    }
+  ],
+  "cases": [
+    {
+      "terms": 10000,
+      "samples": 32,
+      "missing_rate": 0.0,
+      "generation_seconds": 0.03454431200225372,
+      "source": {
+        "missing_cells": 0,
+        "genotype_cells": 320000,
+        "actual_missing_fraction": 0.0,
+        "missing_threshold": 0
+      },
+      "source_vcf_sha256": "67a85c79046fc73b90e895956114633c1f400811dd051d6923af3350df2946c9",
+      "source_vcf_bytes": 1554605,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/run-t1-r0.log",
+          "wall_seconds": 0.09689593200164381,
+          "gnu_time_elapsed_seconds": 0.09,
+          "cpu_seconds": 0.09,
+          "peak_rss_mib": 8.96875,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.010405317996628582,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "00098787a376c9e7a68c5a8fd34f3b6ad6b1f88e30f86529c04241a4d7288ecd",
+            "samples.tsv": "64ec8f5b9e62490fff7248b821c410c072a74a2ffeb6a518e36f6603dfea1344",
+            "top-changes.jsonl": "f8c45e898d0a69203fa094bdd7383a3b39ba11583673afaad5fce2c7c70c74a9",
+            "summaries": "855904d8c69261eb11f6550c433335c5155a64dcb03d28afb0423d020bd2afc9"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/run-t4-r0.log",
+          "wall_seconds": 0.09623034799733432,
+          "gnu_time_elapsed_seconds": 0.09,
+          "cpu_seconds": 0.08,
+          "peak_rss_mib": 9.23046875,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.011491676996229216,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "00098787a376c9e7a68c5a8fd34f3b6ad6b1f88e30f86529c04241a4d7288ecd",
+            "samples.tsv": "64ec8f5b9e62490fff7248b821c410c072a74a2ffeb6a518e36f6603dfea1344",
+            "top-changes.jsonl": "f8c45e898d0a69203fa094bdd7383a3b39ba11583673afaad5fce2c7c70c74a9",
+            "summaries": "855904d8c69261eb11f6550c433335c5155a64dcb03d28afb0423d020bd2afc9"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0/extract.log",
+        "wall_seconds": 0.27396976399904815,
+        "gnu_time_elapsed_seconds": 0.27,
+        "cpu_seconds": 0.04,
+        "peak_rss_mib": 15.30859375,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "6698c31bb318a4d98072e0912b6c06aa58729fe7223b68272fb782554409480b",
+      "cohort_bytes": 34064,
+      "oracle_seconds": 0.10046828300255584,
+      "oracle_checks": {
+        "eligible": 10000,
+        "baseline_term_sha256": "73f7d074a765cc705ba87e643e1ddd8aece17950c4b2e6956b4439499f32c61b",
+        "common_terms_by_contig": {
+          "1": 455,
+          "2": 455,
+          "3": 455,
+          "4": 455,
+          "5": 455,
+          "6": 455,
+          "7": 455,
+          "8": 455,
+          "9": 455,
+          "10": 455,
+          "11": 455,
+          "12": 455,
+          "13": 454,
+          "14": 454,
+          "15": 454,
+          "16": 454,
+          "17": 454,
+          "18": 454,
+          "19": 454,
+          "20": 454,
+          "21": 454,
+          "22": 454
+        },
+        "mask_decisions_checked": 640000,
+        "nonzero_changes": 52557,
+        "full_audit_sha256": null,
+        "paired_scores": 96
+      },
+      "shared_term_fraction": 1.0,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 0.09689593200164381,
+          "max_peak_rss_mib": 8.96875
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 0.09623034799733432,
+          "max_peak_rss_mib": 9.23046875
+        }
+      ]
+    },
+    {
+      "terms": 10000,
+      "samples": 32,
+      "missing_rate": 0.005,
+      "generation_seconds": 0.08309280100365868,
+      "source": {
+        "missing_cells": 1591,
+        "genotype_cells": 320000,
+        "actual_missing_fraction": 0.004971875,
+        "missing_threshold": 5000
+      },
+      "source_vcf_sha256": "f77c57f211f2766ca99d1892b897f8eabb78330bcea05e8afb048662707fc22c",
+      "source_vcf_bytes": 1554605,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/run-t1-r0.log",
+          "wall_seconds": 0.08675502199912444,
+          "gnu_time_elapsed_seconds": 0.08,
+          "cpu_seconds": 0.07,
+          "peak_rss_mib": 9.1484375,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.010696231998736039,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "92bef889efcf2a51c6dfa39711b74a53eec219d9daff36d3101d7c5e878251df",
+            "samples.tsv": "08b85cb512f214bd22e9e58a4b108f8ea5da1ed4d11c82aba2dc8ff22cddba31",
+            "top-changes.jsonl": "0c010c4ca15c8fe34d2c602c9085c683c18c96d7bf599a6cf50d1307bbd19458",
+            "summaries": "5ce7a108dd7ef03cb668cadd2311188ca270a0ce7a7405311f23cd03335fc36b"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/run-t4-r0.log",
+          "wall_seconds": 0.08164604599733138,
+          "gnu_time_elapsed_seconds": 0.08,
+          "cpu_seconds": 0.07,
+          "peak_rss_mib": 9.21484375,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.016055615997174755,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "92bef889efcf2a51c6dfa39711b74a53eec219d9daff36d3101d7c5e878251df",
+            "samples.tsv": "08b85cb512f214bd22e9e58a4b108f8ea5da1ed4d11c82aba2dc8ff22cddba31",
+            "top-changes.jsonl": "0c010c4ca15c8fe34d2c602c9085c683c18c96d7bf599a6cf50d1307bbd19458",
+            "summaries": "5ce7a108dd7ef03cb668cadd2311188ca270a0ce7a7405311f23cd03335fc36b"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-32-missing-0.005/extract.log",
+        "wall_seconds": 0.05719321299693547,
+        "gnu_time_elapsed_seconds": 0.05,
+        "cpu_seconds": 0.04,
+        "peak_rss_mib": 15.57421875,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "d4fc8075e063edb9cda6f88d3ce204019f699c94a99e7c4a86425fa46328adee",
+      "cohort_bytes": 54977,
+      "oracle_seconds": 0.13207183700433234,
+      "oracle_checks": {
+        "eligible": 8495,
+        "baseline_term_sha256": "55d70cf3850671b24b82159f82fc84d4d6e4c0a0a7b56fec1e50179a074c0dab",
+        "common_terms_by_contig": {
+          "1": 386,
+          "2": 388,
+          "3": 372,
+          "4": 377,
+          "5": 384,
+          "6": 369,
+          "7": 387,
+          "8": 383,
+          "9": 383,
+          "10": 397,
+          "11": 394,
+          "12": 386,
+          "13": 391,
+          "14": 395,
+          "15": 381,
+          "16": 392,
+          "17": 396,
+          "18": 375,
+          "19": 385,
+          "20": 400,
+          "21": 391,
+          "22": 383
+        },
+        "mask_decisions_checked": 543680,
+        "nonzero_changes": 44785,
+        "full_audit_sha256": null,
+        "paired_scores": 96
+      },
+      "shared_term_fraction": 0.8495,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 0.08675502199912444,
+          "max_peak_rss_mib": 9.1484375
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 0.08164604599733138,
+          "max_peak_rss_mib": 9.21484375
+        }
+      ]
+    },
+    {
+      "terms": 10000,
+      "samples": 128,
+      "missing_rate": 0.0,
+      "generation_seconds": 0.13462363999860827,
+      "source": {
+        "missing_cells": 0,
+        "genotype_cells": 1280000,
+        "actual_missing_fraction": 0.0,
+        "missing_threshold": 0
+      },
+      "source_vcf_sha256": "b30016e8e339eeae21e679d6b85bbede1093fbe1874535401374c8562b3e7844",
+      "source_vcf_bytes": 5395373,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/run-t1-r0.log",
+          "wall_seconds": 0.3475293310038978,
+          "gnu_time_elapsed_seconds": 0.34,
+          "cpu_seconds": 0.33,
+          "peak_rss_mib": 10.1875,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.10027378499944462,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "27b66c792e497a769041ec06d239ac3346cb7ceff9be02f3758ddeb623d67cd3",
+            "samples.tsv": "b52dd2c8b6dae2481a9174ae758f09df06a416375e908be1c813ba60a47a9099",
+            "top-changes.jsonl": "f6afe416b721cfca5eda3d68dc262e64f00736ead680550ba470a1c336de6a88",
+            "summaries": "b68447786a62b7e7ebd386337c8a60d8231b1c5d16c021a7e466092f2cb456b3"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/run-t4-r0.log",
+          "wall_seconds": 0.32707284999924013,
+          "gnu_time_elapsed_seconds": 0.32,
+          "cpu_seconds": 0.32,
+          "peak_rss_mib": 10.39453125,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.09680623999884119,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "27b66c792e497a769041ec06d239ac3346cb7ceff9be02f3758ddeb623d67cd3",
+            "samples.tsv": "b52dd2c8b6dae2481a9174ae758f09df06a416375e908be1c813ba60a47a9099",
+            "top-changes.jsonl": "f6afe416b721cfca5eda3d68dc262e64f00736ead680550ba470a1c336de6a88",
+            "summaries": "b68447786a62b7e7ebd386337c8a60d8231b1c5d16c021a7e466092f2cb456b3"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0/extract.log",
+        "wall_seconds": 0.07447419199888827,
+        "gnu_time_elapsed_seconds": 0.07,
+        "cpu_seconds": 0.060000000000000005,
+        "peak_rss_mib": 28.2109375,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "b410f9036f5c3966458cdacbb20451fd02e7047803f8c383c548dfc5af48514c",
+      "cohort_bytes": 40983,
+      "oracle_seconds": 0.34387176100426586,
+      "oracle_checks": {
+        "eligible": 10000,
+        "baseline_term_sha256": "73f7d074a765cc705ba87e643e1ddd8aece17950c4b2e6956b4439499f32c61b",
+        "common_terms_by_contig": {
+          "1": 455,
+          "2": 455,
+          "3": 455,
+          "4": 455,
+          "5": 455,
+          "6": 455,
+          "7": 455,
+          "8": 455,
+          "9": 455,
+          "10": 455,
+          "11": 455,
+          "12": 455,
+          "13": 454,
+          "14": 454,
+          "15": 454,
+          "16": 454,
+          "17": 454,
+          "18": 454,
+          "19": 454,
+          "20": 454,
+          "21": 454,
+          "22": 454
+        },
+        "mask_decisions_checked": 2560000,
+        "nonzero_changes": 210367,
+        "full_audit_sha256": null,
+        "paired_scores": 384
+      },
+      "shared_term_fraction": 1.0,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 0.3475293310038978,
+          "max_peak_rss_mib": 10.1875
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 0.32707284999924013,
+          "max_peak_rss_mib": 10.39453125
+        }
+      ]
+    },
+    {
+      "terms": 10000,
+      "samples": 128,
+      "missing_rate": 0.005,
+      "generation_seconds": 0.3269212300001527,
+      "source": {
+        "missing_cells": 6481,
+        "genotype_cells": 1280000,
+        "actual_missing_fraction": 0.00506328125,
+        "missing_threshold": 5000
+      },
+      "source_vcf_sha256": "0b7a5c3f2cc7016d612400df05a2bb0e52f48b26614639e93c9c7b43e68e511c",
+      "source_vcf_bytes": 5395373,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/run-t1-r0.log",
+          "wall_seconds": 0.2489676879995386,
+          "gnu_time_elapsed_seconds": 0.24,
+          "cpu_seconds": 0.2,
+          "peak_rss_mib": 10.5546875,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.1328145890001906,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "fd6a28ec489f2abee6f3ce58181295adf8beb78202a048576e3c78c1eef00e70",
+            "samples.tsv": "87ddda7132850e0b8553155433c6dc4c340cd9801af430b2815f77229080ab24",
+            "top-changes.jsonl": "810fff0f402daf623875947ef1ae804b58613fb4c8afd4cfe3974f2131daf724",
+            "summaries": "cea7e024173e1c485390dd2286e1911a3c04b1a61bcfaa9e6afa3e643ba7b41f"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/run-t4-r0.log",
+          "wall_seconds": 0.181642572999408,
+          "gnu_time_elapsed_seconds": 0.18,
+          "cpu_seconds": 0.17,
+          "peak_rss_mib": 10.2109375,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.10422896900126943,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "fd6a28ec489f2abee6f3ce58181295adf8beb78202a048576e3c78c1eef00e70",
+            "samples.tsv": "87ddda7132850e0b8553155433c6dc4c340cd9801af430b2815f77229080ab24",
+            "top-changes.jsonl": "810fff0f402daf623875947ef1ae804b58613fb4c8afd4cfe3974f2131daf724",
+            "summaries": "cea7e024173e1c485390dd2286e1911a3c04b1a61bcfaa9e6afa3e643ba7b41f"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-10000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-10000-128-missing-0.005/extract.log",
+        "wall_seconds": 0.12357921099464875,
+        "gnu_time_elapsed_seconds": 0.12,
+        "cpu_seconds": 0.08,
+        "peak_rss_mib": 27.5546875,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "0e5600156afb0d0c96d75fa1e3260cfd0003e5382f772cc1c6f33536dcd64898",
+      "cohort_bytes": 97120,
+      "oracle_seconds": 0.375727687998733,
+      "oracle_checks": {
+        "eligible": 4845,
+        "baseline_term_sha256": "7de01ca8426608e7f23f2a1d2ee5876362cc87b943107bc91763918d8ccabd89",
+        "common_terms_by_contig": {
+          "1": 211,
+          "2": 214,
+          "3": 215,
+          "4": 217,
+          "5": 222,
+          "6": 177,
+          "7": 232,
+          "8": 217,
+          "9": 210,
+          "10": 234,
+          "11": 236,
+          "12": 200,
+          "13": 223,
+          "14": 239,
+          "15": 248,
+          "16": 215,
+          "17": 209,
+          "18": 226,
+          "19": 220,
+          "20": 228,
+          "21": 216,
+          "22": 236
+        },
+        "mask_decisions_checked": 1240320,
+        "nonzero_changes": 100674,
+        "full_audit_sha256": null,
+        "paired_scores": 384
+      },
+      "shared_term_fraction": 0.4845,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 0.2489676879995386,
+          "max_peak_rss_mib": 10.5546875
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 0.181642572999408,
+          "max_peak_rss_mib": 10.2109375
+        }
+      ]
+    },
+    {
+      "terms": 100000,
+      "samples": 32,
+      "missing_rate": 0.0,
+      "generation_seconds": 0.373099281998293,
+      "source": {
+        "missing_cells": 0,
+        "genotype_cells": 3200000,
+        "actual_missing_fraction": 0.0,
+        "missing_threshold": 0
+      },
+      "source_vcf_sha256": "86522260059d36ba78191b4681e061bc2dd95bdcc198a399cc11b1509c5c6468",
+      "source_vcf_bytes": 15635830,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/run-t1-r0.log",
+          "wall_seconds": 0.8702117450011428,
+          "gnu_time_elapsed_seconds": 0.86,
+          "cpu_seconds": 0.86,
+          "peak_rss_mib": 16.4453125,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.010768148000352085,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "05321bc176c7fb329292eae42540957a567df2224125ecce52317e11e04b7e17",
+            "samples.tsv": "f67a7e70d688875e18647ad155fbb78c45a28603675f3a7a223cc8e12bef19ec",
+            "top-changes.jsonl": "ccd3643cd0253c3629cde2078083715d95ae92584f13103d1b68bf7ba1267f35",
+            "summaries": "2796e3403212f2b34684689699fa4022f9fc823d5af7193cbcc349c456320fe6"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/run-t4-r0.log",
+          "wall_seconds": 0.8385651709977537,
+          "gnu_time_elapsed_seconds": 0.83,
+          "cpu_seconds": 0.83,
+          "peak_rss_mib": 16.61328125,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.010831867999513634,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "05321bc176c7fb329292eae42540957a567df2224125ecce52317e11e04b7e17",
+            "samples.tsv": "f67a7e70d688875e18647ad155fbb78c45a28603675f3a7a223cc8e12bef19ec",
+            "top-changes.jsonl": "ccd3643cd0253c3629cde2078083715d95ae92584f13103d1b68bf7ba1267f35",
+            "summaries": "2796e3403212f2b34684689699fa4022f9fc823d5af7193cbcc349c456320fe6"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0/extract.log",
+        "wall_seconds": 0.41724371400050586,
+        "gnu_time_elapsed_seconds": 0.41,
+        "cpu_seconds": 0.4,
+        "peak_rss_mib": 54.04296875,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "b51c84b10a84fc4dcb061debd09b9ab577365482139b02139868212cc2f0e9a5",
+      "cohort_bytes": 203871,
+      "oracle_seconds": 0.9376417149978806,
+      "oracle_checks": {
+        "eligible": 100000,
+        "baseline_term_sha256": "46d77a6d3a3a9097f9b1bac67ebe4f5ccf29064920e8eb9629e3328a0afd4dbe",
+        "common_terms_by_contig": {
+          "1": 4546,
+          "2": 4546,
+          "3": 4546,
+          "4": 4546,
+          "5": 4546,
+          "6": 4546,
+          "7": 4546,
+          "8": 4546,
+          "9": 4546,
+          "10": 4546,
+          "11": 4545,
+          "12": 4545,
+          "13": 4545,
+          "14": 4545,
+          "15": 4545,
+          "16": 4545,
+          "17": 4545,
+          "18": 4545,
+          "19": 4545,
+          "20": 4545,
+          "21": 4545,
+          "22": 4545
+        },
+        "mask_decisions_checked": 6400000,
+        "nonzero_changes": 518728,
+        "full_audit_sha256": null,
+        "paired_scores": 96
+      },
+      "shared_term_fraction": 1.0,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 0.8702117450011428,
+          "max_peak_rss_mib": 16.4453125
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 0.8385651709977537,
+          "max_peak_rss_mib": 16.61328125
+        }
+      ]
+    },
+    {
+      "terms": 100000,
+      "samples": 32,
+      "missing_rate": 0.005,
+      "generation_seconds": 0.8520130889955908,
+      "source": {
+        "missing_cells": 15493,
+        "genotype_cells": 3200000,
+        "actual_missing_fraction": 0.0048415625,
+        "missing_threshold": 5000
+      },
+      "source_vcf_sha256": "0358e14ed2e4ac67105dbc62b75132bf8773261f6b66dc7531f13cb255b09147",
+      "source_vcf_bytes": 15635830,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/run-t1-r0.log",
+          "wall_seconds": 0.7766207159947953,
+          "gnu_time_elapsed_seconds": 0.77,
+          "cpu_seconds": 0.77,
+          "peak_rss_mib": 16.65234375,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.01062056399678113,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "a9fa9f16409aa76d2e42e0286d375612355dc79e1d3dae5f5821a78873b45507",
+            "samples.tsv": "936d711ca6206aaa941ad8d178369f7ffdc9b03e0310c9ea0c2f8b46fc1fc6d3",
+            "top-changes.jsonl": "1660bbab18665e73e10c7ee44491afea260111144baaaf505104d57c87a9ca9b",
+            "summaries": "1bd02dc1532423b7a8d50eb5ba7db32b2de547654a166183b286b1043e67ee3b"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/run-t4-r0.log",
+          "wall_seconds": 0.7527713669987861,
+          "gnu_time_elapsed_seconds": 0.75,
+          "cpu_seconds": 0.74,
+          "peak_rss_mib": 16.4765625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.011339369004417676,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "a9fa9f16409aa76d2e42e0286d375612355dc79e1d3dae5f5821a78873b45507",
+            "samples.tsv": "936d711ca6206aaa941ad8d178369f7ffdc9b03e0310c9ea0c2f8b46fc1fc6d3",
+            "top-changes.jsonl": "1660bbab18665e73e10c7ee44491afea260111144baaaf505104d57c87a9ca9b",
+            "summaries": "1bd02dc1532423b7a8d50eb5ba7db32b2de547654a166183b286b1043e67ee3b"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-32-missing-0.005/extract.log",
+        "wall_seconds": 0.44470679300138727,
+        "gnu_time_elapsed_seconds": 0.44,
+        "cpu_seconds": 0.43000000000000005,
+        "peak_rss_mib": 54.09375,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "513827c91792346d2739f181b7eb9b0592023e7e48be56e1f0fb6ca858df5caa",
+      "cohort_bytes": 391724,
+      "oracle_seconds": 1.4894025820030947,
+      "oracle_checks": {
+        "eligible": 85184,
+        "baseline_term_sha256": "83dba3d9a62be301214b633a3669d0bcb4a1c8a57b759d61ce68eed19f4ec3cd",
+        "common_terms_by_contig": {
+          "1": 3822,
+          "2": 3899,
+          "3": 3897,
+          "4": 3826,
+          "5": 3877,
+          "6": 3892,
+          "7": 3885,
+          "8": 3834,
+          "9": 3880,
+          "10": 3883,
+          "11": 3846,
+          "12": 3896,
+          "13": 3872,
+          "14": 3868,
+          "15": 3887,
+          "16": 3879,
+          "17": 3848,
+          "18": 3890,
+          "19": 3875,
+          "20": 3858,
+          "21": 3862,
+          "22": 3908
+        },
+        "mask_decisions_checked": 5451776,
+        "nonzero_changes": 441548,
+        "full_audit_sha256": null,
+        "paired_scores": 96
+      },
+      "shared_term_fraction": 0.85184,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 0.7766207159947953,
+          "max_peak_rss_mib": 16.65234375
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 0.7527713669987861,
+          "max_peak_rss_mib": 16.4765625
+        }
+      ]
+    },
+    {
+      "terms": 100000,
+      "samples": 128,
+      "missing_rate": 0.0,
+      "generation_seconds": 1.4525768570019864,
+      "source": {
+        "missing_cells": 0,
+        "genotype_cells": 12800000,
+        "actual_missing_fraction": 0.0,
+        "missing_threshold": 0
+      },
+      "source_vcf_sha256": "153c29f409585f29761ec3040a97400937839383767c0faea190ead9a38a37be",
+      "source_vcf_bytes": 54036598,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/run-t1-r0.log",
+          "wall_seconds": 4.567833881999832,
+          "gnu_time_elapsed_seconds": 4.56,
+          "cpu_seconds": 4.21,
+          "peak_rss_mib": 18.90625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.09864888599986443,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "04114e8d8b10771fbd878ec1544c89afdac0cc0abec21cb28c5349d3b7e1bc8c",
+            "samples.tsv": "e7b48271538e0dda528179a796e108aba972c3a8ed772b260dbbd8affa111725",
+            "top-changes.jsonl": "40e49889340a7f9b17fb8ec5ffeb63865e074e4f6d2959e0134adf540ee89791",
+            "summaries": "053f75dcea80ff51962a0ca3eb125d22ff800105f66a9503536735eb5a35a5ef"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/run-t4-r0.log",
+          "wall_seconds": 3.243103377004445,
+          "gnu_time_elapsed_seconds": 3.24,
+          "cpu_seconds": 3.2399999999999998,
+          "peak_rss_mib": 19.08984375,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.10102279899729183,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "04114e8d8b10771fbd878ec1544c89afdac0cc0abec21cb28c5349d3b7e1bc8c",
+            "samples.tsv": "e7b48271538e0dda528179a796e108aba972c3a8ed772b260dbbd8affa111725",
+            "top-changes.jsonl": "40e49889340a7f9b17fb8ec5ffeb63865e074e4f6d2959e0134adf540ee89791",
+            "summaries": "053f75dcea80ff51962a0ca3eb125d22ff800105f66a9503536735eb5a35a5ef"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0/extract.log",
+        "wall_seconds": 0.5373040429985849,
+        "gnu_time_elapsed_seconds": 0.53,
+        "cpu_seconds": 0.52,
+        "peak_rss_mib": 60.19921875,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "f26bfd19bd2ebb7d50be8186f9c3b5c7e9d98af9ba0248ca6a715bfe4e40aa2b",
+      "cohort_bytes": 282497,
+      "oracle_seconds": 3.4691645619968767,
+      "oracle_checks": {
+        "eligible": 100000,
+        "baseline_term_sha256": "46d77a6d3a3a9097f9b1bac67ebe4f5ccf29064920e8eb9629e3328a0afd4dbe",
+        "common_terms_by_contig": {
+          "1": 4546,
+          "2": 4546,
+          "3": 4546,
+          "4": 4546,
+          "5": 4546,
+          "6": 4546,
+          "7": 4546,
+          "8": 4546,
+          "9": 4546,
+          "10": 4546,
+          "11": 4545,
+          "12": 4545,
+          "13": 4545,
+          "14": 4545,
+          "15": 4545,
+          "16": 4545,
+          "17": 4545,
+          "18": 4545,
+          "19": 4545,
+          "20": 4545,
+          "21": 4545,
+          "22": 4545
+        },
+        "mask_decisions_checked": 25600000,
+        "nonzero_changes": 2074759,
+        "full_audit_sha256": null,
+        "paired_scores": 384
+      },
+      "shared_term_fraction": 1.0,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 4.567833881999832,
+          "max_peak_rss_mib": 18.90625
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 3.243103377004445,
+          "max_peak_rss_mib": 19.08984375
+        }
+      ]
+    },
+    {
+      "terms": 100000,
+      "samples": 128,
+      "missing_rate": 0.005,
+      "generation_seconds": 3.0973995529930107,
+      "source": {
+        "missing_cells": 63428,
+        "genotype_cells": 12800000,
+        "actual_missing_fraction": 0.0049553125,
+        "missing_threshold": 5000
+      },
+      "source_vcf_sha256": "c67cfd4e8782a2b5e32b5604438f6954f62c93499ed4f90bc0551fdb4b88099e",
+      "source_vcf_bytes": 54036598,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/run-t1-r0.log",
+          "wall_seconds": 1.7489873000013176,
+          "gnu_time_elapsed_seconds": 1.74,
+          "cpu_seconds": 1.73,
+          "peak_rss_mib": 19.90625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.10149943100259406,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "a09195f34d8afa8c8e2c2911c2b17026331e948e3917967bd3e188d6950f8d4f",
+            "samples.tsv": "4f364883f59e4b37336baeaad5281fe2829187173821c8c9b82319f09da5af12",
+            "top-changes.jsonl": "b4e5999fd9aa980358273c990582d817751cc250867a512fc7b00f52d0a61829",
+            "summaries": "89448f02195b0bfd4d7f398e6aaebddb365bc9998a450dd011a2a1e8fb884410"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/run-t4-r0.log",
+          "wall_seconds": 1.697970011002326,
+          "gnu_time_elapsed_seconds": 1.69,
+          "cpu_seconds": 1.69,
+          "peak_rss_mib": 19.8359375,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.10812582200014731,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "a09195f34d8afa8c8e2c2911c2b17026331e948e3917967bd3e188d6950f8d4f",
+            "samples.tsv": "4f364883f59e4b37336baeaad5281fe2829187173821c8c9b82319f09da5af12",
+            "top-changes.jsonl": "b4e5999fd9aa980358273c990582d817751cc250867a512fc7b00f52d0a61829",
+            "summaries": "89448f02195b0bfd4d7f398e6aaebddb365bc9998a450dd011a2a1e8fb884410"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-100000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-100000-128-missing-0.005/extract.log",
+        "wall_seconds": 0.6300185299987788,
+        "gnu_time_elapsed_seconds": 0.62,
+        "cpu_seconds": 0.6,
+        "peak_rss_mib": 60.46875,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "14f743840950fec5f9fbdb54aa209ac29d0f97a2e50a39bd0c69f6e7f21939ee",
+      "cohort_bytes": 778327,
+      "oracle_seconds": 3.1399499219987774,
+      "oracle_checks": {
+        "eligible": 48726,
+        "baseline_term_sha256": "97021a8976764c71c3368ead16175bc9d9cbf98548d8ecb1b9f576f19b62dd6a",
+        "common_terms_by_contig": {
+          "1": 2148,
+          "2": 2245,
+          "3": 2201,
+          "4": 2152,
+          "5": 2156,
+          "6": 2272,
+          "7": 2233,
+          "8": 2205,
+          "9": 2222,
+          "10": 2188,
+          "11": 2233,
+          "12": 2251,
+          "13": 2191,
+          "14": 2225,
+          "15": 2225,
+          "16": 2201,
+          "17": 2189,
+          "18": 2257,
+          "19": 2240,
+          "20": 2254,
+          "21": 2224,
+          "22": 2214
+        },
+        "mask_decisions_checked": 12473856,
+        "nonzero_changes": 1009429,
+        "full_audit_sha256": null,
+        "paired_scores": 384
+      },
+      "shared_term_fraction": 0.48726,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 1.7489873000013176,
+          "max_peak_rss_mib": 19.90625
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 1.697970011002326,
+          "max_peak_rss_mib": 19.8359375
+        }
+      ]
+    },
+    {
+      "terms": 1000000,
+      "samples": 32,
+      "missing_rate": 0.0,
+      "generation_seconds": 3.541635961999418,
+      "source": {
+        "missing_cells": 0,
+        "genotype_cells": 32000000,
+        "actual_missing_fraction": 0.0,
+        "missing_threshold": 0
+      },
+      "source_vcf_sha256": "a1286f476ac9e13c080acfcfb918ec15138ff638c14c4cc9a6c2209d8a828976",
+      "source_vcf_bytes": 157347693,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/run-t1-r0.log",
+          "wall_seconds": 8.3952139719986,
+          "gnu_time_elapsed_seconds": 8.39,
+          "cpu_seconds": 8.39,
+          "peak_rss_mib": 92.53515625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.013214209000580013,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "4a77c7e5caa9baaacedef5d408bc0a3c56f086a38184dba18abcc4a3ad471cde",
+            "samples.tsv": "8dbfc4f338d2841748a0f97d7c93a2faf92748813a65ffb7a0c0f9a2423801d0",
+            "top-changes.jsonl": "a4385adf6003cbf40ac8e03ae376cc08cbf5a702c74f0570b810fa8298ea798c",
+            "summaries": "74f8f0474549abe5d0c85185ca0cc2028e175004d99e4e22deafb67c4ed7c284"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/run-t4-r0.log",
+          "wall_seconds": 8.688740977995622,
+          "gnu_time_elapsed_seconds": 8.68,
+          "cpu_seconds": 8.67,
+          "peak_rss_mib": 92.3515625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.022240908998355735,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "4a77c7e5caa9baaacedef5d408bc0a3c56f086a38184dba18abcc4a3ad471cde",
+            "samples.tsv": "8dbfc4f338d2841748a0f97d7c93a2faf92748813a65ffb7a0c0f9a2423801d0",
+            "top-changes.jsonl": "a4385adf6003cbf40ac8e03ae376cc08cbf5a702c74f0570b810fa8298ea798c",
+            "summaries": "74f8f0474549abe5d0c85185ca0cc2028e175004d99e4e22deafb67c4ed7c284"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0/extract.log",
+        "wall_seconds": 3.566873938005301,
+        "gnu_time_elapsed_seconds": 3.56,
+        "cpu_seconds": 3.5500000000000003,
+        "peak_rss_mib": 190.171875,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "c35f82002c58c49db6457de16bb13025ce3ef74c6301e0b30a22e415b2223135",
+      "cohort_bytes": 1625572,
+      "oracle_seconds": 10.145467024995014,
+      "oracle_checks": {
+        "eligible": 1000000,
+        "baseline_term_sha256": "705476821277c803e3ebbb4638a364179a5eb2facd531846d81ff397fbcdaeee",
+        "common_terms_by_contig": {
+          "1": 45455,
+          "2": 45455,
+          "3": 45455,
+          "4": 45455,
+          "5": 45455,
+          "6": 45455,
+          "7": 45455,
+          "8": 45455,
+          "9": 45455,
+          "10": 45455,
+          "11": 45455,
+          "12": 45455,
+          "13": 45454,
+          "14": 45454,
+          "15": 45454,
+          "16": 45454,
+          "17": 45454,
+          "18": 45454,
+          "19": 45454,
+          "20": 45454,
+          "21": 45454,
+          "22": 45454
+        },
+        "mask_decisions_checked": 64000000,
+        "nonzero_changes": 5203217,
+        "full_audit_sha256": null,
+        "paired_scores": 96
+      },
+      "shared_term_fraction": 1.0,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 8.3952139719986,
+          "max_peak_rss_mib": 92.53515625
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 8.688740977995622,
+          "max_peak_rss_mib": 92.3515625
+        }
+      ]
+    },
+    {
+      "terms": 1000000,
+      "samples": 32,
+      "missing_rate": 0.005,
+      "generation_seconds": 8.88134476000414,
+      "source": {
+        "missing_cells": 160000,
+        "genotype_cells": 32000000,
+        "actual_missing_fraction": 0.005,
+        "missing_threshold": 5000
+      },
+      "source_vcf_sha256": "b7d398753d0edf0d40df8f2cfb5023e423812f8cafdfc0ce365c8bf521b17330",
+      "source_vcf_bytes": 157347693,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/run-t1-r0.log",
+          "wall_seconds": 7.24491405000299,
+          "gnu_time_elapsed_seconds": 7.24,
+          "cpu_seconds": 7.22,
+          "peak_rss_mib": 93.1015625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.013388280996878166,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "aff856f110f879ac5d319577feffc9105aa139dba7e0e22f108011ab7a1a718d",
+            "samples.tsv": "49b1b150bd8f17b6176795239df5d5dff25d66152b9c10a79102cab16b0dc6d5",
+            "top-changes.jsonl": "a1257a7b76fbc527df94535f32126651e38908346d69c461e5bf461eb46a653f",
+            "summaries": "62d26c92da7d0496d15ffce7b3ef06d3a91b8ac3f3f4a6199ba4c768d1e96340"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/run-t4-r0.log",
+          "wall_seconds": 7.311009073004243,
+          "gnu_time_elapsed_seconds": 7.31,
+          "cpu_seconds": 7.3,
+          "peak_rss_mib": 93.5390625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.016792247995908838,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "aff856f110f879ac5d319577feffc9105aa139dba7e0e22f108011ab7a1a718d",
+            "samples.tsv": "49b1b150bd8f17b6176795239df5d5dff25d66152b9c10a79102cab16b0dc6d5",
+            "top-changes.jsonl": "a1257a7b76fbc527df94535f32126651e38908346d69c461e5bf461eb46a653f",
+            "summaries": "62d26c92da7d0496d15ffce7b3ef06d3a91b8ac3f3f4a6199ba4c768d1e96340"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-32-missing-0.005/extract.log",
+        "wall_seconds": 3.964716172005865,
+        "gnu_time_elapsed_seconds": 3.96,
+        "cpu_seconds": 3.94,
+        "peak_rss_mib": 202.3359375,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "739a25b4bfe3e1295baef5c3d4b32e2e79c2ba069c9c603085dcec1725522176",
+      "cohort_bytes": 3603643,
+      "oracle_seconds": 13.350759476001258,
+      "oracle_checks": {
+        "eligible": 847770,
+        "baseline_term_sha256": "186d768148a52d5cc199bbe6947c79309be4a97afe60bfa1e65eaadcd3710944",
+        "common_terms_by_contig": {
+          "1": 38692,
+          "2": 38722,
+          "3": 38703,
+          "4": 38029,
+          "5": 38085,
+          "6": 37999,
+          "7": 38719,
+          "8": 38724,
+          "9": 38763,
+          "10": 38699,
+          "11": 38696,
+          "12": 38760,
+          "13": 38756,
+          "14": 38673,
+          "15": 38035,
+          "16": 38063,
+          "17": 38022,
+          "18": 38740,
+          "19": 38701,
+          "20": 38740,
+          "21": 38725,
+          "22": 38724
+        },
+        "mask_decisions_checked": 54257280,
+        "nonzero_changes": 4411277,
+        "full_audit_sha256": null,
+        "paired_scores": 96
+      },
+      "shared_term_fraction": 0.84777,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 7.24491405000299,
+          "max_peak_rss_mib": 93.1015625
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 7.311009073004243,
+          "max_peak_rss_mib": 93.5390625
+        }
+      ]
+    },
+    {
+      "terms": 1000000,
+      "samples": 128,
+      "missing_rate": 0.0,
+      "generation_seconds": 14.103433825999673,
+      "source": {
+        "missing_cells": 0,
+        "genotype_cells": 128000000,
+        "actual_missing_fraction": 0.0,
+        "missing_threshold": 0
+      },
+      "source_vcf_sha256": "c499b1db736ae33d500a87aaec2067f257c5fdbb8c4730b5990f811ecfa7bf68",
+      "source_vcf_bytes": 541348461,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/run-t1-r0.log",
+          "wall_seconds": 29.848408149002353,
+          "gnu_time_elapsed_seconds": 29.84,
+          "cpu_seconds": 29.830000000000002,
+          "peak_rss_mib": 105.890625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.0961319639973226,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "4b5697da47cdb6663f814f0454a8523084557f6a283cf7ec408b95f0f4080d6d",
+            "samples.tsv": "7f6111e7b8568d9c548abc266ca362d61b56db38a3e8dc4f57eb1f167e01bccf",
+            "top-changes.jsonl": "32fe7c13209f83beb67af8b3e5dc0e52853e27a0abd86960265cb05c2dc1e05e",
+            "summaries": "16a78ff2ed24716cf22f9b0c1a052b945d9c7cb51081522ab01c7c7010b90229"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/run-t4-r0.log",
+          "wall_seconds": 29.088029751997965,
+          "gnu_time_elapsed_seconds": 29.08,
+          "cpu_seconds": 29.07,
+          "peak_rss_mib": 106.1484375,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.09399735199986026,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "4b5697da47cdb6663f814f0454a8523084557f6a283cf7ec408b95f0f4080d6d",
+            "samples.tsv": "7f6111e7b8568d9c548abc266ca362d61b56db38a3e8dc4f57eb1f167e01bccf",
+            "top-changes.jsonl": "32fe7c13209f83beb67af8b3e5dc0e52853e27a0abd86960265cb05c2dc1e05e",
+            "summaries": "16a78ff2ed24716cf22f9b0c1a052b945d9c7cb51081522ab01c7c7010b90229"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0/extract.log",
+        "wall_seconds": 4.972925998998107,
+        "gnu_time_elapsed_seconds": 4.97,
+        "cpu_seconds": 4.95,
+        "peak_rss_mib": 206.65234375,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "3c500ccb095e55d3268e8674b6b0d973468ce45d04976d4eed106690ca16de85",
+      "cohort_bytes": 1769777,
+      "oracle_seconds": 32.57427436600119,
+      "oracle_checks": {
+        "eligible": 1000000,
+        "baseline_term_sha256": "705476821277c803e3ebbb4638a364179a5eb2facd531846d81ff397fbcdaeee",
+        "common_terms_by_contig": {
+          "1": 45455,
+          "2": 45455,
+          "3": 45455,
+          "4": 45455,
+          "5": 45455,
+          "6": 45455,
+          "7": 45455,
+          "8": 45455,
+          "9": 45455,
+          "10": 45455,
+          "11": 45455,
+          "12": 45455,
+          "13": 45454,
+          "14": 45454,
+          "15": 45454,
+          "16": 45454,
+          "17": 45454,
+          "18": 45454,
+          "19": 45454,
+          "20": 45454,
+          "21": 45454,
+          "22": 45454
+        },
+        "mask_decisions_checked": 256000000,
+        "nonzero_changes": 20816994,
+        "full_audit_sha256": null,
+        "paired_scores": 384
+      },
+      "shared_term_fraction": 1.0,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 29.848408149002353,
+          "max_peak_rss_mib": 105.890625
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 29.088029751997965,
+          "max_peak_rss_mib": 106.1484375
+        }
+      ]
+    },
+    {
+      "terms": 1000000,
+      "samples": 128,
+      "missing_rate": 0.005,
+      "generation_seconds": 28.509478264997597,
+      "source": {
+        "missing_cells": 640000,
+        "genotype_cells": 128000000,
+        "actual_missing_fraction": 0.005,
+        "missing_threshold": 5000
+      },
+      "source_vcf_sha256": "5eac9fce62b971bc4a505ed3c1ace553150e20bea4f9fe022c038c4eeb787c5b",
+      "source_vcf_bytes": 541348461,
+      "runs": [
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/run-t1-r0",
+            "--threads",
+            "1"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/run-t1-r0.log",
+          "wall_seconds": 14.422479269000178,
+          "gnu_time_elapsed_seconds": 14.42,
+          "cpu_seconds": 14.41,
+          "peak_rss_mib": 111.421875,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 1,
+          "repeat": 0,
+          "verification_seconds": 0.09462580899707973,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "6d20806b1bec850ba477519424f8ed6260f26b3bd76d5b30f0d6c73b43b70d58",
+            "samples.tsv": "c761dbe43e834111c62e691ed1c7963336fdd7fd930541d9ec288b811c9d41e9",
+            "top-changes.jsonl": "26de2bdad8f20cacf93a9ef76c58c7b59a813982a417aeb855cce7c3fe838cdc",
+            "summaries": "12cb1697f2ed3eb6cdc853297babfdf67ef03f80d0b65874b7293726583c4dba"
+          }
+        },
+        {
+          "command": [
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+            "robustness",
+            "--experiment",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/experiment.json",
+            "--out",
+            "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/run-t4-r0",
+            "--threads",
+            "4"
+          ],
+          "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+          "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/run-t4-r0.log",
+          "wall_seconds": 14.529584777999844,
+          "gnu_time_elapsed_seconds": 14.52,
+          "cpu_seconds": 14.520000000000001,
+          "peak_rss_mib": 111.16015625,
+          "measurement_scope": "native child process only; Python generation and oracle excluded",
+          "threads": 4,
+          "repeat": 0,
+          "verification_seconds": 0.09330529999715509,
+          "evidence_sha256": {
+            "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+            "regions.tsv": "6d20806b1bec850ba477519424f8ed6260f26b3bd76d5b30f0d6c73b43b70d58",
+            "samples.tsv": "c761dbe43e834111c62e691ed1c7963336fdd7fd930541d9ec288b811c9d41e9",
+            "top-changes.jsonl": "26de2bdad8f20cacf93a9ef76c58c7b59a813982a417aeb855cce7c3fe838cdc",
+            "summaries": "12cb1697f2ed3eb6cdc853297babfdf67ef03f80d0b65874b7293726583c4dba"
+          }
+        }
+      ],
+      "extract": {
+        "command": [
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+          "extract",
+          "--gvcf",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/cohort.vcf",
+          "--reference",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/reference.fa",
+          "--pack",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/model-1000000/packs",
+          "--out",
+          "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/cohort.pgsc",
+          "--all-samples",
+          "--accept-missing-quality",
+          "--threads",
+          "1"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final",
+        "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/synthetic-scale-final/case-1000000-128-missing-0.005/extract.log",
+        "wall_seconds": 4.626403984999342,
+        "gnu_time_elapsed_seconds": 4.62,
+        "cpu_seconds": 4.58,
+        "peak_rss_mib": 206.5234375,
+        "measurement_scope": "native child process only; Python generation and oracle excluded"
+      },
+      "cohort_sha256": "40246575aa4e2c01236decefcf4e754f32c0398cc822958341c3908e59920be7",
+      "cohort_bytes": 7248909,
+      "oracle_seconds": 28.437900144002924,
+      "oracle_checks": {
+        "eligible": 484356,
+        "baseline_term_sha256": "1fa5821589f0072c541074ca2a044d76975547ee93cb33502aec36fea506497e",
+        "common_terms_by_contig": {
+          "1": 22019,
+          "2": 22269,
+          "3": 21981,
+          "4": 21765,
+          "5": 21699,
+          "6": 21743,
+          "7": 22281,
+          "8": 21971,
+          "9": 22187,
+          "10": 22085,
+          "11": 22110,
+          "12": 22165,
+          "13": 22047,
+          "14": 22271,
+          "15": 21710,
+          "16": 21740,
+          "17": 21679,
+          "18": 22020,
+          "19": 22241,
+          "20": 22057,
+          "21": 22170,
+          "22": 22146
+        },
+        "mask_decisions_checked": 123995136,
+        "nonzero_changes": 10085614,
+        "full_audit_sha256": null,
+        "paired_scores": 384
+      },
+      "shared_term_fraction": 0.484356,
+      "summary_by_threads": [
+        {
+          "threads": 1,
+          "median_wall_seconds": 14.422479269000178,
+          "max_peak_rss_mib": 111.421875
+        },
+        {
+          "threads": 4,
+          "median_wall_seconds": 14.529584777999844,
+          "max_peak_rss_mib": 111.16015625
+        }
+      ]
+    }
+  ]
+}

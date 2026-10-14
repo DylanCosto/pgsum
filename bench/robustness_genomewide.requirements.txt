@@ -1,0 +1,3 @@
+# Python 3.11+; bcftools is supplied by pysam.
+numpy==1.26.4
+pysam==0.24.1

@@ -1,0 +1,6 @@
+##fileformat=VCFv4.3
+##INFO=<ID=AF,Number=A,Type=Float,Description="ALT frequency in synthetic R1-R4 only">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+1	2	.	A	G	.	PASS	AF=0.25
+1	3	.	C	T	.	PASS	AF=0.5
+1	4	.	G	A	.	PASS	AF=0.75

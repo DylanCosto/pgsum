@@ -2,7 +2,7 @@
 
 Polygenic score calculation from gVCFs, with exact observed scores and optional population-frequency filling.
 
-**Status: early development; latest tagged release v0.5.1.** The full pipeline works; genotype calls are
+**Status: early development; v0.6.0 candidate, latest tagged release v0.5.1.** The full pipeline works; genotype calls are
 validated against GIAB truth sets on seven genomes, reference blocks on four of them (see [Validation](#validation)).
 
 ## What's different
@@ -70,6 +70,12 @@ extractions, and comparisons with frozen reference distributions. It produces an
 exact score/variant deltas, rank changes, cutoff crossings and reproducible provenance. All
 comparisons use an explicit common-callable baseline; these are reconstruction diagnostics,
 not evidence of predictive accuracy. See [robustness experiments](docs/robustness.md).
+
+The candidate includes a [complete offline example](examples/robustness/README.md),
+a [genome-wide public-data benchmark](docs/genomewide-robustness-validation.md), and a
+[synthetic scale benchmark](bench/README.md#synthetic-genome-wide-robustness-scaling). These check numerical
+reconstruction, attribution and resource use as the model and cohort grow. The public
+benchmark records how many published model terms survive the common-callable baseline.
 
 ## Install
 

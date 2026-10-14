@@ -1,0 +1,14 @@
+{
+  "schema": "pgsum-robustness-example-expectations-v1",
+  "baseline": {"A": "3", "B": "-1.5", "C": "3", "D": "1.5"},
+  "reference": {"R1": "2", "R2": "1", "R3": "3.5", "R4": "2.5"},
+  "scenarios": {
+    "control": {"A": "3", "B": "-1.5", "C": "3", "D": "1.5"},
+    "drop_last": {"A": "-1", "B": "-1.5", "C": "1", "D": "-0.5"},
+    "drop_last_filled": {"A": "2", "B": "1.5", "C": "4", "D": "2.5"},
+    "all_missing": {"A": "0", "B": "0", "C": "0", "D": "0"}
+  },
+  "masked_terms": {"control": 0, "drop_last": 1, "drop_last_filled": 1, "all_missing": 3},
+  "filled_terms": {"control": 0, "drop_last": 0, "drop_last_filled": 1, "all_missing": 0},
+  "last_site_contribution": {"A": "4", "B": "0", "C": "2", "D": "2"}
+}
