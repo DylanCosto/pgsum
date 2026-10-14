@@ -203,6 +203,8 @@ struct BatchArgs {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Plan paired missingness-rate and seed sweeps without running scores.
+    RobustnessPlan(pgsum::robustness::planner::PlannerArgs),
     /// Run reproducible genotype-masking experiments and report score/rank sensitivity.
     Robustness(pgsum::robustness::RobustnessArgs),
     /// Compare reported pgsum, PLINK 2 or pgsc_calc sums, with optional term evidence.
@@ -453,6 +455,7 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     let result: Result<()> = match cli.command {
+        Command::RobustnessPlan(args) => pgsum::robustness::planner::run(&args),
         Command::Robustness(args) => pgsum::robustness::run(&args),
         Command::Compare(args) => pgsum::compare::run(&args).and_then(|agrees| {
             if args.fail_on_difference && !agrees {

@@ -69,7 +69,8 @@ random and BED coverage masks, optional frequency-filling experiments, alternati
 extractions, and comparisons with frozen reference distributions. It produces an HTML report,
 exact score/variant deltas, rank changes, cutoff crossings and reproducible provenance. All
 comparisons use an explicit common-callable baseline; these are reconstruction diagnostics,
-not evidence of predictive accuracy. See [robustness experiments](docs/robustness.md).
+not evidence of predictive accuracy. `pgsum robustness-plan` generates paired rate/seed
+sweeps from policy templates before running them. See [robustness experiments](docs/robustness.md).
 
 The candidate includes a [complete offline example](examples/robustness/README.md),
 a [genome-wide public-data benchmark](docs/genomewide-robustness-validation.md), and a

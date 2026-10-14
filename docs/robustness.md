@@ -69,6 +69,58 @@ Optional `scoring` has the four boolean production opt-ins:
 and `accept_informational_descriptions`. Defaults are false. They apply identically across
 every arm; masks never override term review or orientation rules.
 
+## Plan repeated sensitivity experiments
+
+`robustness-plan` expands policies over a Cartesian product of missingness rates and
+explicit seeds. Planning reads only the template; it does not load genotypes or run scores.
+For example, save this as `policies.json` beside your extracted inputs:
+
+```json
+{
+  "schema": "pgsum-robustness-experiment-v1",
+  "genotypes": "cohort.pgsc",
+  "packs": ["packs/PGS000011.pgsp"],
+  "scenarios": [
+    {"id": "omit"},
+    {
+      "id": "fill",
+      "fill_frequencies": "independent-reference.pgsf",
+      "frequency_source_note": "Frozen frequencies from disjoint reference participants."
+    }
+  ]
+}
+```
+
+```sh
+pgsum robustness-plan --template policies.json --rates 0.01,0.05,0.1,0.2 \
+  --seeds 41,42,43,44,45 --mask-unit sample-site --out planned-study
+pgsum robustness --experiment planned-study/experiment.json --out study-results
+```
+
+This produces 42 scenarios: the two original policies as controls plus two policies × four
+rates × five seeds. `plan.json` maps each generated scenario to its policy, rate and seed,
+and records the template and generated-manifest hashes. `experiment.json` is an ordinary,
+explicit experiment: inspect it before running, and retain `plan.json` beside it. Relative
+input paths are resolved to absolute paths against the template's directory so the plan can
+run from another working directory. Relocating the underlying inputs requires a new plan.
+The output directory must be new; existing files are never overwritten. A completed plan
+has `experiment.json`; a failed write may leave diagnostic files without that completion marker.
+
+Matching seeds reuse the same random draws across policies, allowing paired comparisons of
+omission and replacement. The same seed across rates nests the randomly hidden positions.
+Template BED masks and alternative genotype inputs remain in each arm, so total missingness
+may additionally reflect those policies. Template scenarios must not already contain random
+masks. Rates and seeds must be distinct; rate zero and one are accepted as boundary checks.
+The default expansion limit is 10,000 scenarios, including controls; `--max-scenarios` changes
+that limit before expansion. Plan size does not estimate the memory required to run it.
+
+Use `--mask-unit site` to hide the same positions across participants, or the default
+`sample-site` for participant-specific omissions. Site-level filling adds the same offset to
+each participant when the same terms are filled, so it cannot repair within-cohort ordering.
+Replicate variation describes sensitivity to the chosen masking design, not population
+uncertainty, predictive validity or clinical confidence intervals. Current reports retain
+individual arms; they do not automatically pool replicates or select a best policy.
+
 ## What is held fixed
 
 For each score, the baseline includes only autosomal terms that are scorable in **every

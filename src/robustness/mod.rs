@@ -1,5 +1,6 @@
 //! Controlled score-reconstruction experiments. These diagnostics do not estimate phenotype prediction.
 pub mod config;
+pub mod planner;
 mod report;
 pub mod stats;
 

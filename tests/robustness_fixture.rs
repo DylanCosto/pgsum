@@ -670,3 +670,66 @@ fn completed_experiment_outputs_are_not_overwritten_by_a_rerun() {
         "a rejected rerun must leave every completed output intact"
     );
 }
+
+#[test]
+fn planned_sweeps_execute_paired_masks_and_preserve_controls_across_directories() {
+    let fixture = Fixture::new("planned-sweep", 4);
+    let table = fixture.standard_table();
+    let template = fixture.path("policies.json");
+    let manifest = fixture.manifest(&table, json!([{"id":"omit"},{"id":"same-policy"}]));
+    std::fs::write(&template, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    let planned = fixture.path("planned experiments");
+    let command = || {
+        Command::new(env!("CARGO_BIN_EXE_pgsum"))
+            .current_dir(std::env::temp_dir())
+            .args([
+                "robustness-plan",
+                "--template",
+                text(&template),
+                "--rates",
+                "0,0.5,1",
+                "--seeds",
+                "42,43",
+                "--out",
+                text(&planned),
+            ])
+            .output()
+            .unwrap()
+    };
+    let output = command();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let experiment = planned.join("experiment.json");
+    let before = std::fs::read(&experiment).unwrap();
+    assert!(!command().status.success());
+    assert_eq!(before, std::fs::read(&experiment).unwrap());
+    let plan: Value = serde_json::from_slice(&std::fs::read(planned.join("plan.json")).unwrap()).unwrap();
+    assert_eq!(plan["scenarios"].as_array().unwrap().len(), 14);
+    assert_eq!(
+        plan["experiment_sha256"],
+        pgsum::digest::file_sha256(&experiment).unwrap()
+    );
+    let loaded = pgsum::robustness::config::load(&experiment).unwrap();
+    assert!(loaded.genotypes.is_absolute());
+    let out = fixture.path("sweep results");
+    run(&["robustness", "--experiment", text(&experiment), "--out", text(&out)]);
+    let samples = rows(&out.join("samples.tsv"));
+    assert_eq!(samples.len(), 42);
+    for sample in ["A", "B", "C"] {
+        for seed in [42, 43] {
+            for rate in ["0", "0.5", "1"] {
+                let a = row(&samples, &format!("omit/rate={rate}/seed={seed}"), sample);
+                let b = row(&samples, &format!("same-policy/rate={rate}/seed={seed}"), sample);
+                for key in ["masked_terms", "scenario_score", "delta", "baseline_score"] {
+                    assert_eq!(a[key], b[key]);
+                }
+                if rate == "0" {
+                    assert_eq!(a["scenario_score"], row(&samples, "omit", sample)["scenario_score"]);
+                    assert_eq!(a["masked_terms"], "0");
+                } else if rate == "1" {
+                    exact(&a["scenario_score"], "0");
+                    assert_eq!(a["masked_terms"], "4");
+                }
+            }
+        }
+    }
+}
