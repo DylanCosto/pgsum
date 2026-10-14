@@ -68,6 +68,17 @@ pub fn percentiles(values: &[Decimal], reference: &[Decimal]) -> Vec<Option<f64>
 /// non-finite/out-of-range percentiles are input errors. Valid inputs with statistically undefined or
 /// unrepresentable metrics return `None` and a reason, never NaN/infinity or a misleading zero.
 pub fn summarize(baseline: &[Decimal], scenario: &[Decimal], cutoffs: &[f64]) -> Result<Summary> {
+    summarize_against(baseline, scenario, cutoffs, baseline)
+}
+
+/// Group score errors/correlations use the selected pairs; percentile movement and cutoffs use
+/// the explicit frozen reference. This keeps percentile thresholds comparable across groups.
+pub fn summarize_against(
+    baseline: &[Decimal],
+    scenario: &[Decimal],
+    cutoffs: &[f64],
+    reference: &[Decimal],
+) -> Result<Summary> {
     if baseline.len() != scenario.len() {
         return invalid!(
             "baseline and scenario lengths differ: {} versus {}",
@@ -75,7 +86,12 @@ pub fn summarize(baseline: &[Decimal], scenario: &[Decimal], cutoffs: &[f64]) ->
             scenario.len()
         );
     }
-    if baseline.iter().chain(scenario).any(|value| !valid_decimal(value)) {
+    if baseline
+        .iter()
+        .chain(scenario)
+        .chain(reference)
+        .any(|value| !valid_decimal(value))
+    {
         return invalid!("sensitivity statistics require valid finite decimal representations");
     }
     if cutoffs
@@ -177,15 +193,15 @@ pub fn summarize(baseline: &[Decimal], scenario: &[Decimal], cutoffs: &[f64]) ->
         }
     }
 
-    if let Some(reason) = reference_issue(baseline) {
+    if let Some(reason) = reference_issue(reference).or_else(|| baseline.is_empty().then_some("no paired scores")) {
         mark_unavailable(
             &mut summary,
             &["mean_abs_percentile_shift", "max_abs_percentile_shift", "crossings"],
             reason,
         );
     } else {
-        let before = percentiles(baseline, baseline);
-        let after = percentiles(scenario, baseline);
+        let before = percentiles(baseline, reference);
+        let after = percentiles(scenario, reference);
         let shifts: Vec<f64> = before
             .iter()
             .zip(&after)
@@ -351,6 +367,22 @@ fn compensated_sum(values: impl IntoIterator<Item = f64>) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn groups_keep_full_cohort_cutoffs_and_allow_singleton_percentile_movement() {
+        let reference = decimals(&["10", "20", "30", "40"]);
+        let summary =
+            summarize_against(&decimals(&["30", "40"]), &decimals(&["0", "50"]), &[50.0], &reference).unwrap();
+        assert_eq!(summary.mean_abs_percentile_shift, Some(37.5));
+        assert_eq!((summary.crossings[0].down, summary.crossings[0].evaluable), (1, 2));
+        let singleton = summarize_against(&decimals(&["40"]), &decimals(&["30"]), &[75.0], &reference).unwrap();
+        assert_eq!(singleton.mean_abs_percentile_shift, Some(25.0));
+        assert_eq!((singleton.crossings[0].down, singleton.crossings[0].evaluable), (1, 1));
+        assert!(singleton.pearson.is_none() && singleton.spearman.is_none());
+        let empty = summarize_against(&[], &[], &[50.0], &reference).unwrap();
+        assert!(empty.mean_abs_percentile_shift.is_none());
+        assert_eq!(empty.crossings[0].evaluable, 0);
+    }
 
     fn decimals(values: &[&str]) -> Vec<Decimal> {
         values.iter().map(|value| Decimal::parse(value).unwrap()).collect()

@@ -1,5 +1,6 @@
 //! Controlled score-reconstruction experiments. These diagnostics do not estimate phenotype prediction.
 pub mod config;
+pub mod groups;
 pub mod planner;
 mod progress;
 pub use progress::ProgressFormat;
@@ -861,4 +862,47 @@ fn writer(dir: &Path, name: &str) -> Result<BufWriter<File>> {
             .open(&path)
             .map_err(Error::io(&path))?,
     ))
+}
+
+/// Authenticate the completed native output inventory before downstream analysis.
+fn verify_report_outputs(
+    results: &Path,
+    report: &serde_json::Value,
+    provenance: &mut BTreeMap<PathBuf, String>,
+) -> Result<()> {
+    let outputs = report["outputs"]
+        .as_object()
+        .ok_or_else(|| Error::Invalid("missing report output hashes".into()))?;
+    for required in [
+        "samples.tsv",
+        "top-changes.jsonl",
+        "regions.tsv",
+        "references.tsv",
+        "report.html",
+    ] {
+        if !outputs.contains_key(required) {
+            return invalid!("incomplete report output inventory");
+        }
+    }
+    for (name, hash) in outputs {
+        if ![
+            "samples.tsv",
+            "top-changes.jsonl",
+            "regions.tsv",
+            "references.tsv",
+            "report.html",
+            "terms.tsv.zst",
+        ]
+        .contains(&name.as_str())
+        {
+            return invalid!("unsupported report output path {name:?}");
+        }
+        let p = results.join(name);
+        let actual = crate::digest::file_sha256(&p)?;
+        if hash.as_str() != Some(actual.as_str()) {
+            return invalid!("report output hash differs: {name}");
+        }
+        provenance.insert(p, actual);
+    }
+    Ok(())
 }

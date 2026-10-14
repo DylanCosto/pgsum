@@ -54,3 +54,8 @@ the runner uses the repository's MIT OR Apache-2.0 license.
 
 See the included [experiment guide](../../docs/robustness.md) for real input preparation,
 scope restrictions, and interpretation.
+
+The paired study also runs `robustness-groups` with one synthetic singleton and one three-person
+group. Open `study-groups/groups.html` to inspect score errors, whole-cohort cutoff transitions
+and frozen-reference shifts by group. `group-verification.json` records the independent check;
+these artificial labels have no demographic or biological meaning.

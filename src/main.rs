@@ -203,6 +203,8 @@ struct BatchArgs {
 
 #[derive(Subcommand)]
 enum Command {
+    /// Compare completed robustness results across an explicit partition of participant groups.
+    RobustnessGroups(pgsum::robustness::groups::GroupsArgs),
     /// Summarize seed variation and paired policy differences from a completed planned study.
     RobustnessSummarize(pgsum::robustness::study::StudyArgs),
     /// Plan paired missingness-rate and seed sweeps without running scores.
@@ -457,6 +459,7 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     let result: Result<()> = match cli.command {
+        Command::RobustnessGroups(args) => pgsum::robustness::groups::run(&args),
         Command::RobustnessSummarize(args) => pgsum::robustness::study::run(&args),
         Command::RobustnessPlan(args) => pgsum::robustness::planner::run(&args),
         Command::Robustness(args) => pgsum::robustness::run(&args),

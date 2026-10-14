@@ -329,40 +329,7 @@ pub fn run(args: &StudyArgs) -> Result<()> {
     {
         return invalid!("report does not record the planned manifest hash");
     }
-    let outputs = report["outputs"]
-        .as_object()
-        .ok_or_else(|| Error::Invalid("missing report output hashes".into()))?;
-    for required in [
-        "samples.tsv",
-        "top-changes.jsonl",
-        "regions.tsv",
-        "references.tsv",
-        "report.html",
-    ] {
-        if !outputs.contains_key(required) {
-            return invalid!("incomplete report output inventory");
-        }
-    }
-    for (name, hash) in outputs {
-        if ![
-            "samples.tsv",
-            "top-changes.jsonl",
-            "regions.tsv",
-            "references.tsv",
-            "report.html",
-            "terms.tsv.zst",
-        ]
-        .contains(&name.as_str())
-        {
-            return invalid!("unsupported report output path {name:?}");
-        }
-        let p = args.results.join(name);
-        let actual = crate::digest::file_sha256(&p)?;
-        if hash.as_str() != Some(actual.as_str()) {
-            return invalid!("report output hash differs: {name}");
-        }
-        provenance.insert(p, actual);
-    }
+    super::verify_report_outputs(&args.results, &report, &mut provenance)?;
     let mut summary = summarize(&plan, &experiment, &report, &args.reference_policy)?;
     summary["source_sha256"] = value(&provenance)?;
     summary["pgsum_version"] = json!(env!("CARGO_PKG_VERSION"));

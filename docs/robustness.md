@@ -111,6 +111,63 @@ The [checked public progress run](../bench/results/progress-public-pilot.json) s
 reconcile 1,712,283 baseline terms and 32,896 exclusions, and all numerical output bytes and
 scenario summaries match the earlier checked public pilot.
 
+## Compare participant groups
+
+`robustness-groups` reuses a completed experiment to show how numerical sensitivity differs
+across an explicit participant partition, without reloading genotypes or rerunning masks:
+
+```sh
+pgsum robustness-groups --results study-results --groups participants.tsv --out group-results
+python3 bench/check_group_summary.py study-results participants.tsv group-results
+```
+
+The mapping is an unquoted TSV with exactly `sample` and `group` columns:
+
+```text
+sample	group
+participant_A	assay_batch_1
+participant_B	assay_batch_2
+participant_C	assay_batch_1
+```
+
+Use literal tabs. Include every target participant exactly once. Missing, extra, duplicate or
+blank identities are rejected; row order does not matter. Labels are supplied by the researcher
+and are never inferred from names, genotype data or score values. Analyze another grouping
+variable with a separate mapping and output directory. This command does not normalize ancestry
+or validate the truth of demographic labels.
+
+Each group keeps the original whole-cohort common-callable term set. Score-error metrics and
+correlations use that group's aligned pairs, but **percentile shifts and cutoff membership use
+the same frozen full-target baseline distribution for every group**. Recalculating percentile
+cutoffs separately inside each group would change their meaning and hide some differences.
+Spearman correlation still ranks the selected pairs within each group. A singleton can have a
+valid full-cohort percentile shift while its correlation is unavailable.
+
+External-reference summaries retain the original reference distribution. The field
+`source_cohort_shared_sample_ids` reports overlap with the entire source cohort; it is not a
+count of overlap within an individual group. Evaluable/unavailable counts and null metric
+reasons remain explicit. Different group sizes, label selection and conditional baselines
+limit interpretation; these are descriptive summaries, not group-effect significance tests,
+predictive performance or causal comparisons.
+
+Outputs are `metrics.tsv`, `cutoffs.tsv`, `references.tsv`, `groups.html` and the `groups.json`
+completion marker. The HTML report filters by participant group and scenario. JSON retains
+group memberships, baseline identity, source/output fingerprints
+and unavailable reasons. Native output hashes are verified before analysis; inputs are checked
+again before completion. Partial or changed evidence cannot publish a successful group report.
+Each scenario remains separate; this command does not pool seeds or select a best policy.
+
+The offline `--study` example also demonstrates an explicit singleton/three-person partition
+and runs the independent group checker. The checker derives score/cutoff statistics from exact
+native sum strings and frozen-reference summaries from participant reference rows. It does not
+reconstruct these scores from original genotypes.
+
+The [checked 128-person group report](../bench/results/group-summary-public128.json) splits the
+public study into two artificial 64-person groups using target selection order. Across 42
+scenarios, the independent checker passes 588 score-metric, 168 cutoff and 84 reference
+comparisons. This validates the reporting path; the technical split supports no ancestry or
+demographic conclusion.
+
 ## Plan repeated sensitivity experiments
 
 `robustness-plan` expands policies over a Cartesian product of missingness rates and
