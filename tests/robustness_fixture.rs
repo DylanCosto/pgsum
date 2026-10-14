@@ -712,6 +712,44 @@ fn planned_sweeps_execute_paired_masks_and_preserve_controls_across_directories(
     assert!(loaded.genotypes.is_absolute());
     let out = fixture.path("sweep results");
     run(&["robustness", "--experiment", text(&experiment), "--out", text(&out)]);
+    let summarized = fixture.path("study summary");
+    run(&[
+        "robustness-summarize",
+        "--plan",
+        text(&planned),
+        "--results",
+        text(&out),
+        "--reference-policy",
+        "omit",
+        "--out",
+        text(&summarized),
+    ]);
+    let summary: Value = serde_json::from_slice(&std::fs::read(summarized.join("summary.json")).unwrap()).unwrap();
+    assert_eq!(summary["scores"][0]["summaries"].as_array().unwrap().len(), 42);
+    for comparison in summary["scores"][0]["comparisons"].as_array().unwrap() {
+        if comparison["distribution"]["available"].as_u64().unwrap() > 0 {
+            assert_eq!(comparison["distribution"]["mean"], 0.0);
+        }
+    }
+    // Corrupted output cannot be summarized even if report.json still exists.
+    std::fs::write(out.join("references.tsv"), "corrupted").unwrap();
+    let rejected = fixture.path("rejected study");
+    let result = Command::new(env!("CARGO_BIN_EXE_pgsum"))
+        .args([
+            "robustness-summarize",
+            "--plan",
+            text(&planned),
+            "--results",
+            text(&out),
+            "--reference-policy",
+            "omit",
+            "--out",
+            text(&rejected),
+        ])
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(!rejected.exists());
     let samples = rows(&out.join("samples.tsv"));
     assert_eq!(samples.len(), 42);
     for sample in ["A", "B", "C"] {

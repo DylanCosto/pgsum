@@ -118,8 +118,72 @@ Use `--mask-unit site` to hide the same positions across participants, or the de
 `sample-site` for participant-specific omissions. Site-level filling adds the same offset to
 each participant when the same terms are filled, so it cannot repair within-cohort ordering.
 Replicate variation describes sensitivity to the chosen masking design, not population
-uncertainty, predictive validity or clinical confidence intervals. Current reports retain
-individual arms; they do not automatically pool replicates or select a best policy.
+uncertainty, predictive validity or clinical confidence intervals. Reports retain individual arms; the study summarizer below describes seed variation without
+selecting a best policy.
+
+## Summarize a completed study
+
+```sh
+pgsum robustness-summarize --plan planned-study --results study-results \
+  --reference-policy omit --out study-summary
+```
+
+The command verifies the generated manifest's fingerprint, checks that the completed report
+used that experiment and mask algorithm, and verifies its output-file hashes. Each planned
+arm must match its actual policy, rate, seed and mask unit; policies must share a complete
+rate-by-seed grid. Missing, duplicated or incompatible arms are errors. The command accepts
+one completed experiment, keeping every model's common-callable baseline and scale separate.
+The original genotype files need not be reopened for this descriptive summary.
+
+`summary.html` presents two tables. `summaries.tsv` describes each policy/rate/metric across
+seeds, with the requested, available and unavailable counts; mean, median, minimum, maximum
+and sample standard deviation. The seven metrics are MAE, RMSE, maximum absolute score
+change, Pearson and Spearman correlation, and mean/maximum absolute fixed-percentile shift.
+`comparisons.tsv` describes **policy minus reference policy** differences, calculated within
+matching seeds before aggregation. Lower differences favor the policy for error and shift
+metrics; higher differences favor it for correlations. These are descriptive comparisons,
+without significance tests or automatic policy selection.
+
+A missing metric is never treated as zero. A paired difference requires both values and a
+representable difference. Sample SD is unavailable with fewer than two available seeds;
+unrepresentable aggregate values are also null. Identical boundary masks can give zero
+variation even with distinct seeds. This does not establish certainty about real data.
+
+`summary.json` includes per-seed paired values, controls, model coverage and baseline digests,
+source fingerprints and output hashes. Controls remain separate from random-mask replicates.
+Cutoff crossings and reference-distribution results remain in the original report. The new
+output directory is never overwritten; `summary.json` marks successful completion. Preserve
+the plan and original results together with the summary for inspection and reproduction.
+
+### Public-data study pilot
+
+The checked [study pilot record](../bench/results/study-summary-pilot.json) uses the same
+full PGS000018 model and nested eight-target/64-reference public inputs described in the
+[genome-wide validation](genomewide-robustness-validation.md). It tests sample-site omissions
+at 5% and 20%, seeds 41/42/43, and omission versus frozen-reference filling: 14 arms including
+two controls, producing 112 sample/scenario rows. Its baseline contains 1,712,283 terms.
+
+The independent [summary checker](../bench/check_study_summary.py) recalculates all seven
+scenario metrics from the exact native baseline/scenario sum strings, then recalculates
+all seed distributions and paired comparisons with Python's standard library. All 98
+scenario metric checks and 42 distribution checks pass. This checks descriptive summaries;
+it does not independently reconstruct these new masked scores from source genotypes.
+
+| Missingness | Mean MAE, omission | Mean MAE, filling | Mean paired MAE difference (fill minus omit) |
+|---:|---:|---:|---:|
+| 5% | 0.21847 | 0.03561 | -0.18286 |
+| 20% | 0.34825 | 0.13162 | -0.21663 |
+
+These are observations in one small, fixed public cohort and one conditional score universe.
+Three masking seeds do not support population or clinical conclusions. Unlike site-level
+omission, sample-site omission can hide different terms in different people, so frequency
+filling can change their relative ordering. No phenotypes enter this pilot.
+
+After running a planned experiment and summarizing it, verify the same evidence with:
+
+```sh
+python3 bench/check_study_summary.py planned-study study-results study-summary
+```
 
 ## What is held fixed
 

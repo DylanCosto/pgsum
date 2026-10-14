@@ -3,6 +3,7 @@ pub mod config;
 pub mod planner;
 mod report;
 pub mod stats;
+pub mod study;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
