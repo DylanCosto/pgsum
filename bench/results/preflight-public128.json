@@ -1,0 +1,93 @@
+{
+  "schema": "pgsum-public-preflight-check-v1",
+  "passed": true,
+  "scope": "Input preflight for the completed 128-person public experiment. Checks workload counts and source fingerprints against the completed run; no new 128-person scoring or outcome validation.",
+  "preflight": {
+    "dimensions": {
+      "candidate_term_sample_scenario_cells": 9382082304,
+      "count_overflow_behavior": "Counts that exceed u64 are null, never wrapped or truncated.",
+      "full_term_audit_max_rows": 9382082304,
+      "full_term_audit_requested": true,
+      "model_terms": 1745179,
+      "models": 1,
+      "reference_tsv_rows_if_complete": 5376,
+      "region_tsv_rows_if_complete": 5376,
+      "samples_tsv_rows_if_complete": 5376,
+      "scenarios": 42,
+      "target_samples": 128
+    },
+    "executable_sha256": "sha256:7bb8e82ae324a2688cf34ba0cd54fb16b8778123eddaad94818c87d39cae0590",
+    "input_sha256": {
+      "../pgsum-genomewide-evidence/planned-public-study/experiment.json": "sha256:072ca355ac8fc19fac43d080f4d42bedcef203acc289d7577d6c87dfa37230d3",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/../pgsum-genomewide-evidence/native-final/cohort128/../9p21-dropout.bed": "sha256:5fccbbe156436cf354cd3195f7d58d78f3c43e18b08e7f1a2275466b144b5c28",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/../pgsum-genomewide-evidence/native-final/cohort128/../packs/PGS000018.pgsp": "sha256:267266c172dffc3b415c7cdd9084df93b05c5a3299db0da2f5632a2bdc65a5f4",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/../pgsum-genomewide-evidence/native-final/cohort128/../reference.pgsf": "sha256:138489cd50bb9ebae3ec459467f928f0b046684b493534a4679d232b4c90245a",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/../pgsum-genomewide-evidence/native-final/cohort128/../reference64.pgsc": "sha256:4e2c0a0bf571e5e7bfbc6233d2f9846b0ec963ef7b0415e249d50a0d0c9eec85",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/../pgsum-genomewide-evidence/native-final/cohort128/../targets128.pgsc": "sha256:4e83a06cef353f21becc7ac94735c84dd47cf5913dfc72614d490a192fb07e9e"
+    },
+    "limitations": [
+      "Preflight validates the manifest, sample alignment, model payloads, extraction/reference identities and BED syntax. It performs no genotype-to-score scan.",
+      "Cohort and frequency data blocks are decoded lazily by scoring; preflight does not validate every block or prove that scoring will succeed. Some older single-sample formats decode during opening.",
+      "Common-callable terms, baseline coverage, missingness, model eligibility and score distributions are unknown until scoring. No score, percentile or clinical validity is established.",
+      "Candidate term/sample/scenario cells are a structural upper bound before exclusions, not an operation count, runtime estimate, RAM estimate or output byte estimate. Baseline/reference work adds further processing.",
+      "Input fingerprints identify file bytes. Inputs must remain immutable during preparation and scoring.",
+      "Preflight is a separate check, not a reusable approval or resume checkpoint. Run the original manifest again into a new output directory to score it."
+    ],
+    "models": [
+      {
+        "inventory": {
+          "actual_terms": 1745179,
+          "catalog_terms": 1745179,
+          "consistent": false,
+          "declared_terms": 1745180
+        },
+        "pgs_id": "PGS000018",
+        "records_sha256": "sha256:633d676c00b852562731fd11397256b04fc7e4c3fc562d840e2d982db88bfc5b",
+        "reference": {
+          "fai_sha256": "sha256:502a1b8fb73ccd53285c28a0f12df90c818b4fe3de1e862ef47c593ef1a0a4b4",
+          "fasta_name": "GCA_000001405.15_GRCh38_no_alt_analysis_set.fasta",
+          "fasta_sha256": "sha256:9cce8b926416dd96b152deea85188495b75f7ac8d634cc723a017067be8702b7"
+        },
+        "terms": 1745179
+      }
+    ],
+    "observations": [
+      "Model \"PGS000018\" has inconsistent declared and actual inventories; inspect its provenance before interpreting scores.",
+      "Frequency-source independence is a user declaration. Input checks cannot establish independence from the evaluation participants."
+    ],
+    "outputs": {
+      "preflight.txt": "sha256:8bb80e981002016028a9196342c3716d8a0d8f29ee5483c4d8eec89821864dbf"
+    },
+    "pgsum_version": "0.6.0",
+    "schema": "pgsum-robustness-preflight-v1",
+    "scoring_performed": false,
+    "status": "input_checks_passed"
+  },
+  "reference_sets": [
+    {
+      "id": "fixed_reference64",
+      "sample_count": 64,
+      "shared_target_sample_count": 0
+    }
+  ],
+  "input_fingerprints_match_completed_run": true,
+  "planned_rows_match_completed_outputs": true,
+  "no_scoring_outputs_or_events": true,
+  "pilot_regression": {
+    "passed": true,
+    "scope": "Preparation refactor regression on the full public model with eight targets and fourteen scenarios; numerical parity only, not a new genotype oracle or timing benchmark.",
+    "binary_sha256": "sha256:74b90b626d5a5cd7335054a95bfffab3d231808b21222c1c2ef171c5f8499899",
+    "input_fingerprints_identical": true,
+    "all_score_summaries_identical": true,
+    "numerical_payload_sha256": {
+      "samples.tsv": "sha256:2624387bce9003d317abc5a684a9108b24e8461f45c9a32e1389de194cd5987d",
+      "top-changes.jsonl": "sha256:63f200e0e63a743fb82dcc05e278d3615eab72943ea4a52d4375cbf908a60d5a",
+      "regions.tsv": "sha256:40e6526edae4f92011c1abcd37fcfa664d3517917e0423be39d11e1cd6cc2c0b",
+      "references.tsv": "sha256:c4c27c5ffee1cef56473a1b6445e6632c346a78e3e3081378f1ac118683f9e57"
+    },
+    "terms": 1745179,
+    "samples": 8,
+    "scenarios": 14
+  },
+  "pilot_build_note": "Pilot regression used the same preparation/scoring implementation before preflight-only explanatory text and zero-dimension overflow handling edits. Binary identities are retained separately."
+}

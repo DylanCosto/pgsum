@@ -349,9 +349,14 @@ impl FrequencyTable {
         if body.get(..8) != Some(MAGIC.as_slice()) {
             return invalid!("{} is not a pgsum frequency table", path.display());
         }
-        let len = u64::from_le_bytes(body[8..16].try_into().expect("8 bytes")) as usize;
+        let bad = || Error::Invalid(format!("{}: truncated or oversized frequency header", path.display()));
+        let len = u64::from_le_bytes(body.get(8..16).ok_or_else(bad)?.try_into().expect("8 bytes"));
+        let end = usize::try_from(len)
+            .ok()
+            .and_then(|n| 16usize.checked_add(n))
+            .ok_or_else(bad)?;
         let header: Header = serde_json::from_slice(
-            body.get(16..16 + len)
+            body.get(16..end)
                 .ok_or_else(|| Error::Invalid(format!("{}: truncated", path.display())))?,
         )
         .map_err(|e| Error::Invalid(format!("{}: {e}", path.display())))?;
@@ -363,7 +368,7 @@ impl FrequencyTable {
             header,
             path: path.to_owned(),
             body,
-            body_start: 16 + len,
+            body_start: end,
             decoded,
         })
     }

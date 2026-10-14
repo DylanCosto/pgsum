@@ -165,6 +165,143 @@ fn gt_fields() -> Vec<Vec<&'static str>> {
 }
 
 #[test]
+fn preflight_reports_dimensions_and_rejects_invalid_inputs_before_scoring() {
+    let fixture = Fixture::new("preflight", 4);
+    let table = fixture.standard_table();
+    let bed = fixture.bed("coverage.bed", "chr1\t0\t8\n");
+    let manifest_path = fixture.path("experiment.json");
+    let mut manifest = fixture.manifest(
+        &table,
+        json!([
+            {"id":"control"}, {"id":"covered", "masks":[{"kind":"bed","mode":"keep","path":bed}]}
+        ]),
+    );
+    manifest["reference_sets"] = json!([{"id":"all"},{"id":"one","samples":["A"]}]);
+    manifest["regions"] = json!([{"id":"region","path":bed}]);
+    let invoke = |m: &Value, name: &str, preflight: bool| {
+        std::fs::write(&manifest_path, serde_json::to_vec(m).unwrap()).unwrap();
+        let mut command = Command::new(env!("CARGO_BIN_EXE_pgsum"));
+        command.args([
+            "robustness",
+            "--experiment",
+            text(&manifest_path),
+            "--out",
+            text(&fixture.path(name)),
+            "--progress",
+            "json",
+            "--terms",
+        ]);
+        if preflight {
+            command.arg("--preflight");
+        }
+        command.output().unwrap()
+    };
+    let result = invoke(&manifest, "checked", true);
+    assert!(result.status.success(), "{}", String::from_utf8_lossy(&result.stderr));
+    let events: Vec<Value> = String::from_utf8(result.stderr)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(events.last().unwrap()["phase"], "preflight_complete");
+    assert!(
+        events
+            .iter()
+            .all(|e| e["phase"] != "scoring" && e["phase"] != "complete" && e["score"].is_null())
+    );
+    let out = fixture.path("checked");
+    assert!(!out.join("report.json").exists() && !out.join("samples.tsv").exists());
+    let report: Value = serde_json::from_slice(&std::fs::read(out.join("preflight.json")).unwrap()).unwrap();
+    assert_eq!(report["schema"], "pgsum-robustness-preflight-v1");
+    assert_eq!(report["scoring_performed"], false);
+    for (key, expected) in [
+        ("model_terms", 4),
+        ("candidate_term_sample_scenario_cells", 24),
+        ("samples_tsv_rows_if_complete", 6),
+        ("reference_tsv_rows_if_complete", 12),
+        ("region_tsv_rows_if_complete", 6),
+        ("full_term_audit_max_rows", 24),
+    ] {
+        assert_eq!(report["dimensions"][key], expected, "{key}");
+    }
+    assert_eq!(report["reference_sets"][0]["shared_target_sample_count"], 3);
+    assert_eq!(report["reference_sets"][1]["sample_count"], 1);
+    assert!(
+        report["observations"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|s| s.as_str().unwrap().contains("fewer than two"))
+    );
+    for (path, hash) in report["input_sha256"].as_object().unwrap() {
+        assert_eq!(
+            hash.as_str().unwrap(),
+            pgsum::digest::file_sha256(Path::new(path)).unwrap()
+        );
+    }
+    assert_eq!(
+        report["outputs"]["preflight.txt"],
+        pgsum::digest::file_sha256(&out.join("preflight.txt")).unwrap()
+    );
+    let original = std::fs::read(out.join("preflight.json")).unwrap();
+    assert!(!invoke(&manifest, "checked", true).status.success());
+    assert_eq!(original, std::fs::read(out.join("preflight.json")).unwrap());
+    let mut invalid = manifest.clone();
+    invalid["reference_sets"][1]["samples"] = json!(["absent"]);
+    for preflight in [true, false] {
+        assert!(!invoke(&invalid, "unknown-sample", preflight).status.success());
+        assert!(!fixture.path("unknown-sample").exists());
+    }
+    // A valid second model that was not part of extraction must fail before any score runs.
+    let other_source = fixture.path("OTHER.tsv");
+    std::fs::write(
+        &other_source,
+        std::fs::read_to_string(fixture.path("ROBUST.tsv"))
+            .unwrap()
+            .replace("#pgs_id=ROBUST", "#pgs_id=OTHER"),
+    )
+    .unwrap();
+    run(&[
+        "compile",
+        text(&other_source),
+        "--reference",
+        text(&fixture.reference),
+        "--out",
+        text(&fixture.dir),
+    ]);
+    invalid = manifest.clone();
+    invalid["packs"] = json!(["ROBUST.pgsp", "OTHER.pgsp"]);
+    for preflight in [true, false] {
+        let result = invoke(&invalid, "incompatible-pack", preflight);
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains("not extracted with"));
+        assert!(!fixture.path("incompatible-pack").exists());
+    }
+    let mut large_header = pgsum::frequencies::MAGIC.to_vec();
+    large_header.extend(u64::MAX.to_le_bytes());
+    for bytes in [pgsum::frequencies::MAGIC.to_vec(), large_header] {
+        std::fs::write(fixture.path("truncated.pgsf"), bytes).unwrap();
+        invalid = manifest.clone();
+        invalid["scenarios"][1]["fill_frequencies"] = json!("truncated.pgsf");
+        invalid["scenarios"][1]["frequency_source_note"] = json!("independent synthetic frequencies");
+        let result = invoke(&invalid, "invalid-frequency", true);
+        assert!(!result.status.success());
+        assert!(!String::from_utf8_lossy(&result.stderr).contains("panicked"));
+        assert!(!fixture.path("invalid-frequency").exists());
+    }
+    // Preflight does not decode all cohort blocks; this limit must not become a score-success claim.
+    let opened = pgsum::cohort::CohortTable::open(&table).unwrap();
+    let offset = 8 + opened.header.blocks[0].frame.offset as usize;
+    drop(opened);
+    let mut bytes = std::fs::read(&table).unwrap();
+    bytes[offset] ^= 0xff;
+    std::fs::write(&table, bytes).unwrap();
+    assert!(invoke(&manifest, "lazy-block-check", true).status.success());
+    assert!(!invoke(&manifest, "damaged-block-scoring", false).status.success());
+    assert!(!fixture.path("damaged-block-scoring/report.json").exists());
+}
+
+#[test]
 fn progress_logs_account_for_exclusions_and_preserve_all_scientific_outputs() {
     let fixture = Fixture::new("progress", 4);
     let mut fields = gt_fields();

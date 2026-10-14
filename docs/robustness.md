@@ -76,6 +76,41 @@ Try the full workflow without downloading data using the included
 python3 examples/robustness/run.py --binary ./pgsum --study --out study-example-output
 ```
 
+## Check inputs before a long run
+
+```sh
+pgsum robustness --experiment experiment.json --preflight --out input-check --terms
+```
+
+`preflight.txt` summarizes target/model/scenario counts, expected output row counts, reference
+membership and shared target IDs. `preflight.json` records those dimensions, resolved inputs,
+model and source metadata, input fingerprints and the text-file hash. Both modes use the same
+preparation checks. Missing selections, incompatible extraction/reference identities, invalid
+BED files, duplicate models and malformed headers fail before scoring output is created.
+All model/source compatibility checks now run before the first score, including later packs.
+
+Preflight verifies pack payloads and input identities but does not scan genotype-to-score
+contributions. Cohort and frequency blocks remain lazy; damaged blocks, callability and score
+eligibility can still fail during scoring. Some older single-sample formats decode at opening.
+Common-callable coverage and score distributions remain unknown. Fingerprinting reads all input
+bytes, so preflight is not a constant-time or zero-I/O check.
+
+Candidate term/sample/scenario cells and full-audit row bounds count structural possibilities
+before exclusions. They do not estimate runtime, total memory or output size. No full term audit
+is written by preflight; `--terms` only requests that its potential row count be shown.
+Overflowed counts are null rather than wrapped. Reference overlap uses sample IDs only;
+changed IDs or a frequency-source note cannot prove participant independence.
+
+A successful check writes the distinct `preflight.json` marker and emits `preflight_complete`
+on stderr. It never writes `report.json`, score tables or an experiment `complete` event. To
+score, run the original manifest without `--preflight` into a new output directory. Every run
+revalidates its inputs; preflight is not a reusable approval or a resume checkpoint.
+
+The [checked public preflight](../bench/results/preflight-public128.json) matches the completed
+128-person experiment's input fingerprints and all 5,376-row output inventories. It identifies
+the model's existing one-term declaration discrepancy. A full-model pilot with eight targets
+and fourteen scenarios preserves all prior numerical scores, attribution and reference rows.
+
 ## Monitor a long experiment
 
 By default, `robustness` writes readable stage changes and scoring updates to stderr.

@@ -50,6 +50,16 @@ The optional offline paired study uses Python 3.9+ and independently checks its 
 python3 examples/robustness/run.py --binary ./pgsum --out example-output --study
 ```
 
+## Experiment preflight
+
+`robustness --preflight` validates input identities and sample selections, checks model payloads
+and BED syntax, and reports workload dimensions and reference overlap without scoring. It writes
+separate `preflight.txt` and `preflight.json` artifacts. All model/source compatibility checks run
+before the first score in ordinary runs too, avoiding failures discovered after earlier scores
+have finished. Input hashes bracket preparation. Lazy genotype/frequency blocks and actual
+common-callable coverage remain unchecked until scoring; dimensions are not runtime or RAM estimates.
+Truncated or oversized frequency headers now return input errors rather than panicking.
+
 ## Progress and participant-group diagnostics
 
 Long robustness runs now report stages and processed term counts, with human-readable, JSON
