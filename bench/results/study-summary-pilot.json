@@ -1,7 +1,7 @@
 {
   "schema": "pgsum-study-summary-pilot-v1",
   "date": "2026-10-13",
-  "scope": "Descriptive seed/policy summary validation from native exact sample sums, not a new source-genotype oracle or outcome validation.",
+  "scope": "Descriptive seed/policy summaries checked from native exact sample sums and participant reference rows; not a new source-genotype oracle or outcome validation.",
   "design": {
     "model": "PGS000018",
     "targets": 8,
@@ -27,22 +27,28 @@
     "sample_scenario_rows": 112,
     "scenario_metric_checks": 98,
     "seed_distribution_checks": 42,
-    "verifier_sha256": "a0ecc1aedce50b9ec35cf98d0ac22209e4191073c8a7c2d04f9f34e5b71db906",
-    "scope": "Summary metrics recalculated from native exact sample sums; no new source-genotype or phenotype validation."
+    "percentile_distribution_checks": 108,
+    "reference_participant_rows": 112,
+    "verifier_sha256": "8f8164ce3b74a101d03818dfb3a9646b6667a6dfcb57810c5de3e4065800b0cb",
+    "scope": "Score/cutoff metrics recalculated from native exact sums; frozen-reference shifts from participant reference rows. No new source-genotype or phenotype validation."
   },
   "summary": {
-    "executable_sha256": "sha256:8cb89ae87ac6f54493826167b5fb90d33b2ddcda308fefc29da627244ec20a07",
+    "executable_sha256": "sha256:7a18c386bb9c4ce3b0328bf143328536cafdc0eff79a10e8d8daad5197ce9b3f",
     "notes": [
       "Descriptive variation across masking seeds on one frozen cohort and common-callable baseline; not confidence intervals, phenotype validation or population uncertainty.",
       "Paired differences are policy minus reference policy within the same score, rate and seed. Error metrics favor smaller values; correlation metrics favor larger values. No automatic best-policy selection is performed.",
       "Undefined metrics are excluded with requested/available/unavailable counts. Paired differences require both metrics to be available and their difference representable.",
       "Mean, median, range and sample standard deviation describe the available seed-level metrics, not pooled participant observations. Sample SD is unavailable with fewer than two values; unrepresentable aggregates are null.",
-      "Controls are retained separately. Scores with different scales or baselines are never pooled. Cutoff and reference-distribution details remain in the source report."
+      "Cutoff counts and fractions describe membership transitions at percentile >= cutoff in the frozen target baseline distribution. Fractions range from 0 to 1; zero evaluable participants yields unavailable values, including counts. Per-seed denominators remain explicit.",
+      "Reference metrics use the authored frozen reference score distribution. Percentiles and absolute shifts are in percentile points; reference identities, participant counts and target overlap are retained. Neither membership nor percentile shifts imply clinical risk.",
+      "Controls are retained separately. Scores with different scales, baselines, cutoffs or reference sets are never pooled."
     ],
     "outputs": {
       "comparisons.tsv": "sha256:fcdfeac95477cc164424adb9c704a5943a20d12e125d096bab001f486e0fa48e",
+      "percentile_comparisons.tsv": "sha256:e195e2f2a3f1afabea0b8a0151bada4c6edbe6e9eb5bf18934c013f902723488",
+      "percentile_summaries.tsv": "sha256:bd68b15e57a346d0a84f76343ae56e84f2af92b49ae7a8a04167b2ec16779429",
       "summaries.tsv": "sha256:f4fe82a3185deed48024c5602bbff8922f8ba4e6af86b77b2a9e98784805fc8f",
-      "summary.html": "sha256:bd4980cfe857d611aa13c9387e320cf7f47b1e69b21460a20c8f10d91bd9c64f"
+      "summary.html": "sha256:8c4acf177eb8cfec0b833432a46dc59b8f9f845d2974058873fd4f4c82d4af1b"
     },
     "pgsum_version": "0.6.0",
     "reference_policy": "omit",
@@ -661,7 +667,4160 @@
           "reference_not_common_callable": 28,
           "unresolved_position": 36
         },
+        "percentile_comparisons": [
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "pairs": [
+              {
+                "difference": 1.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "pairs": [
+              {
+                "difference": 0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.6666666666666666,
+              "median": 1.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "pairs": [
+              {
+                "difference": 1.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 1.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.08333333333333333,
+              "median": 0.125,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "pairs": [
+              {
+                "difference": 0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.3333333333333333,
+              "median": 0.0,
+              "min": -1.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "pairs": [
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 7.0,
+                "reference_evaluable": 8,
+                "reference_value": 8.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 8.0,
+                "reference_evaluable": 8,
+                "reference_value": 8.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 7.0,
+                "reference_evaluable": 8,
+                "reference_value": 7.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.3333333333333333,
+              "median": 0.0,
+              "min": -1.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.041666666666666664,
+              "median": 0.0,
+              "min": -0.125,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": -0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -1.0,
+              "median": -1.0,
+              "min": -2.0,
+              "requested": 3,
+              "sample_sd": 1.0,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "pairs": [
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 42
+              },
+              {
+                "difference": -2.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 2.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.125,
+              "median": -0.125,
+              "min": -0.25,
+              "requested": 3,
+              "sample_sd": 0.125,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "pairs": [
+              {
+                "difference": -0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 42
+              },
+              {
+                "difference": -0.25,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.25,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 2.0,
+              "mean": 1.0,
+              "median": 1.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 1.0,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "pairs": [
+              {
+                "difference": 1.0,
+                "policy_evaluable": 8,
+                "policy_value": 8.0,
+                "reference_evaluable": 8,
+                "reference_value": 7.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 7.0,
+                "reference_evaluable": 8,
+                "reference_value": 7.0,
+                "seed": 42
+              },
+              {
+                "difference": 2.0,
+                "policy_evaluable": 8,
+                "policy_value": 8.0,
+                "reference_evaluable": 8,
+                "reference_value": 6.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -1.0,
+              "median": -1.0,
+              "min": -2.0,
+              "requested": 3,
+              "sample_sd": 1.0,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "pairs": [
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 42
+              },
+              {
+                "difference": -2.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 2.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.125,
+              "median": -0.125,
+              "min": -0.25,
+              "requested": 3,
+              "sample_sd": 0.125,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "pairs": [
+              {
+                "difference": -0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 42
+              },
+              {
+                "difference": -0.25,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.25,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": -14.0625,
+              "mean": -21.875,
+              "median": -18.75,
+              "min": -32.8125,
+              "requested": 3,
+              "sample_sd": 9.757809372497498,
+              "unavailable": 0
+            },
+            "metric": "max_absolute_shift",
+            "pairs": [
+              {
+                "difference": -18.75,
+                "policy_evaluable": 8,
+                "policy_value": 7.8125,
+                "reference_evaluable": 8,
+                "reference_value": 26.5625,
+                "seed": 41
+              },
+              {
+                "difference": -14.0625,
+                "policy_evaluable": 8,
+                "policy_value": 3.125,
+                "reference_evaluable": 8,
+                "reference_value": 17.1875,
+                "seed": 42
+              },
+              {
+                "difference": -32.8125,
+                "policy_evaluable": 8,
+                "policy_value": 3.125,
+                "reference_evaluable": 8,
+                "reference_value": 35.9375,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": "fixed_reference64",
+            "scope": "reference"
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": -3.515625,
+              "mean": -6.25,
+              "median": -6.640625,
+              "min": -8.59375,
+              "requested": 3,
+              "sample_sd": 2.5614994235554684,
+              "unavailable": 0
+            },
+            "metric": "mean_absolute_shift",
+            "pairs": [
+              {
+                "difference": -6.640625,
+                "policy_evaluable": 8,
+                "policy_value": 1.953125,
+                "reference_evaluable": 8,
+                "reference_value": 8.59375,
+                "seed": 41
+              },
+              {
+                "difference": -3.515625,
+                "policy_evaluable": 8,
+                "policy_value": 1.5625,
+                "reference_evaluable": 8,
+                "reference_value": 5.078125,
+                "seed": 42
+              },
+              {
+                "difference": -8.59375,
+                "policy_evaluable": 8,
+                "policy_value": 1.171875,
+                "reference_evaluable": 8,
+                "reference_value": 9.765625,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": "fixed_reference64",
+            "scope": "reference"
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "mean_baseline_percentile",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 22.4609375,
+                "reference_evaluable": 8,
+                "reference_value": 22.4609375,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 22.4609375,
+                "reference_evaluable": 8,
+                "reference_value": 22.4609375,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 22.4609375,
+                "reference_evaluable": 8,
+                "reference_value": 22.4609375,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": "fixed_reference64",
+            "scope": "reference"
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": -2.734375,
+              "mean": -4.6875,
+              "median": -2.734375,
+              "min": -8.59375,
+              "requested": 3,
+              "sample_sd": 3.3829117335329637,
+              "unavailable": 0
+            },
+            "metric": "mean_scenario_percentile",
+            "pairs": [
+              {
+                "difference": -2.734375,
+                "policy_evaluable": 8,
+                "policy_value": 22.0703125,
+                "reference_evaluable": 8,
+                "reference_value": 24.8046875,
+                "seed": 41
+              },
+              {
+                "difference": -2.734375,
+                "policy_evaluable": 8,
+                "policy_value": 24.0234375,
+                "reference_evaluable": 8,
+                "reference_value": 26.7578125,
+                "seed": 42
+              },
+              {
+                "difference": -8.59375,
+                "policy_evaluable": 8,
+                "policy_value": 22.8515625,
+                "reference_evaluable": 8,
+                "reference_value": 31.4453125,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_policy": "omit",
+            "reference_set": "fixed_reference64",
+            "scope": "reference"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.3333333333333333,
+              "median": 0.0,
+              "min": -1.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 41
+              },
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.041666666666666664,
+              "median": 0.0,
+              "min": -0.125,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 41
+              },
+              {
+                "difference": -0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 1.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 7.0,
+                "reference_evaluable": 8,
+                "reference_value": 7.0,
+                "seed": 41
+              },
+              {
+                "difference": 1.0,
+                "policy_evaluable": 8,
+                "policy_value": 8.0,
+                "reference_evaluable": 8,
+                "reference_value": 7.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 7.0,
+                "reference_evaluable": 8,
+                "reference_value": 7.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.6666666666666666,
+              "median": -1.0,
+              "min": -1.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 42
+              },
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 1.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.08333333333333333,
+              "median": -0.125,
+              "min": -0.125,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": -0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 42
+              },
+              {
+                "difference": -0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.125,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -1.0,
+              "median": -1.0,
+              "min": -2.0,
+              "requested": 3,
+              "sample_sd": 1.0,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 2.0,
+                "seed": 42
+              },
+              {
+                "difference": -2.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 2.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.125,
+              "median": -0.125,
+              "min": -0.25,
+              "requested": 3,
+              "sample_sd": 0.125,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": -0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.25,
+                "seed": 42
+              },
+              {
+                "difference": -0.25,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.25,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 2.0,
+              "mean": 1.0,
+              "median": 1.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 1.0,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 8.0,
+                "reference_evaluable": 8,
+                "reference_value": 8.0,
+                "seed": 41
+              },
+              {
+                "difference": 1.0,
+                "policy_evaluable": 8,
+                "policy_value": 7.0,
+                "reference_evaluable": 8,
+                "reference_value": 6.0,
+                "seed": 42
+              },
+              {
+                "difference": 2.0,
+                "policy_evaluable": 8,
+                "policy_value": 8.0,
+                "reference_evaluable": 8,
+                "reference_value": 6.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -1.0,
+              "median": -1.0,
+              "min": -2.0,
+              "requested": 3,
+              "sample_sd": 1.0,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": -1.0,
+                "policy_evaluable": 8,
+                "policy_value": 1.0,
+                "reference_evaluable": 8,
+                "reference_value": 2.0,
+                "seed": 42
+              },
+              {
+                "difference": -2.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 2.0,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": -0.125,
+              "median": -0.125,
+              "min": -0.25,
+              "requested": 3,
+              "sample_sd": 0.125,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.0,
+                "seed": 41
+              },
+              {
+                "difference": -0.125,
+                "policy_evaluable": 8,
+                "policy_value": 0.125,
+                "reference_evaluable": 8,
+                "reference_value": 0.25,
+                "seed": 42
+              },
+              {
+                "difference": -0.25,
+                "policy_evaluable": 8,
+                "policy_value": 0.0,
+                "reference_evaluable": 8,
+                "reference_value": 0.25,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": null,
+            "scope": "cutoff"
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": -18.75,
+              "mean": -23.958333333333336,
+              "median": -23.4375,
+              "min": -29.6875,
+              "requested": 3,
+              "sample_sd": 5.487319662944135,
+              "unavailable": 0
+            },
+            "metric": "max_absolute_shift",
+            "pairs": [
+              {
+                "difference": -18.75,
+                "policy_evaluable": 8,
+                "policy_value": 14.0625,
+                "reference_evaluable": 8,
+                "reference_value": 32.8125,
+                "seed": 41
+              },
+              {
+                "difference": -29.6875,
+                "policy_evaluable": 8,
+                "policy_value": 9.375,
+                "reference_evaluable": 8,
+                "reference_value": 39.0625,
+                "seed": 42
+              },
+              {
+                "difference": -23.4375,
+                "policy_evaluable": 8,
+                "policy_value": 15.625,
+                "reference_evaluable": 8,
+                "reference_value": 39.0625,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": "fixed_reference64",
+            "scope": "reference"
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": -8.0078125,
+              "mean": -8.528645833333334,
+              "median": -8.59375,
+              "min": -8.984375,
+              "requested": 3,
+              "sample_sd": 0.49152567937960634,
+              "unavailable": 0
+            },
+            "metric": "mean_absolute_shift",
+            "pairs": [
+              {
+                "difference": -8.0078125,
+                "policy_evaluable": 8,
+                "policy_value": 5.078125,
+                "reference_evaluable": 8,
+                "reference_value": 13.0859375,
+                "seed": 41
+              },
+              {
+                "difference": -8.59375,
+                "policy_evaluable": 8,
+                "policy_value": 3.515625,
+                "reference_evaluable": 8,
+                "reference_value": 12.109375,
+                "seed": 42
+              },
+              {
+                "difference": -8.984375,
+                "policy_evaluable": 8,
+                "policy_value": 5.2734375,
+                "reference_evaluable": 8,
+                "reference_value": 14.2578125,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": "fixed_reference64",
+            "scope": "reference"
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "mean_baseline_percentile",
+            "pairs": [
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 22.4609375,
+                "reference_evaluable": 8,
+                "reference_value": 22.4609375,
+                "seed": 41
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 22.4609375,
+                "reference_evaluable": 8,
+                "reference_value": 22.4609375,
+                "seed": 42
+              },
+              {
+                "difference": 0.0,
+                "policy_evaluable": 8,
+                "policy_value": 22.4609375,
+                "reference_evaluable": 8,
+                "reference_value": 22.4609375,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": "fixed_reference64",
+            "scope": "reference"
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 3.3203125,
+              "mean": -4.752604166666667,
+              "median": -6.640625,
+              "min": -10.9375,
+              "requested": 3,
+              "sample_sd": 7.314011985334354,
+              "unavailable": 0
+            },
+            "metric": "mean_scenario_percentile",
+            "pairs": [
+              {
+                "difference": 3.3203125,
+                "policy_evaluable": 8,
+                "policy_value": 24.0234375,
+                "reference_evaluable": 8,
+                "reference_value": 20.703125,
+                "seed": 41
+              },
+              {
+                "difference": -6.640625,
+                "policy_evaluable": 8,
+                "policy_value": 25.9765625,
+                "reference_evaluable": 8,
+                "reference_value": 32.6171875,
+                "seed": 42
+              },
+              {
+                "difference": -10.9375,
+                "policy_evaluable": 8,
+                "policy_value": 23.4375,
+                "reference_evaluable": 8,
+                "reference_value": 34.375,
+                "seed": 43
+              }
+            ],
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_policy": "omit",
+            "reference_set": "fixed_reference64",
+            "scope": "reference"
+          }
+        ],
+        "percentile_summaries": [
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.6666666666666666,
+              "median": 1.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.08333333333333333,
+              "median": 0.125,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.125
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.6666666666666666,
+              "median": 1.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.08333333333333333,
+              "median": 0.125,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.125
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 8.0,
+              "mean": 7.333333333333334,
+              "median": 7.0,
+              "min": 7.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896257,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 7.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 8.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 7.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 8.0,
+              "mean": 7.666666666666666,
+              "median": 8.0,
+              "min": 7.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896257,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 8.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 7.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 8.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 7.8125,
+              "mean": 4.6875,
+              "median": 3.125,
+              "min": 3.125,
+              "requested": 3,
+              "sample_sd": 2.7063293868263707,
+              "unavailable": 0
+            },
+            "metric": "max_absolute_shift",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 7.8125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 3.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 3.125
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 1.953125,
+              "mean": 1.5625,
+              "median": 1.5625,
+              "min": 1.171875,
+              "requested": 3,
+              "sample_sd": 0.390625,
+              "unavailable": 0
+            },
+            "metric": "mean_absolute_shift",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.953125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.5625
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.171875
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 22.4609375,
+              "mean": 22.4609375,
+              "median": 22.4609375,
+              "min": 22.4609375,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "mean_baseline_percentile",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 22.4609375
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 22.4609375
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 22.4609375
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 24.0234375,
+              "mean": 22.981770833333332,
+              "median": 22.8515625,
+              "min": 22.0703125,
+              "requested": 3,
+              "sample_sd": 0.9830513587592123,
+              "unavailable": 0
+            },
+            "metric": "mean_scenario_percentile",
+            "policy": "fill",
+            "rate": 0.05,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 22.0703125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 24.0234375
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 22.8515625
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.6666666666666666,
+              "median": 1.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.08333333333333333,
+              "median": 0.125,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.125
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.6666666666666666,
+              "median": 1.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.08333333333333333,
+              "median": 0.125,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.125
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 8.0,
+              "mean": 7.333333333333334,
+              "median": 7.0,
+              "min": 7.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896257,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 7.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 8.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 7.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 8.0,
+              "mean": 7.666666666666666,
+              "median": 8.0,
+              "min": 7.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896257,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 8.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 7.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 8.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 15.625,
+              "mean": 13.020833333333332,
+              "median": 14.0625,
+              "min": 9.375,
+              "requested": 3,
+              "sample_sd": 3.252603124165833,
+              "unavailable": 0
+            },
+            "metric": "max_absolute_shift",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 14.0625
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 9.375
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 15.625
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 5.2734375,
+              "mean": 4.622395833333333,
+              "median": 5.078125,
+              "min": 3.515625,
+              "requested": 3,
+              "sample_sd": 0.9634536840461422,
+              "unavailable": 0
+            },
+            "metric": "mean_absolute_shift",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 5.078125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 3.515625
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 5.2734375
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 22.4609375,
+              "mean": 22.4609375,
+              "median": 22.4609375,
+              "min": 22.4609375,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "mean_baseline_percentile",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 22.4609375
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 22.4609375
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 22.4609375
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 25.9765625,
+              "mean": 24.479166666666664,
+              "median": 24.0234375,
+              "min": 23.4375,
+              "requested": 3,
+              "sample_sd": 1.329464704209775,
+              "unavailable": 0
+            },
+            "metric": "mean_scenario_percentile",
+            "policy": "fill",
+            "rate": 0.2,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 24.0234375
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 25.9765625
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 23.4375
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.125
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 8.0,
+              "mean": 7.666666666666666,
+              "median": 8.0,
+              "min": 7.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896257,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 8.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 8.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 7.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.125
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 2.0,
+              "mean": 1.3333333333333333,
+              "median": 1.0,
+              "min": 1.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896257,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 2.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.25,
+              "mean": 0.16666666666666666,
+              "median": 0.125,
+              "min": 0.125,
+              "requested": 3,
+              "sample_sd": 0.07216878364870322,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.25
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 7.0,
+              "mean": 6.666666666666668,
+              "median": 7.0,
+              "min": 6.0,
+              "requested": 3,
+              "sample_sd": 0.577350269189626,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 7.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 7.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 6.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 2.0,
+              "mean": 1.3333333333333333,
+              "median": 1.0,
+              "min": 1.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896257,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 2.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.25,
+              "mean": 0.16666666666666666,
+              "median": 0.125,
+              "min": 0.125,
+              "requested": 3,
+              "sample_sd": 0.07216878364870322,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.25
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 35.9375,
+              "mean": 26.5625,
+              "median": 26.5625,
+              "min": 17.1875,
+              "requested": 3,
+              "sample_sd": 9.375,
+              "unavailable": 0
+            },
+            "metric": "max_absolute_shift",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 26.5625
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 17.1875
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 35.9375
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 9.765625,
+              "mean": 7.8125,
+              "median": 8.59375,
+              "min": 5.078125,
+              "requested": 3,
+              "sample_sd": 2.4394523431243744,
+              "unavailable": 0
+            },
+            "metric": "mean_absolute_shift",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 8.59375
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 5.078125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 9.765625
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 22.4609375,
+              "mean": 22.4609375,
+              "median": 22.4609375,
+              "min": 22.4609375,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "mean_baseline_percentile",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 22.4609375
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 22.4609375
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 22.4609375
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 31.4453125,
+              "mean": 27.669270833333336,
+              "median": 26.7578125,
+              "min": 24.8046875,
+              "requested": 3,
+              "sample_sd": 3.4128495890836335,
+              "unavailable": 0
+            },
+            "metric": "mean_scenario_percentile",
+            "policy": "omit",
+            "rate": 0.05,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 24.8046875
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 26.7578125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 31.4453125
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 1.0,
+              "median": 1.0,
+              "min": 1.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.125,
+              "median": 0.125,
+              "min": 0.125,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.125
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.3333333333333333,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.041666666666666664,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 7.0,
+              "mean": 7.0,
+              "median": 7.0,
+              "min": 7.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 7.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 7.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 7.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 1.0,
+              "mean": 0.6666666666666666,
+              "median": 1.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.5773502691896258,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 1.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 1.0
+              }
+            ]
+          },
+          {
+            "cutoff": 90.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.125,
+              "mean": 0.08333333333333333,
+              "median": 0.125,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.07216878364870323,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.125
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.125
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 2.0,
+              "mean": 1.3333333333333333,
+              "median": 2.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 1.1547005383792517,
+              "unavailable": 0
+            },
+            "metric": "changed_count",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 2.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 2.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.25,
+              "mean": 0.16666666666666666,
+              "median": 0.25,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.14433756729740646,
+              "unavailable": 0
+            },
+            "metric": "changed_fraction",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.25
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.25
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_count",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "down_fraction",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 8.0,
+              "mean": 6.666666666666666,
+              "median": 6.0,
+              "min": 6.0,
+              "requested": 3,
+              "sample_sd": 1.1547005383792517,
+              "unavailable": 0
+            },
+            "metric": "unchanged_count",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 8.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 6.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 6.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 2.0,
+              "mean": 1.3333333333333333,
+              "median": 2.0,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 1.1547005383792517,
+              "unavailable": 0
+            },
+            "metric": "up_count",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 2.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 2.0
+              }
+            ]
+          },
+          {
+            "cutoff": 95.0,
+            "distribution": {
+              "available": 3,
+              "max": 0.25,
+              "mean": 0.16666666666666666,
+              "median": 0.25,
+              "min": 0.0,
+              "requested": 3,
+              "sample_sd": 0.14433756729740646,
+              "unavailable": 0
+            },
+            "metric": "up_fraction",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": null,
+            "scope": "cutoff",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 0.0
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 0.25
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 0.25
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 39.0625,
+              "mean": 36.97916666666667,
+              "median": 39.0625,
+              "min": 32.8125,
+              "requested": 3,
+              "sample_sd": 3.608439182435162,
+              "unavailable": 0
+            },
+            "metric": "max_absolute_shift",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 32.8125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 39.0625
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 39.0625
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 14.2578125,
+              "mean": 13.151041666666668,
+              "median": 13.0859375,
+              "min": 12.109375,
+              "requested": 3,
+              "sample_sd": 1.075697372516817,
+              "unavailable": 0
+            },
+            "metric": "mean_absolute_shift",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 13.0859375
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 12.109375
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 14.2578125
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 22.4609375,
+              "mean": 22.4609375,
+              "median": 22.4609375,
+              "min": 22.4609375,
+              "requested": 3,
+              "sample_sd": 0.0,
+              "unavailable": 0
+            },
+            "metric": "mean_baseline_percentile",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 22.4609375
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 22.4609375
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 22.4609375
+              }
+            ]
+          },
+          {
+            "cutoff": null,
+            "distribution": {
+              "available": 3,
+              "max": 34.375,
+              "mean": 29.231770833333336,
+              "median": 32.6171875,
+              "min": 20.703125,
+              "requested": 3,
+              "sample_sd": 7.438133234159937,
+              "unavailable": 0
+            },
+            "metric": "mean_scenario_percentile",
+            "policy": "omit",
+            "rate": 0.2,
+            "reference_set": "fixed_reference64",
+            "scope": "reference",
+            "seeds": [
+              {
+                "evaluable": 8,
+                "seed": 41,
+                "value": 20.703125
+              },
+              {
+                "evaluable": 8,
+                "seed": 42,
+                "value": 32.6171875
+              },
+              {
+                "evaluable": 8,
+                "seed": 43,
+                "value": 34.375
+              }
+            ]
+          }
+        ],
         "pgs_id": "PGS000018",
+        "reference_sets": [
+          {
+            "evaluable": 8,
+            "id": "fixed_reference64",
+            "mean_baseline_percentile": 22.4609375,
+            "reference_samples": 64,
+            "shared_sample_ids": 0
+          }
+        ],
         "samples": 8,
         "summaries": [
           {

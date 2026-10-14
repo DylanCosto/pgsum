@@ -135,7 +135,7 @@ rate-by-seed grid. Missing, duplicated or incompatible arms are errors. The comm
 one completed experiment, keeping every model's common-callable baseline and scale separate.
 The original genotype files need not be reopened for this descriptive summary.
 
-`summary.html` presents two tables. `summaries.tsv` describes each policy/rate/metric across
+`summary.html` presents four tables. `summaries.tsv` describes each policy/rate/metric across
 seeds, with the requested, available and unavailable counts; mean, median, minimum, maximum
 and sample standard deviation. The seven metrics are MAE, RMSE, maximum absolute score
 change, Pearson and Spearman correlation, and mean/maximum absolute fixed-percentile shift.
@@ -151,8 +151,25 @@ variation even with distinct seeds. This does not establish certainty about real
 
 `summary.json` includes per-seed paired values, controls, model coverage and baseline digests,
 source fingerprints and output hashes. Controls remain separate from random-mask replicates.
-Cutoff crossings and reference-distribution results remain in the original report. The new
-output directory is never overwritten; `summary.json` marks successful completion. Preserve
+`percentile_summaries.tsv` and `percentile_comparisons.tsv` add two structured scopes:
+
+- **Cutoff:** upward, downward, unchanged and total changed participant counts; upward,
+  downward and total changed fractions. Membership uses `percentile >= cutoff` against the
+  frozen target baseline distribution. Each declared cutoff stays separate. Fractions range
+  from 0 to 1; paired fraction differences are in fraction units, not percent units.
+- **Reference:** mean baseline/scenario percentile and mean/maximum absolute shift against
+  each authored frozen reference distribution, in percentile points. Each named reference
+  set stays separate, with reference sample count and target overlap in `summary.json`.
+
+The JSON retains each seed's evaluable participant count and both denominators for each
+paired difference. With no evaluable participants, cutoff counts **and** fractions are null;
+this must not be read as evidence of no crossings. Reference metrics are likewise unavailable
+for a constant or singleton reference distribution. Frozen reference identity, baseline
+percentile and eligibility must agree across scenarios; duplicate/missing cutoff or reference
+entries, inconsistent counts and out-of-range values are rejected. Participant counts are
+summarized across seeds, never pooled as if they represented distinct people.
+
+The new output directory is never overwritten; `summary.json` marks successful completion. Preserve
 the plan and original results together with the summary for inspection and reproduction.
 
 ### Public-data study pilot
@@ -165,14 +182,24 @@ two controls, producing 112 sample/scenario rows. Its baseline contains 1,712,28
 
 The independent [summary checker](../bench/check_study_summary.py) recalculates all seven
 scenario metrics from the exact native baseline/scenario sum strings, then recalculates
-all seed distributions and paired comparisons with Python's standard library. All 98
-scenario metric checks and 42 distribution checks pass. This checks descriptive summaries;
-it does not independently reconstruct these new masked scores from source genotypes.
+all seed distributions and paired comparisons with Python's standard library. It also derives
+cutoff membership from those exact sums and checks frozen-reference shifts against individual
+rows in `references.tsv`. All 98 score-metric checks, 42 score-distribution checks and 108
+cutoff/reference-distribution checks pass, including 112 participant/reference rows. This
+checks descriptive summaries; it does not independently reconstruct these new masked scores
+or reference scores from source genotypes.
 
 | Missingness | Mean MAE, omission | Mean MAE, filling | Mean paired MAE difference (fill minus omit) |
 |---:|---:|---:|---:|
 | 5% | 0.21847 | 0.03561 | -0.18286 |
 | 20% | 0.34825 | 0.13162 | -0.21663 |
+
+The added summaries illustrate why score error alone is insufficient: at 5% missingness,
+filling reduces mean absolute score error in this pilot but increases the mean fraction
+crossing the 90th-percentile cutoff from 0.04167 to 0.08333 (about 4.17% to 8.33%). The mean
+absolute shift against the frozen 64-person reference distribution falls from 7.8125 to
+1.5625 percentile points. These are different descriptive measures, not a universal policy
+ranking or clinical decision thresholds.
 
 These are observations in one small, fixed public cohort and one conditional score universe.
 Three masking seeds do not support population or clinical conclusions. Unlike site-level

@@ -676,7 +676,8 @@ fn planned_sweeps_execute_paired_masks_and_preserve_controls_across_directories(
     let fixture = Fixture::new("planned-sweep", 4);
     let table = fixture.standard_table();
     let template = fixture.path("policies.json");
-    let manifest = fixture.manifest(&table, json!([{"id":"omit"},{"id":"same-policy"}]));
+    let mut manifest = fixture.manifest(&table, json!([{"id":"omit"},{"id":"same-policy"}]));
+    manifest["reference_sets"] = json!([{"id":"cohort","samples":["A","B","C"]},{"id":"singleton","samples":["A"]}]);
     std::fs::write(&template, serde_json::to_vec(&manifest).unwrap()).unwrap();
     let planned = fixture.path("planned experiments");
     let command = || {
@@ -730,6 +731,23 @@ fn planned_sweeps_execute_paired_masks_and_preserve_controls_across_directories(
         if comparison["distribution"]["available"].as_u64().unwrap() > 0 {
             assert_eq!(comparison["distribution"]["mean"], 0.0);
         }
+    }
+    let percentile_rows = summary["scores"][0]["percentile_comparisons"].as_array().unwrap();
+    assert!(!percentile_rows.is_empty());
+    for row in percentile_rows {
+        if row["reference_set"] == "singleton" {
+            assert_eq!(row["distribution"]["available"], 0);
+            assert!(row["distribution"]["mean"].is_null());
+        } else {
+            assert_eq!(row["distribution"]["available"], 2);
+            assert_eq!(row["distribution"]["mean"], 0.0);
+        }
+    }
+    for name in ["percentile_summaries.tsv", "percentile_comparisons.tsv"] {
+        assert_eq!(
+            summary["outputs"][name],
+            pgsum::digest::file_sha256(&summarized.join(name)).unwrap()
+        );
     }
     // Corrupted output cannot be summarized even if report.json still exists.
     std::fs::write(out.join("references.tsv"), "corrupted").unwrap();

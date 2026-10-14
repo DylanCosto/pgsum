@@ -9,6 +9,9 @@ use serde_json::{Value, json};
 use super::config::{self, Experiment, Mask};
 use crate::{Error, Result, invalid};
 
+#[path = "study_percentiles.rs"]
+mod percentiles;
+
 const METRICS: [&str; 7] = [
     "mae",
     "rmse",
@@ -252,6 +255,8 @@ fn summarize(plan: &Plan, experiment: &Experiment, report: &Value, reference: &s
         {
             return invalid!("missing or unexpected scenario results");
         }
+        let (percentile_summaries, percentile_comparisons, reference_sets) =
+            percentiles::summarize(experiment, &groups, &scenarios, reference)?;
         let mut summaries = Vec::new();
         let mut comparisons = Vec::new();
         for ((policy, rate), arms) in &groups {
@@ -283,7 +288,7 @@ fn summarize(plan: &Plan, experiment: &Experiment, report: &Value, reference: &s
             .filter(|a| a.seed.is_none())
             .map(|a| scenarios[a.scenario.as_str()].clone())
             .collect();
-        scores.push(json!({"pgs_id":id,"samples":n,"baseline_terms":score["baseline_terms"],"total_model_terms":score["total_model_terms"],"baseline_term_sha256":score["baseline_term_sha256"],"baseline_term_fraction":score["baseline_term_fraction"],"baseline_weight_fraction":score["baseline_weight_fraction"],"excluded_terms":score["excluded_terms"],"controls":controls,"summaries":summaries,"comparisons":comparisons}));
+        scores.push(json!({"pgs_id":id,"samples":n,"baseline_terms":score["baseline_terms"],"total_model_terms":score["total_model_terms"],"baseline_term_sha256":score["baseline_term_sha256"],"baseline_term_fraction":score["baseline_term_fraction"],"baseline_weight_fraction":score["baseline_weight_fraction"],"excluded_terms":score["excluded_terms"],"controls":controls,"summaries":summaries,"comparisons":comparisons,"percentile_summaries":percentile_summaries,"percentile_comparisons":percentile_comparisons,"reference_sets":reference_sets}));
     }
     if scores.len() != experiment.packs.len() {
         return invalid!("result score inventory differs from experiment packs");
@@ -294,7 +299,9 @@ fn summarize(plan: &Plan, experiment: &Experiment, report: &Value, reference: &s
             "Paired differences are policy minus reference policy within the same score, rate and seed. Error metrics favor smaller values; correlation metrics favor larger values. No automatic best-policy selection is performed.",
             "Undefined metrics are excluded with requested/available/unavailable counts. Paired differences require both metrics to be available and their difference representable.",
             "Mean, median, range and sample standard deviation describe the available seed-level metrics, not pooled participant observations. Sample SD is unavailable with fewer than two values; unrepresentable aggregates are null.",
-            "Controls are retained separately. Scores with different scales or baselines are never pooled. Cutoff and reference-distribution details remain in the source report."
+            "Cutoff counts and fractions describe membership transitions at percentile >= cutoff in the frozen target baseline distribution. Fractions range from 0 to 1; zero evaluable participants yields unavailable values, including counts. Per-seed denominators remain explicit.",
+            "Reference metrics use the authored frozen reference score distribution. Percentiles and absolute shifts are in percentile points; reference identities, participant counts and target overlap are retained. Neither membership nor percentile shifts imply clinical risk.",
+            "Controls are retained separately. Scores with different scales, baselines, cutoffs or reference sets are never pooled."
         ]}),
     )
 }
@@ -371,11 +378,34 @@ pub fn run(args: &StudyArgs) -> Result<()> {
     let mut html = String::from(
         "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\"><title>PGS robustness study</title><style>body{font:16px system-ui;max-width:1200px;margin:2rem auto;padding:1rem}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:.4rem;border-bottom:1px solid #ddd;text-align:left}th{background:#eee}</style><h1>PGS robustness study</h1><p>Descriptive masking sensitivity, not predictive validation or confidence intervals. Paired differences are policy minus reference.</p>",
     );
-    for kind in ["summaries", "comparisons"] {
+    for note in array(&summary, "notes")? {
+        html.push_str(&format!("<p>{}</p>", note.as_str().unwrap()));
+    }
+    for kind in [
+        "summaries",
+        "comparisons",
+        "percentile_summaries",
+        "percentile_comparisons",
+    ] {
+        let extended = kind.starts_with("percentile_");
+        let title = match kind {
+            "summaries" => "Score sensitivity across seeds",
+            "comparisons" => "Paired policy differences",
+            "percentile_summaries" => "Cutoff and reference sensitivity across seeds",
+            _ => "Paired cutoff and reference differences",
+        };
         let mut tsv = String::from(
             "pgs_id\tpolicy\treference_policy\trate\tmetric\trequested\tavailable\tunavailable\tmean\tmedian\tmin\tmax\tsample_sd\n",
         );
-        html.push_str(&format!("<h2>{kind}</h2><div style=\"overflow-x:auto\"><table><tr><th>Score</th><th>Policy</th><th>Reference</th><th>Rate</th><th>Metric</th><th>Requested</th><th>Available</th><th>Unavailable</th><th>Mean</th><th>Median</th><th>Min</th><th>Max</th><th>SD</th></tr>"));
+        if extended {
+            tsv = tsv.replacen("metric\t", "scope\tcutoff\treference_set\tmetric\t", 1);
+        }
+        let dimensions = if extended {
+            "<th>Scope</th><th>Cutoff</th><th>Reference set</th>"
+        } else {
+            ""
+        };
+        html.push_str(&format!("<h2>{title}</h2><div style=\"overflow-x:auto\"><table><tr><th>Score</th><th>Policy</th><th>Reference</th><th>Rate</th>{dimensions}<th>Metric</th><th>Seeds</th><th>Available</th><th>Unavailable</th><th>Mean</th><th>Median</th><th>Min</th><th>Max</th><th>SD</th></tr>"));
         for score in array(&summary, "scores")? {
             for row in array(score, kind)? {
                 let mut cells = vec![
@@ -383,8 +413,15 @@ pub fn run(args: &StudyArgs) -> Result<()> {
                     row["policy"].clone(),
                     row["reference_policy"].clone(),
                     row["rate"].clone(),
-                    row["metric"].clone(),
                 ];
+                if extended {
+                    cells.extend([
+                        row["scope"].clone(),
+                        row["cutoff"].clone(),
+                        row["reference_set"].clone(),
+                    ]);
+                }
+                cells.push(row["metric"].clone());
                 for field in [
                     "requested",
                     "available",
@@ -416,7 +453,7 @@ pub fn run(args: &StudyArgs) -> Result<()> {
                 tsv.push('\n');
                 html.push_str("<tr>");
                 for (index, mut c) in cells.into_iter().enumerate() {
-                    if index >= 8
+                    if index >= if extended { 11 } else { 8 }
                         && let Ok(v) = c.parse::<f64>()
                     {
                         c = if v != 0.0 && (v.abs() < 1e-4 || v.abs() >= 1e6) {
@@ -445,7 +482,13 @@ pub fn run(args: &StudyArgs) -> Result<()> {
     let p = args.out.join("summary.html");
     std::fs::write(&p, html).map_err(Error::io(&p))?;
     let mut hashes = BTreeMap::new();
-    for name in ["summaries.tsv", "comparisons.tsv", "summary.html"] {
+    for name in [
+        "summaries.tsv",
+        "comparisons.tsv",
+        "percentile_summaries.tsv",
+        "percentile_comparisons.tsv",
+        "summary.html",
+    ] {
         hashes.insert(name, crate::digest::file_sha256(&args.out.join(name))?);
     }
     summary["outputs"] = value(&hashes)?;
@@ -496,7 +539,11 @@ mod tests {
                 for m in METRICS {
                     metrics[m] = if m == "mae" { json!(mae) } else { json!(0.5) };
                 }
-                results.push(json!({"id":id,"metrics":metrics}));
+                metrics["crossings"] = json!([
+                    {"cutoff":90,"up":0,"down":1,"unchanged":2,"evaluable":3},
+                    {"cutoff":95,"up":0,"down":0,"unchanged":3,"evaluable":3}
+                ]);
+                results.push(json!({"id":id,"metrics":metrics,"reference_comparisons":[]}));
             }
         }
         let experiment: Experiment = serde_json::from_value(
@@ -522,6 +569,129 @@ mod tests {
         assert_eq!(row["distribution"]["unavailable"], 1);
         assert_eq!(row["pairs"][0]["seed"], 1);
         assert!(row["pairs"][1]["difference"].is_null());
+    }
+    #[test]
+    fn percentile_summaries_preserve_dimensions_denominators_and_pairing() {
+        let (p, mut e, mut r) = fixture();
+        e.reference_sets = serde_json::from_value(json!([
+            {"id":"cutoff/90/changed_fraction", "samples":["A","B"]},
+            {"id":"singleton", "samples":["A"]}
+        ]))
+        .unwrap();
+        r["experiment"] = json!(e);
+        for (i, s) in r["scores"][0]["scenarios"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .enumerate()
+        {
+            let shift = [0.0, 10.0, 30.0, 0.0, 8.0, 20.0][i];
+            s["reference_comparisons"] = json!([
+                {"id":"cutoff/90/changed_fraction","reference_samples":2,"shared_sample_ids":2,"evaluable":3,
+                 "mean_baseline_percentile":50,"mean_scenario_percentile":50,"mean_absolute_shift":shift,"max_absolute_shift":shift},
+                {"id":"singleton","reference_samples":1,"shared_sample_ids":1,"evaluable":0,
+                 "mean_baseline_percentile":null,"mean_scenario_percentile":null,"mean_absolute_shift":null,"max_absolute_shift":null}
+            ]);
+        }
+        r["scores"][0]["scenarios"][1]["metrics"]["crossings"][0] =
+            json!({"cutoff":90,"up":1,"down":1,"unchanged":1,"evaluable":3});
+        let s = summarize(&p, &e, &r, "a").unwrap();
+        let rows = s["scores"][0]["percentile_comparisons"].as_array().unwrap();
+        let row = rows
+            .iter()
+            .find(|x| x["metric"] == "changed_fraction" && x["cutoff"] == 90.0)
+            .unwrap();
+        assert!((row["distribution"]["mean"].as_f64().unwrap() + 1.0 / 6.0).abs() < 1e-12);
+        assert_eq!(row["pairs"][0]["policy_evaluable"], 3);
+        let row = rows
+            .iter()
+            .find(|x| x["metric"] == "mean_absolute_shift" && x["reference_set"] == "cutoff/90/changed_fraction")
+            .unwrap();
+        assert_eq!(row["distribution"]["mean"], -6.0);
+        assert_eq!(row["pairs"][0]["difference"], -2.0);
+        let row = rows
+            .iter()
+            .find(|x| x["metric"] == "mean_absolute_shift" && x["reference_set"] == "singleton")
+            .unwrap();
+        assert_eq!(row["distribution"]["unavailable"], 2);
+        assert!(row["distribution"]["mean"].is_null());
+        assert_eq!(row["pairs"][0]["reference_evaluable"], 0);
+        assert_eq!(s["scores"][0]["reference_sets"].as_array().unwrap().len(), 2);
+        let saved = r.clone();
+        // Three identical 0.1-point shifts have a floating mean slightly above their maximum.
+        let mut rounded_experiment = e.clone();
+        rounded_experiment.reference_sets[0].samples = None;
+        rounded_experiment.reference_sets[0].genotypes = Some("reference500.pgsc".into());
+        r["experiment"] = json!(rounded_experiment);
+        for scenario in r["scores"][0]["scenarios"].as_array_mut().unwrap() {
+            let reference = &mut scenario["reference_comparisons"][0];
+            reference["reference_samples"] = json!(500);
+            reference["mean_scenario_percentile"] = json!(50.1);
+            reference["mean_absolute_shift"] = json!((0.1 + 0.1 + 0.1) / 3.0);
+            reference["max_absolute_shift"] = json!(0.1);
+        }
+        assert!(summarize(&p, &rounded_experiment, &r, "a").is_ok());
+        r["scores"][0]["scenarios"][1]["reference_comparisons"][0]["mean_absolute_shift"] = json!(0.2);
+        assert!(summarize(&p, &rounded_experiment, &r, "a").is_err());
+        // Reference metadata must agree across arms, and values must honor availability and bounds.
+        for (key, bad) in [
+            ("reference_samples", json!(3)),
+            ("shared_sample_ids", json!(4)),
+            ("mean_baseline_percentile", json!(49)),
+            ("evaluable", json!(4)),
+            ("mean_absolute_shift", json!(101)),
+            ("max_absolute_shift", json!(null)),
+        ] {
+            let mut r = saved.clone();
+            r["scores"][0]["scenarios"][1]["reference_comparisons"][0][key] = bad;
+            assert!(summarize(&p, &e, &r, "a").is_err(), "{key}");
+        }
+        let mut r = saved.clone();
+        r["scores"][0]["scenarios"][1]["reference_comparisons"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(summarize(&p, &e, &r, "a").is_err());
+        let mut r = saved;
+        r["scores"][0]["scenarios"][1]["reference_comparisons"][1]["id"] = json!("cutoff/90/changed_fraction");
+        assert!(summarize(&p, &e, &r, "a").is_err());
+    }
+
+    #[test]
+    fn undefined_cutoffs_are_unavailable_and_malformed_crossings_fail() {
+        let (p, e, mut r) = fixture();
+        for scenario in r["scores"][0]["scenarios"].as_array_mut().unwrap() {
+            for c in scenario["metrics"]["crossings"].as_array_mut().unwrap() {
+                for k in ["up", "down", "unchanged", "evaluable"] {
+                    c[k] = json!(0);
+                }
+            }
+        }
+        let s = summarize(&p, &e, &r, "a").unwrap();
+        for row in s["scores"][0]["percentile_summaries"].as_array().unwrap() {
+            assert_eq!(row["distribution"]["unavailable"], 2);
+            assert!(row["distribution"]["mean"].is_null());
+            assert_eq!(row["seeds"][0]["evaluable"], 0);
+        }
+        for (key, bad) in [
+            ("up", json!(u64::MAX)),
+            ("down", json!(-1)),
+            ("evaluable", json!(4)),
+            ("cutoff", json!(89)),
+        ] {
+            let (p, e, mut r) = fixture();
+            r["scores"][0]["scenarios"][1]["metrics"]["crossings"][0][key] = bad;
+            assert!(summarize(&p, &e, &r, "a").is_err(), "{key}");
+        }
+        let (p, e, mut r) = fixture();
+        r["scores"][0]["scenarios"][1]["metrics"]["crossings"][1]["cutoff"] = json!(90);
+        assert!(summarize(&p, &e, &r, "a").is_err());
+        let (p, e, mut r) = fixture();
+        r["scores"][0]["scenarios"][1]["metrics"]["crossings"]
+            .as_array_mut()
+            .unwrap()
+            .pop();
+        assert!(summarize(&p, &e, &r, "a").is_err());
     }
     #[test]
     fn rejects_incomplete_mislabeled_or_unpaired_evidence() {
