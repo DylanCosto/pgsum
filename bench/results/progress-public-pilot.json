@@ -1,0 +1,33 @@
+{
+  "schema": "pgsum-progress-public-pilot-v1",
+  "passed": true,
+  "scope": "Operational progress validation with numerical parity to the previously checked public pilot; no new source-genotype oracle or controlled timing claim.",
+  "binary_sha256": "sha256:b6214a8a028b2958e613c8af41ff53bee9d99de6b76d34b84c3bd9b11eb427e6",
+  "report_sha256": "e490298bea23677359a8e08c0a1ac08aa2a8ea978caa5cc87318db61f6845c08",
+  "log_sha256": "51b14b151dc97bbf579df54eb932d448ddce149379cec48449346ab39cfa4d24",
+  "interval_seconds": 1,
+  "events": 41,
+  "scoring_events": 35,
+  "final_score_progress": {
+    "pgs_id": "PGS000018",
+    "score_index": 1,
+    "scores_total": 1,
+    "samples": 8,
+    "scenarios": 14,
+    "terms_total": 1745179,
+    "terms_processed": 1745179,
+    "baseline_terms": 1712283,
+    "excluded_terms": 32896
+  },
+  "numerical_payload_sha256": {
+    "samples.tsv": "2624387bce9003d317abc5a684a9108b24e8461f45c9a32e1389de194cd5987d",
+    "top-changes.jsonl": "63f200e0e63a743fb82dcc05e278d3615eab72943ea4a52d4375cbf908a60d5a",
+    "regions.tsv": "40e6526edae4f92011c1abcd37fcfa664d3517917e0423be39d11e1cd6cc2c0b",
+    "references.tsv": "c4c27c5ffee1cef56473a1b6445e6632c346a78e3e3081378f1ac118683f9e57"
+  },
+  "all_scenario_summaries_identical": true,
+  "stdout_empty": true,
+  "monotonic_elapsed_and_processed": true,
+  "periodic_intervals_verified": true,
+  "complete_event_after_successful_report": true
+}

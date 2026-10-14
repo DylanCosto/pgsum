@@ -76,6 +76,41 @@ Try the full workflow without downloading data using the included
 python3 examples/robustness/run.py --binary ./pgsum --study --out study-example-output
 ```
 
+## Monitor a long experiment
+
+By default, `robustness` writes readable stage changes and scoring updates to stderr.
+Updates show the score's index, participant/scenario counts, processed terms, retained
+common-callable baseline terms, exclusions and total elapsed time. The default scoring
+interval is 30 seconds; use a positive `--progress-interval` to change it:
+
+```sh
+pgsum robustness --experiment experiment.json --out results \
+  --progress json --progress-interval 10 2> progress.jsonl
+```
+
+`--progress json` emits one `pgsum-robustness-progress-v1` JSON object per update, with
+`phase`, `elapsed_seconds`, a `score` object when processing a score, and a report path
+only on `complete`. `--progress quiet` suppresses these updates. Errors still appear on
+stderr as ordinary diagnostics; workflow tools should handle a nonzero exit status and
+separate JSON progress objects from error lines.
+
+Stages are `preparing`, `fingerprinting`, `scoring`, `summarizing`, `writing`,
+`verifying_inputs` and `complete`. Per-score counts reset at the next score. Processed
+terms include exclusions and count completed terms only; they are not a percentage of
+elapsed runtime. Interval checks occur between blocks of 256 terms, and stage boundaries
+emit immediately. This is not a fixed-frequency heartbeat during input loading, hashing,
+summarization or a slow term. No completion-time estimate is made.
+
+Finishing a term scan does not mean the experiment succeeded. A `complete` event is emitted
+only after the final input verification and publication of `report.json`, the authoritative
+completion marker. An interruption can leave partial files without that marker. Progress
+settings and timestamps never enter scientific output files or their fingerprints.
+
+The [checked public progress run](../bench/results/progress-public-pilot.json) scans the full
+1,745,179-row PGS000018 model with eight targets and 14 scenarios. Its structured updates
+reconcile 1,712,283 baseline terms and 32,896 exclusions, and all numerical output bytes and
+scenario summaries match the earlier checked public pilot.
+
 ## Plan repeated sensitivity experiments
 
 `robustness-plan` expands policies over a Cartesian product of missingness rates and
