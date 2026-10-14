@@ -1,0 +1,929 @@
+{
+  "schema": "pgsum-robustness-memory-comparison-v1",
+  "passed": true,
+  "verifier_sha256": "f852db30b59081644bfb1fd541450085c6935285a366ea5781ca5ab7ee89356a",
+  "experiment_sha256": "445dfc287d4b1de274f5dcd3844467e3ca7ab634628eadfd7e155e44f7502c05",
+  "before": {
+    "binary": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/pgsum-shared-frequencies-before-mask-cache",
+    "binary_sha256": "654bee2aa7d37f102862eba1c378ed5ca844656e68a6f0faaf21164b6895b958",
+    "command": [
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/pgsum-shared-frequencies-before-mask-cache",
+      "--threads",
+      "4",
+      "robustness",
+      "--experiment",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/public-study-pilot-plan/experiment.json",
+      "--out",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-comparison/before"
+    ],
+    "measurement": {
+      "elapsed_seconds": 45.81,
+      "peak_rss_kib": 513876,
+      "user_seconds": 45.43,
+      "system_seconds": 0.22
+    },
+    "report_sha256": "62800f33379e52c2cdde9316e11f25839bb0e22bb412c95ac19fdd19f967d6c9"
+  },
+  "after": {
+    "binary": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+    "binary_sha256": "c1f5c0b4f383affc91267c57285a51b8dc57ea415c0cb977cd7b5b3b1de1cafd",
+    "command": [
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+      "--threads",
+      "4",
+      "robustness",
+      "--experiment",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/public-study-pilot-plan/experiment.json",
+      "--out",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-comparison/after"
+    ],
+    "measurement": {
+      "elapsed_seconds": 35.25,
+      "peak_rss_kib": 513216,
+      "user_seconds": 35.02,
+      "system_seconds": 0.23
+    },
+    "report_sha256": "e6258e7b2bb15a0a475580ba76a18384ba23bfe4bb45fc22ef527d81a4e17af2"
+  },
+  "numerical_payload_sha256": {
+    "samples.tsv": "2624387bce9003d317abc5a684a9108b24e8461f45c9a32e1389de194cd5987d",
+    "top-changes.jsonl": "63f200e0e63a743fb82dcc05e278d3615eab72943ea4a52d4375cbf908a60d5a",
+    "regions.tsv": "40e6526edae4f92011c1abcd37fcfa664d3517917e0423be39d11e1cd6cc2c0b",
+    "references.tsv": "c4c27c5ffee1cef56473a1b6445e6632c346a78e3e3081378f1ac118683f9e57"
+  },
+  "peak_rss_reduction_fraction": 0.0012843565373747978,
+  "scenarios": 14,
+  "scores": [
+    {
+      "pgs_id": "PGS000018",
+      "baseline_terms": 1712283,
+      "baseline_term_sha256": "f8cc054870cb79cb697c0d952ded16b356dad447e612124f05b86a5d3cb1e9f1"
+    }
+  ],
+  "notes": [
+    "One sequential before/after observation on a shared host; no controlled timing or universal memory claim.",
+    "All native score summaries and numerical payload bytes must agree; this comparison is not an independent source-genotype oracle."
+  ],
+  "original_public_pilot_payloads_match": true,
+  "synthetic_oracle_checks": [
+    {
+      "mask_unit": "sample-site",
+      "record_sha256": "ef3dc11cdc02fff5addd3311648467606bda125b1f823092671c1c3825e57371",
+      "record": {
+        "schema": "pgsum-robustness-scale-v1",
+        "generator": "pgsum-robustness-scale-generator-v1",
+        "passed": true,
+        "scope": "Synthetic mixed REF/ALT additive diploid GT model on 22 autosomes; score reconstruction only. No phenotype, portability or clinical-performance validation.",
+        "oracle": "Integer 10^-4-unit source formulas, original global ordinals, independently reproduced mask protocol. No engine pack/table/contribution as oracle input.",
+        "command": [
+          "/usr/bin/python3",
+          "bench/robustness_scale.py",
+          "--binary",
+          "target/robustness-check/pgsum",
+          "--output",
+          "../pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+          "--terms",
+          "1000",
+          "--samples",
+          "8",
+          "32",
+          "--missing-rates",
+          "0.005",
+          "--threads",
+          "1",
+          "4",
+          "--repeats",
+          "2",
+          "--mask-unit",
+          "sample_site",
+          "--full-audit"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release",
+        "harness_sha256": "552cad8213ad63c4f8625a78ae9a44322ded14431f60e7624e25c87ee9a2474e",
+        "environment": {
+          "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+          "python": "3.12.3",
+          "logical_cpus": 16,
+          "machine": "x86_64",
+          "gnu_time": "time (GNU Time) UNKNOWN",
+          "cpu_model": "12th Gen Intel(R) Core(TM) i5-12600K",
+          "available_rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.0\nLLVM version: 22.1.8",
+          "checkout_revision": "b30a3509cb545c902c6d142d99f8b9e4824bc1bd"
+        },
+        "binary": {
+          "path": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+          "sha256": "c1f5c0b4f383affc91267c57285a51b8dc57ea415c0cb977cd7b5b3b1de1cafd",
+          "version": "pgsum 0.6.0"
+        },
+        "parameters": {
+          "terms": [
+            1000
+          ],
+          "samples": [
+            8,
+            32
+          ],
+          "missing_rates": [
+            0.005
+          ],
+          "threads": [
+            1,
+            4
+          ],
+          "repeats": 2,
+          "seed": 42,
+          "mask_unit": "sample_site",
+          "full_audit": true,
+          "keep_inputs": false
+        },
+        "case_count": 2,
+        "native_robustness_runs": 8,
+        "measurement_policy": "No warm-up; no OS-cache flush. Every native invocation uses GNU time in its own child process; generation, oracle construction and verification are timed separately. Shared-runner wall times are observations, not performance gates.",
+        "retention_policy": "Logs, manifests, summaries, output evidence and input hashes retained. Without --keep-inputs, generated VCF/cohort and model inputs are deleted only after verification; regenerate from pinned harness/parameters.",
+        "models": [
+          {
+            "terms": 1000,
+            "generation_seconds": 0.0013247659953776747,
+            "input_sha256": {
+              "model.tsv": "0ca3532c1cc432a9fa64ce4b691d1e4e702b57217824ed2f1c32c50a321d8e5b",
+              "reference.fa": "9168310c9845f4d4ff5695bd345dccf172e849f956fab09a09ba78ccfceb42b6",
+              "reference.fa.fai": "89d899b312a9a3bda75e4105e76338478283dc185c1697465ffbf0723c0b9853",
+              "chr9.bed": "b2dbef2aaaf3c01d6565d256214bb7e983fd99d95e85bc021674af46884ac269"
+            },
+            "compile": {
+              "command": [
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                "compile",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/model-1000/model.tsv",
+                "--reference",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/model-1000/reference.fa",
+                "--out",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/model-1000/packs",
+                "--threads",
+                "1"
+              ],
+              "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+              "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/model-1000/compile.log",
+              "wall_seconds": 0.005380165996029973,
+              "gnu_time_elapsed_seconds": 0.0,
+              "cpu_seconds": 0.0,
+              "peak_rss_mib": 7.25,
+              "measurement_scope": "native child process only; Python generation and oracle excluded"
+            },
+            "pack_sha256": "5ecc422d51061bdafbe15f3d5a8b6275cb8658e01869032d37183a98ee2982d4"
+          }
+        ],
+        "cases": [
+          {
+            "terms": 1000,
+            "samples": 8,
+            "missing_rate": 0.005,
+            "generation_seconds": 0.002716838993364945,
+            "source": {
+              "missing_cells": 41,
+              "genotype_cells": 8000,
+              "actual_missing_fraction": 0.005125,
+              "missing_threshold": 5000
+            },
+            "source_vcf_sha256": "4580220405ff182c3b81ad694e14ecf8b356981a26a57155f2fa93fe581436b2",
+            "source_vcf_bytes": 59250,
+            "runs": [
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/run-t1-r0",
+                  "--threads",
+                  "1",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/run-t1-r0.log",
+                "wall_seconds": 0.014638488995842636,
+                "gnu_time_elapsed_seconds": 0.01,
+                "cpu_seconds": 0.0,
+                "peak_rss_mib": 8.29296875,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 1,
+                "repeat": 0,
+                "verification_seconds": 0.017072670976631343,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "c1eb4bbb7879f67028685b87eceb40295522ada9211168ba3b1edad16f56b7a3",
+                  "samples.tsv": "ca46c43dd150643173b6f887798b483c6c9e802f894bc19bfd66d2470a1d078a",
+                  "terms.tsv.zst": "3a683ce9fb493cb68d6eee707c9d9eb4bdb98d1477a96b149cc30834497f875f",
+                  "top-changes.jsonl": "0dc5cfc805616d64b6fbf39ad443155e917afc18220fe2da3183ccd212c001bf",
+                  "summaries": "eecb90b17fad87c4e18d972dc947712e2d3e8242118935374767008921083b62"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/run-t1-r1",
+                  "--threads",
+                  "1",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/run-t1-r1.log",
+                "wall_seconds": 0.01369801998953335,
+                "gnu_time_elapsed_seconds": 0.01,
+                "cpu_seconds": 0.0,
+                "peak_rss_mib": 8.2734375,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 1,
+                "repeat": 1,
+                "verification_seconds": 0.02175507100764662,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "c1eb4bbb7879f67028685b87eceb40295522ada9211168ba3b1edad16f56b7a3",
+                  "samples.tsv": "ca46c43dd150643173b6f887798b483c6c9e802f894bc19bfd66d2470a1d078a",
+                  "terms.tsv.zst": "3a683ce9fb493cb68d6eee707c9d9eb4bdb98d1477a96b149cc30834497f875f",
+                  "top-changes.jsonl": "0dc5cfc805616d64b6fbf39ad443155e917afc18220fe2da3183ccd212c001bf",
+                  "summaries": "eecb90b17fad87c4e18d972dc947712e2d3e8242118935374767008921083b62"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/run-t4-r0",
+                  "--threads",
+                  "4",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/run-t4-r0.log",
+                "wall_seconds": 0.013262232998386025,
+                "gnu_time_elapsed_seconds": 0.01,
+                "cpu_seconds": 0.0,
+                "peak_rss_mib": 8.29296875,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 4,
+                "repeat": 0,
+                "verification_seconds": 0.01870442501967773,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "c1eb4bbb7879f67028685b87eceb40295522ada9211168ba3b1edad16f56b7a3",
+                  "samples.tsv": "ca46c43dd150643173b6f887798b483c6c9e802f894bc19bfd66d2470a1d078a",
+                  "terms.tsv.zst": "3a683ce9fb493cb68d6eee707c9d9eb4bdb98d1477a96b149cc30834497f875f",
+                  "top-changes.jsonl": "0dc5cfc805616d64b6fbf39ad443155e917afc18220fe2da3183ccd212c001bf",
+                  "summaries": "eecb90b17fad87c4e18d972dc947712e2d3e8242118935374767008921083b62"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/run-t4-r1",
+                  "--threads",
+                  "4",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/run-t4-r1.log",
+                "wall_seconds": 0.013371402019402012,
+                "gnu_time_elapsed_seconds": 0.01,
+                "cpu_seconds": 0.0,
+                "peak_rss_mib": 8.609375,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 4,
+                "repeat": 1,
+                "verification_seconds": 0.018678499007364735,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "c1eb4bbb7879f67028685b87eceb40295522ada9211168ba3b1edad16f56b7a3",
+                  "samples.tsv": "ca46c43dd150643173b6f887798b483c6c9e802f894bc19bfd66d2470a1d078a",
+                  "terms.tsv.zst": "3a683ce9fb493cb68d6eee707c9d9eb4bdb98d1477a96b149cc30834497f875f",
+                  "top-changes.jsonl": "0dc5cfc805616d64b6fbf39ad443155e917afc18220fe2da3183ccd212c001bf",
+                  "summaries": "eecb90b17fad87c4e18d972dc947712e2d3e8242118935374767008921083b62"
+                }
+              }
+            ],
+            "extract": {
+              "command": [
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                "extract",
+                "--gvcf",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/cohort.vcf",
+                "--reference",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/model-1000/reference.fa",
+                "--pack",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/model-1000/packs",
+                "--out",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/cohort.pgsc",
+                "--all-samples",
+                "--accept-missing-quality",
+                "--threads",
+                "1"
+              ],
+              "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+              "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-8-missing-0.005/extract.log",
+              "wall_seconds": 0.008306800009449944,
+              "gnu_time_elapsed_seconds": 0.0,
+              "cpu_seconds": 0.0,
+              "peak_rss_mib": 8.515625,
+              "measurement_scope": "native child process only; Python generation and oracle excluded"
+            },
+            "cohort_sha256": "611d72490bd5ee4339e80d7b904283e31c66bf5193e51b1de1eb1a3aea2094b2",
+            "cohort_bytes": 15373,
+            "oracle_seconds": 0.013628604006953537,
+            "oracle_checks": {
+              "eligible": 961,
+              "baseline_term_sha256": "b952feada83538a86b8644292ce54b919a09d93341c72b74419cdd868b49a309",
+              "common_terms_by_contig": {
+                "1": 42,
+                "2": 44,
+                "3": 44,
+                "4": 44,
+                "5": 44,
+                "6": 44,
+                "7": 44,
+                "8": 45,
+                "9": 44,
+                "10": 45,
+                "11": 44,
+                "12": 44,
+                "13": 44,
+                "14": 44,
+                "15": 43,
+                "16": 43,
+                "17": 43,
+                "18": 43,
+                "19": 44,
+                "20": 42,
+                "21": 45,
+                "22": 42
+              },
+              "mask_decisions_checked": 15376,
+              "nonzero_changes": 1228,
+              "full_audit_sha256": "99232ede38ab9ff22d0817049002e416e86399d4c7b879d13c66318b2b5d1c0a",
+              "paired_scores": 24
+            },
+            "shared_term_fraction": 0.961,
+            "summary_by_threads": [
+              {
+                "threads": 1,
+                "median_wall_seconds": 0.014168254492687993,
+                "max_peak_rss_mib": 8.29296875
+              },
+              {
+                "threads": 4,
+                "median_wall_seconds": 0.013316817508894019,
+                "max_peak_rss_mib": 8.609375
+              }
+            ]
+          },
+          {
+            "terms": 1000,
+            "samples": 32,
+            "missing_rate": 0.005,
+            "generation_seconds": 0.007539142010500655,
+            "source": {
+              "missing_cells": 161,
+              "genotype_cells": 32000,
+              "actual_missing_fraction": 0.00503125,
+              "missing_threshold": 5000
+            },
+            "source_vcf_sha256": "3edf013225bf5fd3126a25b7d341678b6299a449a8f31094a33a3347c30ad48f",
+            "source_vcf_bytes": 155442,
+            "runs": [
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/run-t1-r0",
+                  "--threads",
+                  "1",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/run-t1-r0.log",
+                "wall_seconds": 0.021074549003969878,
+                "gnu_time_elapsed_seconds": 0.02,
+                "cpu_seconds": 0.01,
+                "peak_rss_mib": 9.08984375,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 1,
+                "repeat": 0,
+                "verification_seconds": 0.05394191000959836,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "e1cddefa81603020a1ce5fa901b3e1661a7693afad7a952a43190b1e5889631d",
+                  "samples.tsv": "ff05be97f1274dd983689448e0df2e089baac3daa8d7a8f9064b115e6aaefce5",
+                  "terms.tsv.zst": "486425f060f0ef9b31ed107fa3dc6fb9bf16e81eae93a7e1d98cdeed1c87c783",
+                  "top-changes.jsonl": "7bac54b245a657470d8ba43d9068eabf0851f6a75bce254b3a3a05f8376b52d8",
+                  "summaries": "3f1a8affc00bae65950ba4807cacb74e7ae2ab950e96ff2fcadb192318a48955"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/run-t1-r1",
+                  "--threads",
+                  "1",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/run-t1-r1.log",
+                "wall_seconds": 0.021697440999560058,
+                "gnu_time_elapsed_seconds": 0.02,
+                "cpu_seconds": 0.01,
+                "peak_rss_mib": 9.140625,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 1,
+                "repeat": 1,
+                "verification_seconds": 0.05062224899302237,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "e1cddefa81603020a1ce5fa901b3e1661a7693afad7a952a43190b1e5889631d",
+                  "samples.tsv": "ff05be97f1274dd983689448e0df2e089baac3daa8d7a8f9064b115e6aaefce5",
+                  "terms.tsv.zst": "486425f060f0ef9b31ed107fa3dc6fb9bf16e81eae93a7e1d98cdeed1c87c783",
+                  "top-changes.jsonl": "7bac54b245a657470d8ba43d9068eabf0851f6a75bce254b3a3a05f8376b52d8",
+                  "summaries": "3f1a8affc00bae65950ba4807cacb74e7ae2ab950e96ff2fcadb192318a48955"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/run-t4-r0",
+                  "--threads",
+                  "4",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/run-t4-r0.log",
+                "wall_seconds": 0.023386529996059835,
+                "gnu_time_elapsed_seconds": 0.02,
+                "cpu_seconds": 0.01,
+                "peak_rss_mib": 9.08203125,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 4,
+                "repeat": 0,
+                "verification_seconds": 0.05895697299274616,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "e1cddefa81603020a1ce5fa901b3e1661a7693afad7a952a43190b1e5889631d",
+                  "samples.tsv": "ff05be97f1274dd983689448e0df2e089baac3daa8d7a8f9064b115e6aaefce5",
+                  "terms.tsv.zst": "486425f060f0ef9b31ed107fa3dc6fb9bf16e81eae93a7e1d98cdeed1c87c783",
+                  "top-changes.jsonl": "7bac54b245a657470d8ba43d9068eabf0851f6a75bce254b3a3a05f8376b52d8",
+                  "summaries": "3f1a8affc00bae65950ba4807cacb74e7ae2ab950e96ff2fcadb192318a48955"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/run-t4-r1",
+                  "--threads",
+                  "4",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/run-t4-r1.log",
+                "wall_seconds": 0.021106636995682493,
+                "gnu_time_elapsed_seconds": 0.02,
+                "cpu_seconds": 0.01,
+                "peak_rss_mib": 8.91796875,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 4,
+                "repeat": 1,
+                "verification_seconds": 0.05247481301194057,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "e1cddefa81603020a1ce5fa901b3e1661a7693afad7a952a43190b1e5889631d",
+                  "samples.tsv": "ff05be97f1274dd983689448e0df2e089baac3daa8d7a8f9064b115e6aaefce5",
+                  "terms.tsv.zst": "486425f060f0ef9b31ed107fa3dc6fb9bf16e81eae93a7e1d98cdeed1c87c783",
+                  "top-changes.jsonl": "7bac54b245a657470d8ba43d9068eabf0851f6a75bce254b3a3a05f8376b52d8",
+                  "summaries": "3f1a8affc00bae65950ba4807cacb74e7ae2ab950e96ff2fcadb192318a48955"
+                }
+              }
+            ],
+            "extract": {
+              "command": [
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                "extract",
+                "--gvcf",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/cohort.vcf",
+                "--reference",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/model-1000/reference.fa",
+                "--pack",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/model-1000/packs",
+                "--out",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/cohort.pgsc",
+                "--all-samples",
+                "--accept-missing-quality",
+                "--threads",
+                "1"
+              ],
+              "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site",
+              "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-sample-site/case-1000-32-missing-0.005/extract.log",
+              "wall_seconds": 0.010713071009377018,
+              "gnu_time_elapsed_seconds": 0.0,
+              "cpu_seconds": 0.0,
+              "peak_rss_mib": 9.0390625,
+              "measurement_scope": "native child process only; Python generation and oracle excluded"
+            },
+            "cohort_sha256": "633f26ffc3ae8097e11930d257fba640d255a29c62a8cab13275d112e5f4a40f",
+            "cohort_bytes": 18046,
+            "oracle_seconds": 0.045763747999444604,
+            "oracle_checks": {
+              "eligible": 851,
+              "baseline_term_sha256": "055c48d8a872889b5b4b66c364ffcc3d7d033752817ac52d5351b3a35dc58a67",
+              "common_terms_by_contig": {
+                "1": 38,
+                "2": 36,
+                "3": 40,
+                "4": 40,
+                "5": 39,
+                "6": 35,
+                "7": 37,
+                "8": 43,
+                "9": 39,
+                "10": 44,
+                "11": 39,
+                "12": 39,
+                "13": 37,
+                "14": 37,
+                "15": 37,
+                "16": 40,
+                "17": 38,
+                "18": 36,
+                "19": 40,
+                "20": 40,
+                "21": 38,
+                "22": 39
+              },
+              "mask_decisions_checked": 54464,
+              "nonzero_changes": 4389,
+              "full_audit_sha256": "1fa8085f7ad0e9d3057b243e2df2324fc9410d53d4d7fc78b66d336e5f30319e",
+              "paired_scores": 96
+            },
+            "shared_term_fraction": 0.851,
+            "summary_by_threads": [
+              {
+                "threads": 1,
+                "median_wall_seconds": 0.021385995001764968,
+                "max_peak_rss_mib": 9.140625
+              },
+              {
+                "threads": 4,
+                "median_wall_seconds": 0.022246583495871164,
+                "max_peak_rss_mib": 9.08203125
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "mask_unit": "site",
+      "record_sha256": "a77818ef64bad9a4db0519cfe31effec30bc08b4a697f8342493b4d33b302b2c",
+      "record": {
+        "schema": "pgsum-robustness-scale-v1",
+        "generator": "pgsum-robustness-scale-generator-v1",
+        "passed": true,
+        "scope": "Synthetic mixed REF/ALT additive diploid GT model on 22 autosomes; score reconstruction only. No phenotype, portability or clinical-performance validation.",
+        "oracle": "Integer 10^-4-unit source formulas, original global ordinals, independently reproduced mask protocol. No engine pack/table/contribution as oracle input.",
+        "command": [
+          "/usr/bin/python3",
+          "bench/robustness_scale.py",
+          "--binary",
+          "target/robustness-check/pgsum",
+          "--output",
+          "../pgsum-genomewide-evidence/mask-cache-oracle-site",
+          "--terms",
+          "1000",
+          "--samples",
+          "8",
+          "--missing-rates",
+          "0.005",
+          "--threads",
+          "1",
+          "4",
+          "--repeats",
+          "2",
+          "--mask-unit",
+          "site",
+          "--full-audit"
+        ],
+        "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release",
+        "harness_sha256": "552cad8213ad63c4f8625a78ae9a44322ded14431f60e7624e25c87ee9a2474e",
+        "environment": {
+          "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+          "python": "3.12.3",
+          "logical_cpus": 16,
+          "machine": "x86_64",
+          "gnu_time": "time (GNU Time) UNKNOWN",
+          "cpu_model": "12th Gen Intel(R) Core(TM) i5-12600K",
+          "available_rustc": "rustc 1.98.0 (88d9e12ae 2026-08-18)\nbinary: rustc\ncommit-hash: 88d9e12ae178fab0fb5cc050a94da85685d449ea\ncommit-date: 2026-08-18\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.0\nLLVM version: 22.1.8",
+          "checkout_revision": "b30a3509cb545c902c6d142d99f8b9e4824bc1bd"
+        },
+        "binary": {
+          "path": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+          "sha256": "c1f5c0b4f383affc91267c57285a51b8dc57ea415c0cb977cd7b5b3b1de1cafd",
+          "version": "pgsum 0.6.0"
+        },
+        "parameters": {
+          "terms": [
+            1000
+          ],
+          "samples": [
+            8
+          ],
+          "missing_rates": [
+            0.005
+          ],
+          "threads": [
+            1,
+            4
+          ],
+          "repeats": 2,
+          "seed": 42,
+          "mask_unit": "site",
+          "full_audit": true,
+          "keep_inputs": false
+        },
+        "case_count": 1,
+        "native_robustness_runs": 4,
+        "measurement_policy": "No warm-up; no OS-cache flush. Every native invocation uses GNU time in its own child process; generation, oracle construction and verification are timed separately. Shared-runner wall times are observations, not performance gates.",
+        "retention_policy": "Logs, manifests, summaries, output evidence and input hashes retained. Without --keep-inputs, generated VCF/cohort and model inputs are deleted only after verification; regenerate from pinned harness/parameters.",
+        "models": [
+          {
+            "terms": 1000,
+            "generation_seconds": 0.0009198710031341761,
+            "input_sha256": {
+              "model.tsv": "0ca3532c1cc432a9fa64ce4b691d1e4e702b57217824ed2f1c32c50a321d8e5b",
+              "reference.fa": "9168310c9845f4d4ff5695bd345dccf172e849f956fab09a09ba78ccfceb42b6",
+              "reference.fa.fai": "89d899b312a9a3bda75e4105e76338478283dc185c1697465ffbf0723c0b9853",
+              "chr9.bed": "b2dbef2aaaf3c01d6565d256214bb7e983fd99d95e85bc021674af46884ac269"
+            },
+            "compile": {
+              "command": [
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                "compile",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/model-1000/model.tsv",
+                "--reference",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/model-1000/reference.fa",
+                "--out",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/model-1000/packs",
+                "--threads",
+                "1"
+              ],
+              "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site",
+              "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/model-1000/compile.log",
+              "wall_seconds": 0.004897938022622839,
+              "gnu_time_elapsed_seconds": 0.0,
+              "cpu_seconds": 0.0,
+              "peak_rss_mib": 7.25390625,
+              "measurement_scope": "native child process only; Python generation and oracle excluded"
+            },
+            "pack_sha256": "5ecc422d51061bdafbe15f3d5a8b6275cb8658e01869032d37183a98ee2982d4"
+          }
+        ],
+        "cases": [
+          {
+            "terms": 1000,
+            "samples": 8,
+            "missing_rate": 0.005,
+            "generation_seconds": 0.002264081995235756,
+            "source": {
+              "missing_cells": 41,
+              "genotype_cells": 8000,
+              "actual_missing_fraction": 0.005125,
+              "missing_threshold": 5000
+            },
+            "source_vcf_sha256": "4580220405ff182c3b81ad694e14ecf8b356981a26a57155f2fa93fe581436b2",
+            "source_vcf_bytes": 59250,
+            "runs": [
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/run-t1-r0",
+                  "--threads",
+                  "1",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/run-t1-r0.log",
+                "wall_seconds": 0.012030429003061727,
+                "gnu_time_elapsed_seconds": 0.01,
+                "cpu_seconds": 0.0,
+                "peak_rss_mib": 8.52734375,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 1,
+                "repeat": 0,
+                "verification_seconds": 0.020611608983017504,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "0c47beb85ecbcc877b943f3c32c1376485cf865b07d6313ce6eabc40cb8957d3",
+                  "samples.tsv": "200bb7d03000b212cbac60ebdb27cfe5582e79b9085d83a2b76ad0c7410d95c5",
+                  "terms.tsv.zst": "a6116b714d9e1956563033e6ead2b6a4a2b727cce797b0a665907af0e19d0ae0",
+                  "top-changes.jsonl": "8424ab8490a5861f0110fc17e5517dcfda0580a5460ad957bb373c3a5d876664",
+                  "summaries": "3d5c92d9859374a1c3e1c16aaed3ef78a4af17f3c26776fba938b68afaa9d472"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/run-t1-r1",
+                  "--threads",
+                  "1",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/run-t1-r1.log",
+                "wall_seconds": 0.012619532004464418,
+                "gnu_time_elapsed_seconds": 0.01,
+                "cpu_seconds": 0.0,
+                "peak_rss_mib": 8.49609375,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 1,
+                "repeat": 1,
+                "verification_seconds": 0.01732212002389133,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "0c47beb85ecbcc877b943f3c32c1376485cf865b07d6313ce6eabc40cb8957d3",
+                  "samples.tsv": "200bb7d03000b212cbac60ebdb27cfe5582e79b9085d83a2b76ad0c7410d95c5",
+                  "terms.tsv.zst": "a6116b714d9e1956563033e6ead2b6a4a2b727cce797b0a665907af0e19d0ae0",
+                  "top-changes.jsonl": "8424ab8490a5861f0110fc17e5517dcfda0580a5460ad957bb373c3a5d876664",
+                  "summaries": "3d5c92d9859374a1c3e1c16aaed3ef78a4af17f3c26776fba938b68afaa9d472"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/run-t4-r0",
+                  "--threads",
+                  "4",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/run-t4-r0.log",
+                "wall_seconds": 0.012271626997971907,
+                "gnu_time_elapsed_seconds": 0.01,
+                "cpu_seconds": 0.0,
+                "peak_rss_mib": 8.21484375,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 4,
+                "repeat": 0,
+                "verification_seconds": 0.01472171998466365,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "0c47beb85ecbcc877b943f3c32c1376485cf865b07d6313ce6eabc40cb8957d3",
+                  "samples.tsv": "200bb7d03000b212cbac60ebdb27cfe5582e79b9085d83a2b76ad0c7410d95c5",
+                  "terms.tsv.zst": "a6116b714d9e1956563033e6ead2b6a4a2b727cce797b0a665907af0e19d0ae0",
+                  "top-changes.jsonl": "8424ab8490a5861f0110fc17e5517dcfda0580a5460ad957bb373c3a5d876664",
+                  "summaries": "3d5c92d9859374a1c3e1c16aaed3ef78a4af17f3c26776fba938b68afaa9d472"
+                }
+              },
+              {
+                "command": [
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                  "robustness",
+                  "--experiment",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/experiment.json",
+                  "--out",
+                  "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/run-t4-r1",
+                  "--threads",
+                  "4",
+                  "--terms"
+                ],
+                "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site",
+                "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/run-t4-r1.log",
+                "wall_seconds": 0.011442729010013863,
+                "gnu_time_elapsed_seconds": 0.01,
+                "cpu_seconds": 0.0,
+                "peak_rss_mib": 8.58203125,
+                "measurement_scope": "native child process only; Python generation and oracle excluded",
+                "threads": 4,
+                "repeat": 1,
+                "verification_seconds": 0.015604055020958185,
+                "evidence_sha256": {
+                  "references.tsv": "adc4592ba0c8288ee1955d1a09223701cb65a46f967ff1c4e7349cdc9b5a9824",
+                  "regions.tsv": "0c47beb85ecbcc877b943f3c32c1376485cf865b07d6313ce6eabc40cb8957d3",
+                  "samples.tsv": "200bb7d03000b212cbac60ebdb27cfe5582e79b9085d83a2b76ad0c7410d95c5",
+                  "terms.tsv.zst": "a6116b714d9e1956563033e6ead2b6a4a2b727cce797b0a665907af0e19d0ae0",
+                  "top-changes.jsonl": "8424ab8490a5861f0110fc17e5517dcfda0580a5460ad957bb373c3a5d876664",
+                  "summaries": "3d5c92d9859374a1c3e1c16aaed3ef78a4af17f3c26776fba938b68afaa9d472"
+                }
+              }
+            ],
+            "extract": {
+              "command": [
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+                "extract",
+                "--gvcf",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/cohort.vcf",
+                "--reference",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/model-1000/reference.fa",
+                "--pack",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/model-1000/packs",
+                "--out",
+                "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/cohort.pgsc",
+                "--all-samples",
+                "--accept-missing-quality",
+                "--threads",
+                "1"
+              ],
+              "cwd": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site",
+              "log": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/mask-cache-oracle-site/case-1000-8-missing-0.005/extract.log",
+              "wall_seconds": 0.009570298017933965,
+              "gnu_time_elapsed_seconds": 0.0,
+              "cpu_seconds": 0.0,
+              "peak_rss_mib": 8.4921875,
+              "measurement_scope": "native child process only; Python generation and oracle excluded"
+            },
+            "cohort_sha256": "611d72490bd5ee4339e80d7b904283e31c66bf5193e51b1de1eb1a3aea2094b2",
+            "cohort_bytes": 15373,
+            "oracle_seconds": 0.006423304992495105,
+            "oracle_checks": {
+              "eligible": 961,
+              "baseline_term_sha256": "b952feada83538a86b8644292ce54b919a09d93341c72b74419cdd868b49a309",
+              "common_terms_by_contig": {
+                "1": 42,
+                "2": 44,
+                "3": 44,
+                "4": 44,
+                "5": 44,
+                "6": 44,
+                "7": 44,
+                "8": 45,
+                "9": 44,
+                "10": 45,
+                "11": 44,
+                "12": 44,
+                "13": 44,
+                "14": 44,
+                "15": 43,
+                "16": 43,
+                "17": 43,
+                "18": 43,
+                "19": 44,
+                "20": 42,
+                "21": 45,
+                "22": 42
+              },
+              "mask_decisions_checked": 15376,
+              "nonzero_changes": 1241,
+              "full_audit_sha256": "147871571d5d7090b7e6294d89d6a70c6b9b74b07399b1185e6fd5d501de32d9",
+              "paired_scores": 24
+            },
+            "shared_term_fraction": 0.961,
+            "summary_by_threads": [
+              {
+                "threads": 1,
+                "median_wall_seconds": 0.012324980503763072,
+                "max_peak_rss_mib": 8.52734375
+              },
+              {
+                "threads": 4,
+                "median_wall_seconds": 0.011857178003992885,
+                "max_peak_rss_mib": 8.58203125
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

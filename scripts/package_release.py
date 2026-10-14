@@ -28,7 +28,7 @@ TOP_FILES = ['README.md', 'DESIGN.md', 'RELEASE_NOTES.md', 'LICENSE-MIT', 'LICEN
 BENCH_FILES = ['README.md', 'performance.py', 'missingness.py', 'compare_plink.py',
                'public_chr22.py', 'public_chr22.requirements.txt', 'robustness_public.py',
                'robustness_genomewide.py', 'robustness_genomewide.requirements.txt',
-               'robustness_scale.py', 'test_robustness_scale.py']
+               'robustness_scale.py', 'test_robustness_scale.py', 'check_study_summary.py', 'test_study_summary.py', 'compare_robustness_memory.py']
 
 
 def require(condition, message):
@@ -214,7 +214,7 @@ def build(args):
     finally:
         if temporary is not None:
             temporary.unlink()
-    verify(archive, args.run_example)
+    verify(archive, args.run_example, args.run_study_example)
     print('Package: ' + str(archive.resolve()))
     print('Checksum: ' + str(checksum.resolve()))
 
@@ -256,12 +256,12 @@ def read_verified(archive):
     return manifest, files, modes
 
 
-def verify(archive, run_example=False):
+def verify(archive, run_example=False, run_study_example=False):
     archive = archive.resolve()
     manifest, files, modes = read_verified(archive)
     link_count = check_markdown(files)
     print('Verified %d payload hashes and %d local Markdown links: %s' % (len(files), link_count, archive.name))
-    if run_example:
+    if run_example or run_study_example:
         # Both spaces in the extraction path and an unrelated cwd catch accidental
         # dependence on the build checkout or shell working directory.
         with tempfile.TemporaryDirectory(prefix='pgsum package check ') as temporary:
@@ -278,7 +278,7 @@ def verify(archive, run_example=False):
             version = subprocess.check_output([str(binary), '--version'], cwd=str(unrelated), text=True).strip()
             require(version == 'pgsum ' + manifest['version'], 'binary version differs from package manifest')
             subprocess.run([sys.executable, str(extracted / 'examples/robustness/run.py'),
-                            '--binary', str(binary), '--out', str(directory / 'offline example output')],
+                            '--binary', str(binary), '--out', str(directory / 'offline example output')] + (['--study'] if run_study_example else []),
                            cwd=str(unrelated), check=True)
         print('Extracted-binary offline example passed.')
 
@@ -293,14 +293,16 @@ def main():
     package.add_argument('--source-root', type=Path, default=Path(__file__).resolve().parents[1])
     package.add_argument('--source-date-epoch', default=os.environ.get('SOURCE_DATE_EPOCH', '0'))
     package.add_argument('--run-example', action='store_true', help='execute archive binary; native targets only')
+    package.add_argument('--run-study-example', action='store_true', help='also run the paired study example (native targets, Python 3.9+)')
     inspection = subcommands.add_parser('verify', help='check archive, manifest, paths, modes, and Markdown links')
     inspection.add_argument('archive', type=Path)
     inspection.add_argument('--run-example', action='store_true', help='execute archive binary; native targets only')
+    inspection.add_argument('--run-study-example', action='store_true', help='also run the paired study example (native targets, Python 3.9+)')
     args = parser.parse_args()
     if args.command == 'build':
         build(args)
     else:
-        verify(args.archive, args.run_example)
+        verify(args.archive, args.run_example, args.run_study_example)
 
 
 if __name__ == '__main__':

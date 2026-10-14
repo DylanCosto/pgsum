@@ -1,12 +1,15 @@
 //! Controlled score-reconstruction experiments. These diagnostics do not estimate phenotype prediction.
 pub mod config;
+pub mod planner;
 mod report;
 pub mod stats;
+pub mod study;
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs::{File, OpenOptions};
 use std::io::{BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
+use std::rc::Rc;
 
 use clap::Args;
 use num_bigint::BigInt;
@@ -20,7 +23,7 @@ use crate::genotypes::GenotypeTable;
 use crate::pack::{Pack, TermRecord};
 use crate::score::{Contribution, ExactSum, Options, Plan};
 use crate::{Error, Result, invalid};
-use config::{Bed, Experiment, PreparedMasks};
+use config::{Bed, Experiment, PreparedMasks, RandomDrawCache};
 
 #[derive(Args, Debug)]
 pub struct RobustnessArgs {
@@ -149,7 +152,7 @@ struct ScenarioRuntime {
     masks: PreparedMasks,
     source: Option<Source>,
     indices: Vec<usize>,
-    fill: Option<FrequencyTable>,
+    fill: Option<Rc<FrequencyTable>>,
 }
 struct ReferenceRuntime {
     id: String,
@@ -321,6 +324,9 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
     let mut paths = BTreeSet::from([args.experiment.clone(), experiment.genotypes.clone()]);
     let mut metadata = BTreeMap::from([(experiment.genotypes.display().to_string(), baseline.metadata())]);
     let mut scenarios = Vec::new();
+    // Decoded frequency blocks are immutable but potentially large. A rate/seed sweep
+    // reuses each authored input across many scenarios; keep one table per resolved path.
+    let mut frequency_tables: BTreeMap<PathBuf, Rc<FrequencyTable>> = BTreeMap::new();
     for scenario in &experiment.scenarios {
         let source = scenario.genotypes.as_deref().map(Source::open).transpose()?;
         let indices = if let Some(t) = &source {
@@ -341,7 +347,14 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
         let fill = scenario
             .fill_frequencies
             .as_deref()
-            .map(FrequencyTable::open)
+            .map(|path| -> Result<Rc<FrequencyTable>> {
+                match frequency_tables.entry(path.to_owned()) {
+                    std::collections::btree_map::Entry::Occupied(entry) => Ok(Rc::clone(entry.get())),
+                    std::collections::btree_map::Entry::Vacant(entry) => {
+                        Ok(Rc::clone(entry.insert(Rc::new(FrequencyTable::open(path)?))))
+                    }
+                }
+            })
             .transpose()?;
         if let Some(path) = &scenario.fill_frequencies {
             paths.insert(path.clone());
@@ -469,6 +482,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
             .iter()
             .map(|r| vec![ExactSum::default(); r.indices.len()])
             .collect();
+        let mut mask_draws = RandomDrawCache::new(&samples);
         let mut accumulators: Vec<_> = scenarios.iter().map(|_| Accumulator::new(n, regions.len())).collect();
         let mut eligible = 0usize;
         let mut excluded = BTreeMap::new();
@@ -547,7 +561,7 @@ pub fn run(args: &RobustnessArgs) -> Result<()> {
                 let mut fill = None;
                 for s in 0..n {
                     let original = base[s].as_ref().expect("eligible");
-                    let hidden = runtime.masks.hidden(term.contig, anchor, &samples[s]);
+                    let hidden = runtime.masks.hidden_cached(&mut mask_draws, term.contig, anchor, s);
                     let alternate = &available[runtime.indices[s]];
                     let mut reason = "alternate_genotype";
                     let replacement = if hidden || alternate.is_none() {

@@ -36,7 +36,7 @@ jobs:
         run: |
           python3 scripts/package_release.py build --binary target/debug/pgsum \
             --target "$(rustc -vV | sed -n 's/^host: //p')" \
-            --output target/release-package-smoke --run-example
+            --output target/release-package-smoke --run-study-example
       - uses: actions/upload-artifact@v4
         if: always() && matrix.rust == 'stable'
         with:
@@ -67,6 +67,7 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y zstd time
       - run: cargo build --release --locked
       - run: python3 -m unittest discover -s bench -p test_robustness_scale.py
+      - run: python3 -m unittest discover -s bench -p test_study_summary.py
       # All 22 autosomes, both mask units, exact source-formula oracle and full attribution audit.
       # Runtime/RSS are observations; numerical correctness and repeatability are the gates.
       - run: python3 bench/robustness_scale.py --binary target/release/pgsum --output target/robustness-scale-smoke --terms 10000 --samples 32 128 --missing-rates 0 0.005 --threads 1 4 --full-audit

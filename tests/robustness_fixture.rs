@@ -393,6 +393,26 @@ fn external_frequency_fill_uses_the_effect_allele_and_reconciles_changes() {
         "--out",
         text(&frequencies),
     ]);
+    let zero_population = fixture.path("zero.vcf.gz");
+    let mut gzip = flate2::write::GzEncoder::new(
+        std::fs::File::create(&zero_population).unwrap(),
+        flate2::Compression::fast(),
+    );
+    gzip.write_all(b"##fileformat=VCFv4.3\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+        .unwrap();
+    for &(pos, reference, alt, _, _, _) in &SITES {
+        writeln!(gzip, "1\t{pos}\t.\t{reference}\t{alt}\t.\tPASS\tAF=0").unwrap();
+    }
+    gzip.finish().unwrap();
+    run(&[
+        "frequencies",
+        "--vcf",
+        text(&zero_population),
+        "--field",
+        "AF",
+        "--out",
+        text(&fixture.path("zero.pgsf")),
+    ]);
     let (out, report) = fixture.experiment(
         "experiment",
         fixture.manifest(
@@ -400,6 +420,12 @@ fn external_frequency_fill_uses_the_effect_allele_and_reconciles_changes() {
             json!([{
                 "id":"fill", "masks":[{"kind":"random","rate":1.0,"seed":5,"unit":"site"}],
                 "fill_frequencies":"population.pgsf", "frequency_source_note":"independent synthetic population; fixed before masking"
+            }, {
+                "id":"different_input", "masks":[{"kind":"random","rate":1.0,"seed":5,"unit":"site"}],
+                "fill_frequencies":"zero.pgsf", "frequency_source_note":"second synthetic population"
+            }, {
+                "id":"same_input_again", "masks":[{"kind":"random","rate":1.0,"seed":5,"unit":"site"}],
+                "fill_frequencies":"population.pgsf", "frequency_source_note":"same frozen population reused"
             }]),
         ),
     );
@@ -418,6 +444,23 @@ fn external_frequency_fill_uses_the_effect_allele_and_reconciles_changes() {
         assert_eq!(sample["filled_terms"], "4");
         assert_eq!(sample["unfilled_terms"], "0");
         assert_eq!(sample["retained_terms"], "0");
+    }
+    for name in ["A", "B", "C"] {
+        // Repeated inputs share storage, while a different input retains its own frequencies.
+        exact(&row(&samples, "same_input_again", name)["scenario_score"], "1.6");
+        exact(&row(&samples, "different_input", name)["scenario_score"], "3");
+        for key in [
+            "delta",
+            "filled_terms",
+            "changed_terms",
+            "top_terms_delta",
+            "other_terms_delta",
+        ] {
+            assert_eq!(
+                row(&samples, "fill", name)[key],
+                row(&samples, "same_input_again", name)[key]
+            );
+        }
     }
     assert_eq!(report["scores"][0]["scenarios"][0]["filled_observations"], 12);
     assert!(
@@ -669,4 +712,123 @@ fn completed_experiment_outputs_are_not_overwritten_by_a_rerun() {
         before,
         "a rejected rerun must leave every completed output intact"
     );
+}
+
+#[test]
+fn planned_sweeps_execute_paired_masks_and_preserve_controls_across_directories() {
+    let fixture = Fixture::new("planned-sweep", 4);
+    let table = fixture.standard_table();
+    let template = fixture.path("policies.json");
+    let mut manifest = fixture.manifest(&table, json!([{"id":"omit"},{"id":"same-policy"}]));
+    manifest["reference_sets"] = json!([{"id":"cohort","samples":["A","B","C"]},{"id":"singleton","samples":["A"]}]);
+    std::fs::write(&template, serde_json::to_vec(&manifest).unwrap()).unwrap();
+    let planned = fixture.path("planned experiments");
+    let command = || {
+        Command::new(env!("CARGO_BIN_EXE_pgsum"))
+            .current_dir(std::env::temp_dir())
+            .args([
+                "robustness-plan",
+                "--template",
+                text(&template),
+                "--rates",
+                "0,0.5,1",
+                "--seeds",
+                "42,43",
+                "--out",
+                text(&planned),
+            ])
+            .output()
+            .unwrap()
+    };
+    let output = command();
+    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
+    let experiment = planned.join("experiment.json");
+    let before = std::fs::read(&experiment).unwrap();
+    assert!(!command().status.success());
+    assert_eq!(before, std::fs::read(&experiment).unwrap());
+    let plan: Value = serde_json::from_slice(&std::fs::read(planned.join("plan.json")).unwrap()).unwrap();
+    assert_eq!(plan["scenarios"].as_array().unwrap().len(), 14);
+    assert_eq!(
+        plan["experiment_sha256"],
+        pgsum::digest::file_sha256(&experiment).unwrap()
+    );
+    let loaded = pgsum::robustness::config::load(&experiment).unwrap();
+    assert!(loaded.genotypes.is_absolute());
+    let out = fixture.path("sweep results");
+    run(&["robustness", "--experiment", text(&experiment), "--out", text(&out)]);
+    let summarized = fixture.path("study summary");
+    run(&[
+        "robustness-summarize",
+        "--plan",
+        text(&planned),
+        "--results",
+        text(&out),
+        "--reference-policy",
+        "omit",
+        "--out",
+        text(&summarized),
+    ]);
+    let summary: Value = serde_json::from_slice(&std::fs::read(summarized.join("summary.json")).unwrap()).unwrap();
+    assert_eq!(summary["scores"][0]["summaries"].as_array().unwrap().len(), 42);
+    for comparison in summary["scores"][0]["comparisons"].as_array().unwrap() {
+        if comparison["distribution"]["available"].as_u64().unwrap() > 0 {
+            assert_eq!(comparison["distribution"]["mean"], 0.0);
+        }
+    }
+    let percentile_rows = summary["scores"][0]["percentile_comparisons"].as_array().unwrap();
+    assert!(!percentile_rows.is_empty());
+    for row in percentile_rows {
+        if row["reference_set"] == "singleton" {
+            assert_eq!(row["distribution"]["available"], 0);
+            assert!(row["distribution"]["mean"].is_null());
+        } else {
+            assert_eq!(row["distribution"]["available"], 2);
+            assert_eq!(row["distribution"]["mean"], 0.0);
+        }
+    }
+    for name in ["percentile_summaries.tsv", "percentile_comparisons.tsv"] {
+        assert_eq!(
+            summary["outputs"][name],
+            pgsum::digest::file_sha256(&summarized.join(name)).unwrap()
+        );
+    }
+    // Corrupted output cannot be summarized even if report.json still exists.
+    std::fs::write(out.join("references.tsv"), "corrupted").unwrap();
+    let rejected = fixture.path("rejected study");
+    let result = Command::new(env!("CARGO_BIN_EXE_pgsum"))
+        .args([
+            "robustness-summarize",
+            "--plan",
+            text(&planned),
+            "--results",
+            text(&out),
+            "--reference-policy",
+            "omit",
+            "--out",
+            text(&rejected),
+        ])
+        .output()
+        .unwrap();
+    assert!(!result.status.success());
+    assert!(!rejected.exists());
+    let samples = rows(&out.join("samples.tsv"));
+    assert_eq!(samples.len(), 42);
+    for sample in ["A", "B", "C"] {
+        for seed in [42, 43] {
+            for rate in ["0", "0.5", "1"] {
+                let a = row(&samples, &format!("omit/rate={rate}/seed={seed}"), sample);
+                let b = row(&samples, &format!("same-policy/rate={rate}/seed={seed}"), sample);
+                for key in ["masked_terms", "scenario_score", "delta", "baseline_score"] {
+                    assert_eq!(a[key], b[key]);
+                }
+                if rate == "0" {
+                    assert_eq!(a["scenario_score"], row(&samples, "omit", sample)["scenario_score"]);
+                    assert_eq!(a["masked_terms"], "0");
+                } else if rate == "1" {
+                    exact(&a["scenario_score"], "0");
+                    assert_eq!(a["masked_terms"], "4");
+                }
+            }
+        }
+    }
 }

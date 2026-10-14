@@ -1,0 +1,67 @@
+{
+  "schema": "pgsum-robustness-memory-comparison-v1",
+  "passed": true,
+  "verifier_sha256": "f852db30b59081644bfb1fd541450085c6935285a366ea5781ca5ab7ee89356a",
+  "experiment_sha256": "445dfc287d4b1de274f5dcd3844467e3ca7ab634628eadfd7e155e44f7502c05",
+  "before": {
+    "binary": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+    "binary_sha256": "64f392051c91312189a9f7718866c4e9485dc98ef605c86653642282fea96c0b",
+    "command": [
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/release/pgsum",
+      "--threads",
+      "4",
+      "robustness",
+      "--experiment",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/public-study-pilot-plan/experiment.json",
+      "--out",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/shared-frequency-memory/before"
+    ],
+    "measurement": {
+      "elapsed_seconds": 47.19,
+      "peak_rss_kib": 2109928,
+      "user_seconds": 46.44,
+      "system_seconds": 0.72
+    },
+    "report_sha256": "6c96de6103d4ea12e4593bf3cd06d6b31b7ea7d4eca19dc0429d6ae6f8f793d2"
+  },
+  "after": {
+    "binary": "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+    "binary_sha256": "654bee2aa7d37f102862eba1c378ed5ca844656e68a6f0faaf21164b6895b958",
+    "command": [
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-release/target/robustness-check/pgsum",
+      "--threads",
+      "4",
+      "robustness",
+      "--experiment",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/public-study-pilot-plan/experiment.json",
+      "--out",
+      "/home/dyl/.codex/.chatgpt-projects/g-p-6abc358070088191ad7e4b1484fee63c/pgsum-genomewide-evidence/shared-frequency-memory/after"
+    ],
+    "measurement": {
+      "elapsed_seconds": 44.48,
+      "peak_rss_kib": 513164,
+      "user_seconds": 44.27,
+      "system_seconds": 0.2
+    },
+    "report_sha256": "62800f33379e52c2cdde9316e11f25839bb0e22bb412c95ac19fdd19f967d6c9"
+  },
+  "numerical_payload_sha256": {
+    "samples.tsv": "2624387bce9003d317abc5a684a9108b24e8461f45c9a32e1389de194cd5987d",
+    "top-changes.jsonl": "63f200e0e63a743fb82dcc05e278d3615eab72943ea4a52d4375cbf908a60d5a",
+    "regions.tsv": "40e6526edae4f92011c1abcd37fcfa664d3517917e0423be39d11e1cd6cc2c0b",
+    "references.tsv": "c4c27c5ffee1cef56473a1b6445e6632c346a78e3e3081378f1ac118683f9e57"
+  },
+  "peak_rss_reduction_fraction": 0.7567860135511733,
+  "scenarios": 14,
+  "scores": [
+    {
+      "pgs_id": "PGS000018",
+      "baseline_terms": 1712283,
+      "baseline_term_sha256": "f8cc054870cb79cb697c0d952ded16b356dad447e612124f05b86a5d3cb1e9f1"
+    }
+  ],
+  "notes": [
+    "One sequential before/after observation on a shared host; no controlled timing or universal memory claim.",
+    "All native score summaries and numerical payload bytes must agree; this comparison is not an independent source-genotype oracle."
+  ]
+}
