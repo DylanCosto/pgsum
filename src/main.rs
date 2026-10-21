@@ -1,3 +1,6 @@
+#[global_allocator]
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 use clap::{Args, Parser, Subcommand};
 use pgsum::compile::{compile_file, reference_identity};
 use pgsum::extract::{Options as ExtractOptions, ScanMode};
@@ -270,6 +273,23 @@ enum Command {
         #[arg(long)]
         limit: Option<usize>,
     },
+    /// Build GenomeOS PGS evidence batches (rows, batch digests and checkpoint deltas) for one model: the
+    /// `evidence` rows merged with the terms of a GenomeOS catalog pack. One JSON line per batch on stdout. A
+    /// source line GenomeOS's text rules may read differently (non-ASCII) exits with status 3.
+    Rows {
+        pack: PathBuf,
+        #[arg(long)]
+        genotypes: PathBuf,
+        /// GRCh38 reference FASTA (with `.fai`).
+        #[arg(long)]
+        reference: PathBuf,
+        /// The GenomeOS catalog pack directory (`manifest.json`, `score.sqlite`).
+        #[arg(long)]
+        catalog: PathBuf,
+        /// The task as JSON (see `pgsum::rows::Task`); `-` reads it from stdin.
+        #[arg(long)]
+        task: PathBuf,
+    },
     /// Build an allele-frequency table from population VCFs (for `score --fill-frequencies`).
     Frequencies {
         /// Population VCFs (gzip or bgzip; need not be indexed or sorted).
@@ -494,6 +514,13 @@ fn main() -> ExitCode {
             after,
             limit,
         } => evidence(&pack, &genotypes, &reference, call_policy.as_deref(), after, limit),
+        Command::Rows {
+            pack,
+            genotypes,
+            reference,
+            catalog,
+            task,
+        } => return rows(&pack, &genotypes, &reference, &catalog, &task),
         Command::Frequencies {
             vcf,
             field,
@@ -1536,6 +1563,35 @@ fn evidence(
     pgsum::evidence::write_rows(&pack, &table, &reference, &policy, after, limit, &mut out)?;
     out.flush().map_err(Error::io("<stdout>"))?;
     Ok(())
+}
+
+fn rows(pack: &Path, genotypes: &Path, reference: &Path, catalog: &Path, task: &Path) -> ExitCode {
+    let run = || -> Result<()> {
+        let text = if task == Path::new("-") {
+            let mut s = String::new();
+            std::io::Read::read_to_string(&mut std::io::stdin(), &mut s).map_err(Error::io("<stdin>"))?;
+            s
+        } else {
+            std::fs::read_to_string(task).map_err(Error::io(task))?
+        };
+        let task: pgsum::rows::Task = serde_json::from_str(&text).map_err(|e| Error::Invalid(format!("task: {e}")))?;
+        let (pack, table, reference_map) = (Pack::open(pack)?, GenotypeTable::open(genotypes)?, Reference::open(reference)?);
+        let fasta = pgsum::rows::Fasta::open(reference)?;
+        let mut out = BufWriter::new(std::io::stdout().lock());
+        pgsum::rows::build(&pack, &table, &reference_map, &fasta, catalog, &task, &mut out)?;
+        out.flush().map_err(Error::io("<stdout>"))
+    };
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(e) => {
+            eprintln!("pgsum: {e}");
+            if matches!(&e, Error::Invalid(m) if m.starts_with("unsupported:")) {
+                ExitCode::from(3)
+            } else {
+                ExitCode::FAILURE
+            }
+        }
+    }
 }
 
 fn inspect(path: &Path, header: bool, genotypes: Option<&Path>, options: &pgsum::score::Options) -> Result<()> {

@@ -29,6 +29,7 @@ pub mod panel;
 pub mod placement;
 pub mod public;
 pub mod reference;
+pub mod rows;
 pub mod score;
 pub mod scoring_file;
 pub mod targets;

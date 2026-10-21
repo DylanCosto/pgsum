@@ -604,6 +604,26 @@ terms itself. `--call-policy` sets the policy ID written into each call; `--afte
 - Terms pgsum reads as sequences (indels) are written with pgsum's status and no call, marked
   `pgsum_call_not_rebuilt`.
 
+## GenomeOS evidence batches (`rows`)
+
+GenomeOS stores per-term PGS evidence as batch documents of 2,000 rows, each row pgsum's evidence row merged
+with the term's source row, description and allele orientation from GenomeOS's own catalog pack, and each batch
+digested and reduced to an exact checkpoint delta. GenomeOS's Python builder (`pgs_pgsum_rows._build`) is the
+reference; `pgsum rows <pack> --genotypes <table> --reference <FASTA> --catalog <dir> --task <json|->` builds the
+same batches byte for byte (`src/rows.rs` lists the Python functions it mirrors) and writes one JSON line per
+batch: `batch`, `result_sha256`, `delta` and, when the task keeps documents, `value`.
+
+- The evidence rows come from the same code as `evidence`, in a second thread.
+- Canonical JSON follows Python's `json.dumps(sort_keys=True, ensure_ascii=False, separators=(",", ":"))` plus a
+  newline, including Python's float repr; decimals follow `decimal.Decimal` exactly (sums, signed zeros,
+  exponents).
+- Python's text rules differ from ASCII ones only for non-ASCII text, so a source line with any non-ASCII byte
+  exits with status 3 and GenomeOS builds that run in Python.
+- GenomeOS rebuilds the first batch of every run in Python and requires the same digest and delta.
+
+On HG002 (126 models), 354 sample batches matched Python's byte for byte; one run of 200,000 terms took 4.4 s
+against about 28 s in Python.
+
 ## Pack format (`pgsum-pack-v3`, v4 with indel orientations)
 
 One file per score, `<pgs_id>.pgsp`: magic bytes, a JSON header, then one zstd frame (level 3) holding the

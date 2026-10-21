@@ -257,6 +257,22 @@ pub fn write_rows(
     limit: Option<usize>,
     out: &mut impl Write,
 ) -> Result<u64> {
+    for_each_row(pack, table, reference, policy, after, limit, |row| {
+        serde_json::to_writer(&mut *out, &row).map_err(|e| Error::Invalid(e.to_string()))?;
+        out.write_all(b"\n").map_err(Error::io("<evidence rows>"))
+    })
+}
+
+/// The rows `write_rows` writes, handed to `each` one at a time instead (see `rows`).
+pub fn for_each_row(
+    pack: &Pack,
+    table: &GenotypeTable,
+    reference: &Reference,
+    policy: &str,
+    after: usize,
+    limit: Option<usize>,
+    mut each: impl FnMut(Value) -> Result<()>,
+) -> Result<u64> {
     let extracted = table
         .header
         .packs
@@ -281,11 +297,11 @@ pub fn write_rows(
         // The records at the term's position; a record met twice is kept once.
         let mut records: Vec<Value> = Vec::new();
         if term.contig != 0 {
+            // A record's value is a function of its line (its digest included), so equal lines are the equal records.
             let mut seen = BTreeSet::new();
             for line in table.records(position_key(term.contig, term.pos))? {
-                let record = record_value(line, refcall, caller)?;
-                if seen.insert(record.to_string()) {
-                    records.push(record);
+                if seen.insert(line) {
+                    records.push(record_value(line, refcall, caller)?);
                 }
             }
         }
@@ -302,8 +318,7 @@ pub fn write_rows(
         });
         if table.header.policy.dosage_field != crate::dosage::Field::Gt {
             row["pgsum_call_not_rebuilt"] = Value::Bool(true);
-            serde_json::to_writer(&mut *out, &row).map_err(|e| crate::Error::Invalid(e.to_string()))?;
-            writeln!(out).map_err(crate::Error::io("stdout"))?;
+            each(row)?;
             n += 1;
             continue;
         }
@@ -325,8 +340,7 @@ pub fn write_rows(
                 row["call"] = call;
             }
         }
-        serde_json::to_writer(&mut *out, &row).map_err(|e| Error::Invalid(e.to_string()))?;
-        out.write_all(b"\n").map_err(Error::io("<evidence rows>"))?;
+        each(row)?;
         n += 1;
     }
     Ok(n)
