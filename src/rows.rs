@@ -60,6 +60,50 @@ pub struct Task {
     pub frequency_policy: Value,
 }
 
+impl Task {
+    /// The task from GenomeOS's JSON. Its numbers are written back into the digested documents, so each must read back
+    /// exactly: a number that does not print to the same text Python wrote (a float serde_json reads one unit in the
+    /// last place off, an integer beyond 64 bits) leaves the run to Python, as non-ASCII text does.
+    pub fn parse(text: &str) -> Result<Task> {
+        for token in number_tokens(text) {
+            let value: Value = serde_json::from_str(token).map_err(|e| Error::Invalid(format!("task: {e}")))?;
+            let mut printed = Vec::new();
+            write_value(&mut printed, &value)?;
+            if printed != token.as_bytes() {
+                return Err(Error::Invalid(format!("unsupported: task number {token} does not read back exactly")));
+            }
+        }
+        serde_json::from_str(text).map_err(|e| Error::Invalid(format!("task: {e}")))
+    }
+}
+
+/// The number tokens of a JSON text (outside strings).
+fn number_tokens(text: &str) -> Vec<&str> {
+    let bytes = text.as_bytes();
+    let (mut tokens, mut i, mut in_string) = (Vec::new(), 0, false);
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_string {
+            match b {
+                b'\\' => i += 1,
+                b'"' => in_string = false,
+                _ => {}
+            }
+        } else if b == b'"' {
+            in_string = true;
+        } else if b == b'-' || b.is_ascii_digit() {
+            let start = i;
+            while i < bytes.len() && matches!(bytes[i], b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9') {
+                i += 1;
+            }
+            tokens.push(&text[start..i]);
+            continue;
+        }
+        i += 1;
+    }
+    tokens
+}
+
 const FLAGS: [&str; 5] = ["is_haplotype", "is_diplotype", "is_interaction", "is_dominant", "is_recessive"];
 const MAX_TARGETS: usize = 20_000;
 
@@ -1133,6 +1177,23 @@ fn batches(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn task_numbers_must_read_back_exactly() {
+        let task = |policy: &str| {
+            format!(
+                r#"{{"first":0,"batches":1,"batch_size":2000,"row_bytes_bound":1,"term_page":20000,"page_bytes":1,
+                "identity":{{"case_id":"a \"1.5\" b"}},"inputs_sha256":"x","pack_sha256":"y","static":{{}},"keep":false,
+                "call_policy":"p","passing":[],"frequency_policy":{policy}}}"#
+            )
+        };
+        assert!(Task::parse(&task(r#"{"z":1.959963984540054,"n":400,"low":"0.4"}"#)).is_ok());
+        for bad in ["6.0753501176115204e-151", "10000000000000000000000000", "1.0e5", "1E+16"] {
+            let e = Task::parse(&task(&format!(r#"{{"z":{bad}}}"#))).err().expect("refused");
+            assert!(matches!(&e, Error::Invalid(m) if m.starts_with("unsupported:")), "{bad}: {e}");
+        }
+        assert_eq!(number_tokens(r#"{"a":"-1 \" 2","b":[-3.5e-07,4]}"#), vec!["-3.5e-07", "4"]);
+    }
 
     #[test]
     fn floats_print_as_python_repr() {

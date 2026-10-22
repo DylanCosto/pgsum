@@ -1574,7 +1574,7 @@ fn rows(pack: &Path, genotypes: &Path, reference: &Path, catalog: &Path, task: &
         } else {
             std::fs::read_to_string(task).map_err(Error::io(task))?
         };
-        let task: pgsum::rows::Task = serde_json::from_str(&text).map_err(|e| Error::Invalid(format!("task: {e}")))?;
+        let task = pgsum::rows::Task::parse(&text)?;
         let (pack, table, reference_map) = (Pack::open(pack)?, GenotypeTable::open(genotypes)?, Reference::open(reference)?);
         let fasta = pgsum::rows::Fasta::open(reference)?;
         let mut out = BufWriter::new(std::io::stdout().lock());
