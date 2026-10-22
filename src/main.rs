@@ -1575,7 +1575,11 @@ fn rows(pack: &Path, genotypes: &Path, reference: &Path, catalog: &Path, task: &
             std::fs::read_to_string(task).map_err(Error::io(task))?
         };
         let task = pgsum::rows::Task::parse(&text)?;
-        let (pack, table, reference_map) = (Pack::open(pack)?, GenotypeTable::open(genotypes)?, Reference::open(reference)?);
+        let (pack, table, reference_map) = (
+            Pack::open(pack)?,
+            GenotypeTable::open(genotypes)?,
+            Reference::open(reference)?,
+        );
         let fasta = pgsum::rows::Fasta::open(reference)?;
         let mut out = BufWriter::new(std::io::stdout().lock());
         pgsum::rows::build(&pack, &table, &reference_map, &fasta, catalog, &task, &mut out)?;

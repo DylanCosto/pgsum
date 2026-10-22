@@ -70,7 +70,9 @@ impl Task {
             let mut printed = Vec::new();
             write_value(&mut printed, &value)?;
             if printed != token.as_bytes() {
-                return Err(Error::Invalid(format!("unsupported: task number {token} does not read back exactly")));
+                return Err(Error::Invalid(format!(
+                    "unsupported: task number {token} does not read back exactly"
+                )));
             }
         }
         serde_json::from_str(text).map_err(|e| Error::Invalid(format!("task: {e}")))
@@ -104,7 +106,13 @@ fn number_tokens(text: &str) -> Vec<&str> {
     tokens
 }
 
-const FLAGS: [&str; 5] = ["is_haplotype", "is_diplotype", "is_interaction", "is_dominant", "is_recessive"];
+const FLAGS: [&str; 5] = [
+    "is_haplotype",
+    "is_diplotype",
+    "is_interaction",
+    "is_dominant",
+    "is_recessive",
+];
 const MAX_TARGETS: usize = 20_000;
 
 fn canonical_contigs() -> Vec<String> {
@@ -284,7 +292,8 @@ fn big(d: &Decimal) -> BigInt {
 }
 
 fn from_big(value: &BigInt, exponent: i64, negative_zero: bool) -> Decimal {
-    let negative = value.sign() == num_bigint::Sign::Minus || (value.sign() == num_bigint::Sign::NoSign && negative_zero);
+    let negative =
+        value.sign() == num_bigint::Sign::Minus || (value.sign() == num_bigint::Sign::NoSign && negative_zero);
     Decimal {
         negative,
         coefficient: value.magnitude().to_string(),
@@ -356,7 +365,12 @@ fn get<'a>(row: &'a Map<String, Value>, key: &str) -> &'a str {
 
 /// `str.strip()` on ASCII text (Python's whitespace includes the four information separators).
 fn strip(s: &str) -> &str {
-    s.trim_matches(|c: char| matches!(c, ' ' | '\t' | '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\x1f'))
+    s.trim_matches(|c: char| {
+        matches!(
+            c,
+            ' ' | '\t' | '\n' | '\r' | '\x0b' | '\x0c' | '\x1c' | '\x1d' | '\x1e' | '\x1f'
+        )
+    })
 }
 
 fn literal(s: &str) -> bool {
@@ -570,7 +584,9 @@ impl Fasta {
             if length < 1
                 || bases < 1
                 || width < bases
-                || entries.insert(f[0].to_owned(), (length, offset, bases, width)).is_some()
+                || entries
+                    .insert(f[0].to_owned(), (length, offset, bases, width))
+                    .is_some()
             {
                 return invalid!("{fai}: malformed or duplicate FAI entry");
             }
@@ -611,7 +627,10 @@ impl Fasta {
         }
         seq.make_ascii_uppercase();
         if !seq.iter().all(|b| matches!(b, b'A' | b'C' | b'G' | b'T' | b'N')) {
-            return invalid!("Reference sequence contains unsupported bases at {contig}:{}-{end}.", start + 1);
+            return invalid!(
+                "Reference sequence contains unsupported bases at {contig}:{}-{end}.",
+                start + 1
+            );
         }
         Ok(String::from_utf8(seq).expect("ASCII"))
     }
@@ -761,7 +780,10 @@ fn build_row(term: Term, ours: Value, fasta: &Fasta, task: &Task) -> Result<Map<
             && call.get("contig") == d.get("contig")
             && call.get("pos1") == d.get("pos1")
             && call.get("ref") == o.get("ref")
-            && call.get("alts").and_then(Value::as_array).is_some_and(|a| a.len() == 1 && &a[0] == alt)
+            && call
+                .get("alts")
+                .and_then(Value::as_array)
+                .is_some_and(|a| a.len() == 1 && &a[0] == alt)
             && call.get("policy").and_then(Value::as_str) == Some(task.call_policy.as_str());
         let state = call.get("state").and_then(Value::as_str).unwrap_or("");
         if ok && task.passing.iter().any(|p| p == state) {
@@ -835,7 +857,8 @@ impl Reducer {
                 return invalid!("Invalid PGS effect dosage");
             };
             let value = row["contribution"].as_str().and_then(number);
-            let (Some(raw), Some(description)) = (row["source_term"].as_object(), row["description"].as_object()) else {
+            let (Some(raw), Some(description)) = (row["source_term"].as_object(), row["description"].as_object())
+            else {
                 return invalid!("Invalid PGS contribution evidence");
             };
             let expected = weight(raw, description, dose)?;
@@ -914,17 +937,19 @@ impl Catalog {
 
     fn term(&self, ordinal: u64, line: &str, copies: Option<i64>) -> Result<Term> {
         if !line.is_ascii() {
-            return Err(Error::Invalid(format!("unsupported: non-ASCII source line at term {ordinal}")));
+            return Err(Error::Invalid(format!(
+                "unsupported: non-ASCII source line at term {ordinal}"
+            )));
         }
         let mut raw = Map::new();
         for (column, field) in self.columns.iter().zip(line.split('\t')) {
             raw.insert(column.clone(), Value::from(field));
         }
         let mut description = describe(&raw);
-        if copies.is_some_and(|c| c != 0) {
-            if let Some(Value::Array(reasons)) = description.get_mut("review_reasons") {
-                reasons.push("exact_duplicate_source_term".into());
-            }
+        if copies.is_some_and(|c| c != 0)
+            && let Some(Value::Array(reasons)) = description.get_mut("review_reasons")
+        {
+            reasons.push("exact_duplicate_source_term".into());
         }
         let mut doc = self.digest_prefix.clone();
         write_str(&mut doc, line);
@@ -1015,9 +1040,15 @@ pub fn build(
     std::thread::scope(|scope| {
         let (tx, rx) = std::sync::mpsc::sync_channel::<Value>(4096);
         let producer = scope.spawn(move || {
-            for_each_row(pack, table, reference, policy, after as usize, Some(limit as usize), |row| {
-                tx.send(row).map_err(|_| Error::Invalid(STOPPED.into()))
-            })
+            for_each_row(
+                pack,
+                table,
+                reference,
+                policy,
+                after as usize,
+                Some(limit as usize),
+                |row| tx.send(row).map_err(|_| Error::Invalid(STOPPED.into())),
+            )
         });
         let built = batches(&catalog, rx, fasta, task, &pgs_id, &span, out);
         match producer.join().expect("the evidence thread does not panic") {
@@ -1067,7 +1098,11 @@ fn batches(
     let mut records: BTreeSet<String> = BTreeSet::new();
     let mut position = after;
     while position < after + limit {
-        let page = catalog.page(position, task.term_page.min((after + limit - position) as usize), task.page_bytes)?;
+        let page = catalog.page(
+            position,
+            task.term_page.min((after + limit - position) as usize),
+            task.page_bytes,
+        )?;
         let Some(&(last_ordinal, _, _)) = page.last() else {
             return invalid!("{pgs_id}: the catalog pack has fewer terms than its manifest");
         };
@@ -1120,7 +1155,10 @@ fn batches(
                         q.insert(k.clone(), v.clone());
                     }
                     q.insert("targets_sha256".into(), targets_sha256(&targets, &contigs)?.into());
-                    q.insert("source_records_sha256".into(), format!("sha256:{}", hex(&h.finalize())).into());
+                    q.insert(
+                        "source_records_sha256".into(),
+                        format!("sha256:{}", hex(&h.finalize())).into(),
+                    );
                     q.insert("absence_is_reference".into(), false.into());
                     q.insert("clinical_use".into(), false.into());
                     q.insert("callability_authority".into(), false.into());
@@ -1188,11 +1226,22 @@ mod tests {
             )
         };
         assert!(Task::parse(&task(r#"{"z":1.959963984540054,"n":400,"low":"0.4"}"#)).is_ok());
-        for bad in ["6.0753501176115204e-151", "10000000000000000000000000", "1.0e5", "1E+16"] {
+        for bad in [
+            "6.0753501176115204e-151",
+            "10000000000000000000000000",
+            "1.0e5",
+            "1E+16",
+        ] {
             let e = Task::parse(&task(&format!(r#"{{"z":{bad}}}"#))).err().expect("refused");
-            assert!(matches!(&e, Error::Invalid(m) if m.starts_with("unsupported:")), "{bad}: {e}");
+            assert!(
+                matches!(&e, Error::Invalid(m) if m.starts_with("unsupported:")),
+                "{bad}: {e}"
+            );
         }
-        assert_eq!(number_tokens(r#"{"a":"-1 \" 2","b":[-3.5e-07,4]}"#), vec!["-3.5e-07", "4"]);
+        assert_eq!(
+            number_tokens(r#"{"a":"-1 \" 2","b":[-3.5e-07,4]}"#),
+            vec!["-3.5e-07", "4"]
+        );
     }
 
     #[test]
@@ -1277,7 +1326,10 @@ mod tests {
         r.insert("chr_position".into(), "1".into());
         assert_eq!(describe(&r)["review_reasons"], json!([]));
         r.insert("chr_position".into(), "2".into());
-        assert_eq!(describe(&r)["review_reasons"], json!(["variant_description_requires_review"]));
+        assert_eq!(
+            describe(&r)["review_reasons"],
+            json!(["variant_description_requires_review"])
+        );
         let pal = describe(&row(&[
             ("effect_allele", "T"),
             ("other_allele", "A"),
@@ -1287,6 +1339,9 @@ mod tests {
         ]));
         assert_eq!(pal["palindromic"], json!(true));
         assert_eq!(pal["contig"], json!("chrM"));
-        assert_eq!(pal["review_reasons"], json!(["invalid_effect_weight", "unresolved_harmonized_position"]));
+        assert_eq!(
+            pal["review_reasons"],
+            json!(["invalid_effect_weight", "unresolved_harmonized_position"])
+        );
     }
 }
