@@ -102,6 +102,9 @@ pgsum inspect packs/PGS000001.pgsp [--header] [--genotypes sample.pgsg]
 # Per-term evidence rows: status, call, dosage, contribution and source records (extract with
 # --term-positions; see DESIGN.md).
 pgsum evidence packs/PGS000001.pgsp --genotypes sample.pgsg --reference GRCh38.fa
+
+# GenomeOS evidence batches (rows, digests, checkpoint deltas) for one model; see DESIGN.md.
+pgsum rows packs/PGS000001.pgsp --genotypes sample.pgsg --reference GRCh38.fa --catalog catalog/PGS000001 --task task.json
 ```
 
 Many scores at once: `--pack` takes files or directories and can be repeated, `--pack-list` reads paths from

@@ -1,6 +1,6 @@
 [package]
 name = "pgsum"
-version = "0.5.1"
+version = "0.6.0-dev"
 edition = "2024"
 rust-version = "1.88"
 description = "Polygenic score calculation from gVCFs: exact observed sums, reference-block-aware genotype rules, optional frequency filling"
@@ -31,6 +31,8 @@ num-traits = "0.2.19"
 rayon = "1.12.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
+rusqlite = { version = "0.37", features = ["bundled"] }
+mimalloc = { version = "0.1", default-features = false }
 sha2 = "0.11.0"
 thiserror = "2"
 ureq = "3.4.2"
