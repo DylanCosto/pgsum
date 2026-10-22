@@ -2,7 +2,7 @@
 
 Polygenic score calculation from gVCFs, with exact observed scores and optional population-frequency filling.
 
-**Status: early development; latest tagged release v0.5.1.** The full pipeline works; genotype calls are
+**Status: early development; latest tagged release v0.6.0.** The full pipeline works; genotype calls are
 validated against GIAB truth sets on seven genomes, reference blocks on four of them (see [Validation](#validation)).
 
 ## What's different

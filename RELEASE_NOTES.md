@@ -1,4 +1,30 @@
-# Scoring workflow development (unreleased)
+# pgsum 0.6.0
+
+- pgsum rows: GenomeOS per-term PGS evidence batches (rows, batch digests, checkpoint deltas), byte for
+  byte what GenomeOS's Python builder writes. A source line with any non-ASCII byte exits with status 3.
+- pgsum evidence: same output, about 40% faster. The allocator is now mimalloc.
+- compare: pgsum partial scores against PLINK 2 sums and pgsc_calc `SUM` outputs, with exact decimal
+  differences and tolerances.
+- --dosage-field gt|ds|gp for single-sample and cohort extraction and `run`, including streaming BCF.
+- batch (sample sheets, resume, aggregate output); run/batch --ids with a verified Catalog cache,
+  --offline, --refresh-catalog; run --preflight; execution manifests.
+- Missingness reports with exact contribution envelopes (score JSON; `score --missingness` for cohorts).
+- Cohort scoring: an evicting decoded-block cache (--cohort-cache-mib, default 128 MiB) and faster
+  homozygous-reference skipping.
+- Formats: score JSON v4 (consumers of v2 see "Score JSON migration" below), genotype files v5 (v1-v4 still
+  read), cohort extraction v3.
+
+## GenomeOS evidence batches (`rows`)
+
+`pgsum rows <pack> --genotypes <table> --reference <FASTA> --catalog <dir> --task <json|->` builds GenomeOS's
+batch documents of per-term PGS evidence: pgsum's evidence rows merged with each term's source row, description
+and orientation from GenomeOS's catalog pack, each batch digested and reduced to an exact checkpoint delta. It
+writes one JSON line per batch. Canonical JSON follows Python's, including its float repr, and decimals follow
+`decimal.Decimal` exactly. Python's text rules differ from ASCII ones only for non-ASCII text, so a source line
+with any non-ASCII byte exits with status 3 and the caller builds that batch in Python. On HG002, 354 sample
+batches across all 126 report models matched Python's byte for byte. See DESIGN.md.
+
+## Scoring workflows
 
 Added `compare` for pgsum partial scores, explicitly selected PLINK 2 sum columns and pgsc_calc `SUM`
 outputs, including gzip/zstd input, exact decimal differences/tolerances, complete identity joins and
@@ -42,12 +68,12 @@ quantitative scores also share decoded waves, with source-order fallback for uno
 Source-reference reporting gathers evidence in key order to avoid repeated probability-block decoding. The
 cache is not a total process RAM cap; see README for active-block/decoder overhead and ordering tradeoffs.
 
-# Next release (unreleased)
+## Cohort scoring and reproducible checks
 
-pgsum scores individual gVCFs and cohort VCFs with exact decimal sums. This release improves cohort
+pgsum scores individual gVCFs and cohort VCFs with exact decimal sums. This release also improves cohort
 scoring and makes the performance and correctness checks reproducible without downloading genomes.
 
-## Scoring performance
+### Scoring performance
 
 - Skip four homozygous-reference cohort samples at a time from the packed genotype representation.
 - Precompute exact differences from the reference-dosage contribution once per term, instead of
@@ -59,7 +85,7 @@ scoring and makes the performance and correctness checks reproducible without do
   against an independent integer oracle, and compares outputs across thread counts and optional baseline
   binaries. See `bench/README.md` for measurements and reproduction commands.
 
-## Score JSON migration
+### Score JSON migration
 
 Score results now use `pgsum-score-v3`. Consumers of v2 should update before upgrading:
 
@@ -73,12 +99,9 @@ Score results now use `pgsum-score-v3`. Consumers of v2 should update before upg
 Full details are in `DESIGN.md`. Historical real-genome reference-panel results have not been rerun under
 this exclusion rule; the public synthetic tests verify the arithmetic and boundary behavior.
 
-## Release checks
+### Release checks
 
 CI tests Linux on stable Rust and the minimum supported Rust 1.88, plus macOS on stable Rust. A release-mode
 performance smoke test checks exact outputs and saves timing/memory results; shared-runner timings are
 informational. Release packaging checks that the tag matches the package version, tests native targets
 with locked dependencies, and smoke-tests their binaries. Cross-compiled binaries are built but not run.
-
-Before tagging, review the checks, set the package version and lockfile to the intended release, and finalize
-these notes; release packaging includes them automatically. This file does not announce a published release.
